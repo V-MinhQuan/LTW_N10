@@ -1,0 +1,36 @@
+/* CSS ĐẶC THÙ CHO TRANG QUẢN LÝ ĐƠN VỊ - BÊN NGOÀI */
+.sub-tabs {
+    display: flex;
+    margin-bottom: 15px;
+}
+
+.sub-tab {
+    padding: 10px 20px;
+    background-color: #fff;
+    color: #1a73e8;
+    border: 1px solid #1a73e8;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-right: none;
+    text-decoration: none;
+}
+
+.sub-tab:last-child {
+    border-right: 1px solid #1a73e8;
+}
+
+.sub-tab.active {
+    background-color: #1a73e8;
+    color: #fff;
+}
+
+.flex-fill {
+    flex: 1;
+    margin-bottom: 0;
+    min-height: 0;
+}
+
+.search-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+.search-inputs { display: flex; flex: 1; gap: 15px; }
+.search-inputs .form-control { flex: 1; }

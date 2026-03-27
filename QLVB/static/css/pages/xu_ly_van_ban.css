@@ -1,0 +1,16 @@
+/* CSS ĐẶC THÙ CHO TRANG XỬ LÝ VĂN BẢN */
+.alert-box {
+    background-color: #fdf5e6; /* Peach/Light orange */
+    border: 1px solid #f8cbad; /* Orange border */
+    color: #333;
+}
+.alert-box i.fa-exclamation-triangle {
+    color: #d32f2f; /* Red icon */
+    margin-right: 5px;
+}
+.alert-box p {
+    margin-bottom: 5px;
+}
+.alert-box p:last-child {
+    margin-bottom: 0;
+}

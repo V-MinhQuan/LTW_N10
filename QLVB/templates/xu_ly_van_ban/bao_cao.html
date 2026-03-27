@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Báo cáo - Vietasia Travel{% endblock %}
+
+{% block extra_css %}
+<style>
+/* CSS CÒN LẠI CHO LAYOUT */
+.page-container { max-width: 900px; margin: 30px auto; background: white; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+.page-header { background-color: #7DCCF1; padding: 15px 20px; font-weight: bold; font-size: 16px; color: #333; border-bottom: 1px solid #ddd; }
+.page-content { padding: 30px 40px; }
+.form-group-row { display: flex; gap: 30px; margin-bottom: 20px; }
+.form-group { flex: 1; display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+.form-group label { width: 150px; font-size: 14px; flex-shrink: 0; }
+.form-group label span.required { color: red; }
+textarea.form-control { height: 120px; resize: vertical; }
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 30px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">Báo cáo xử lý văn bản không phù hợp</div>
+    <div class="page-content">
+        <div class="form-group-row">
+            <div class="form-group">
+                <label>Số ký hiệu</label>
+                <input type="text" class="form-control" value="01/CV-DL" readonly>
+            </div>
+            <div class="form-group"></div>
+        </div>
+        <div class="form-group-row">
+            <div class="form-group">
+                <label>Loại vấn đề (<span class="required">*</span>)</label>
+                <select class="form-control">
+                    <option>--- Chọn loại vấn đề ---</option>
+                    <option>Sai sót nội dung</option>
+                    <option>Chậm trễ xử lý</option>
+                    <option>Vấn đề khác</option>
+                </select>
+            </div>
+            <div class="form-group"></div>
+        </div>
+
+        <div class="form-group full-width" style="flex-direction: column;">
+            <label style="margin-bottom: 10px; font-weight: bold;">Mô tả chi tiết (<span class="required">*</span>)</label>
+            <textarea class="form-control" placeholder="Vui lòng mô tả chi tiết vấn đề"></textarea>
+        </div>
+
+        <div class="form-group full-width" style="flex-direction: column;">
+            <label style="margin-bottom: 10px; font-weight: bold;">Đề xuất giải pháp</label>
+            <textarea class="form-control" placeholder="Đề xuất cách xử lý"></textarea>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'xlvb_index' %}" class="btn btn-gray">Hủy</a>
+            <a href="{% url 'xlvb_index' %}" class="btn btn-warning">Gửi báo cáo</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

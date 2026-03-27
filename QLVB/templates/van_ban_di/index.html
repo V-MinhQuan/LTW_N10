@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Văn bản đi - Vietasia Travel{% endblock %}
+
+{% block nav_vbdi %}active{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/van_ban_di.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="panel">
+    <div class="panel-header header-blue">TÌM KIẾM VĂN BẢN ĐI</div>
+    <div class="panel-body">
+        <div class="search-grid">
+            <input type="text" class="form-control" placeholder="Nhập Số ký hiệu văn bản">
+            <input type="text" class="form-control" placeholder="Nhập Trích yếu">
+            <select class="form-control">
+                <option>--- Chọn loại văn bản ---</option>
+            </select>
+            <select class="form-control">
+                <option>--- Chọn đơn vị bên ngoài ---</option>
+            </select>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>
+            <button class="btn btn-secondary"><i class="fas fa-sync-alt"></i> Làm mới</button>
+            <button class="btn btn-success" onclick="openVBD('modalForm')"><i class="fa fa-plus"></i> Thêm mới</button>
+            <button class="btn btn-warning"><i class="fa fa-sliders"></i> Bộ lọc</button>
+        </div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-header header-gray" style="display: flex; justify-content: space-between;">
+        <div>DANH SÁCH VĂN BẢN ĐI</div>
+        <div class="total">Tổng số: 500 văn bản</div>
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>STT</th>
+                        <th>Số ký hiệu</th>
+                        <th>Trích yếu</th>
+                        <th>Đơn vị nhận</th>
+                        <th>Loại văn bản</th>
+                        <th>Người soạn thảo</th>
+                        <th>Ngày soạn thảo</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="col-stt">1</td>
+                        <td class="text-left"><a href="#" class="link">01/CV-CSKH</a></td>
+                        <td class="text-left">Công văn gửi khách hàng về...</td>
+                        <td class="text-left">Tất cả khách hàng</td>
+                        <td class="text-left">Công văn</td>
+                        <td class="text-left">Phạm Thị D</td>
+                        <td class="text-center">03/02/2026</td>
+                        <td class="col-status"><span class="status green">Đã phát hành</span></td>
+                        <td class="col-actions">
+                            <button class="action-btn btn-primary" onclick="xemChiTiet(this)" style="padding: 5px 10px;"><i class="fa fa-eye"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="col-stt">2</td>
+                        <td class="text-left"><a href="#" class="link">02/TB-KD</a></td>
+                        <td class="text-left">Thông báo thay đổi giá tour...</td>
+                        <td class="text-left">Các đại lý</td>
+                        <td class="text-left">Thông báo</td>
+                        <td class="text-left">Trần Thị B</td>
+                        <td class="text-center">06/02/2026</td>
+                        <td class="col-status"><span class="status blue">Đã phê duyệt</span></td>
+                        <td class="col-actions">
+                            <button class="action-btn btn-primary" onclick="xemChiTiet(this)" style="padding: 5px 10px;"><i class="fa fa-eye"></i></button>
+                            <button class="action-btn btn-success" style="padding: 5px 10px;"><i class="fa fa-paper-plane"></i></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="table-footer">
+            <div>Hiển thị 1 - 2 / Tổng số: 2</div>
+            <div class="pagination">
+                <button class="page-btn">Đầu</button>
+                <button class="page-btn">Trước</button>
+                <button class="page-btn active">1</button>
+                <button class="page-btn">Sau</button>
+                <button class="page-btn">Cuối</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- POPUPS VĂN BẢN ĐI -->
+<div id="modalForm" class="modal-box">
+    <div class="modal-header">
+        Thêm thông tin văn bản đi
+        <span class="close-btn" style="cursor: pointer; font-size: 20px;" onclick="closeVBD('modalForm')">&times;</span>
+    </div>
+    <div class="modal-body">
+        <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+            <div class="form-group" style="flex: 1;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Loại văn bản</label>
+                <select id="loaiVB" class="form-control" style="width: 100%;">
+                    <option value="">--- Loại văn bản ---</option>
+                    <option>Công văn</option>
+                    <option>Thông báo</option>
+                    <option>Báo cáo</option>
+                    <option>Tờ trình</option>
+                    <option>Kế hoạch</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group full" style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Trích yếu</label>
+            <input type="text" id="trichYeu" class="form-control" style="width: 100%;" placeholder="Nhập trích yếu văn bản">
+        </div>
+        <div class="form-group-row" style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 20px;">
+            <label style="width: 150px; padding-top: 10px; font-weight: bold;">Đơn vị nhận</label>
+            <div class="donvi-box" style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+                <select id="donViNgoai" class="form-control" onchange="checkDonVi()">
+                    <option value="">--- Chọn đơn vị bên ngoài ---</option>
+                    <option>Vietnam Airlines</option>
+                    <option>KS Mường Thanh</option>
+                </select>
+                <select id="donViBH" class="form-control" onchange="checkDonVi()">
+                    <option value="">--- Chọn đơn vị ban hành ---</option>
+                    <option>Phòng kinh doanh</option>
+                    <option>Ban giám đốc</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group full">
+            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Tài liệu đính kèm</label>
+            <div class="upload-box" style="border: 1px dashed #bbb; background: #fafafa; padding: 30px; text-align: center; border-radius: 4px; width: 100%; box-sizing: border-box; cursor: pointer;">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 24px; color: #6bb6d6;"></i>
+                <p style="color: #888; font-size: 14px; margin-top: 10px;">Kéo thả hoặc nhấn để tải lên tài liệu đính kèm</p>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer" style="padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn btn-secondary" onclick="closeVBD('modalForm')">Hủy</button>
+        <button class="btn btn-warning" onclick="luuDuThao()">Lưu dự thảo</button>
+        <button class="btn btn-primary" onclick="guiPheDuyet()">Gửi phê duyệt</button>
+    </div>
+</div>
+
+<div id="modalDetail" class="modal-box">
+    <div class="modal-header">
+        Chi tiết văn bản đi
+        <span class="close-btn" style="cursor: pointer; font-size: 20px;" onclick="closeVBD('modalDetail')">&times;</span>
+    </div>
+    <div class="modal-body">
+        <div class="form-group full" style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Trích yếu</label>
+            <input type="text" id="ct_trichyeu" class="form-control" style="width: 100%;" readonly>
+        </div>
+        <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+            <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Loại văn bản</label><input type="text" id="ct_loaivb" class="form-control" readonly></div>
+            <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Số ký hiệu</label><input type="text" id="ct_sokyhieu" class="form-control" readonly></div>
+        </div>
+        <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+            <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị nhận</label><input type="text" id="ct_donvi" class="form-control" readonly></div>
+            <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Người soạn thảo</label><input type="text" id="ct_nguoisoan" class="form-control" readonly></div>
+        </div>
+        <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+            <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Ngày soạn thảo</label><input type="text" id="ct_ngay" class="form-control" readonly></div>
+            <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Trạng thái</label><input type="text" id="ct_trangthai" class="form-control" readonly></div>
+        </div>
+    </div>
+    <div class="modal-footer" style="padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="closeVBD('modalDetail')">Đóng</button>
+    </div>
+</div>
+
+<div id="modalSuccess" class="modal-box" style="width: 400px; text-align: center; padding: 40px;">
+    <div class="success-box">
+        <i class="fa fa-check-circle success-icon" style="font-size: 60px; color: #2ecc71; margin-bottom: 20px; display: block;"></i>
+        <h2 style="margin-bottom: 20px;">Thao tác thành công</h2>
+        <button class="btn btn-primary" onclick="closeVBD('modalSuccess')">Xong</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/pages/van_ban_di.js' %}"></script>
+{% endblock %}

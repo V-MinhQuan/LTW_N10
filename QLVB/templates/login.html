@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Đăng nhập - Vietasia Travel{% endblock %}
+
+{% block extra_css %}
+<style>
+    #loginPage {
+        min-height: calc(100vh - 127px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #f3f4f6;
+    }
+    .login-box {
+        width: 420px;
+        background: #fff;
+        padding: 45px 40px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    input { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; margin-bottom: 20px; }
+    button { width: 200px; padding: 12px; border: none; background: #1ea3d1; color: white; border-radius: 6px; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<div id="loginPage">
+    <div class="login-box">
+        <h2 style="margin-bottom: 10px; color: #333;">Đăng nhập</h2>
+        <div class="sub-text" style="margin-bottom:25px; color:#666; font-size: 14px;">Nhập thông tin để truy cập hệ thống</div>
+        <input type="text" placeholder="Tên đăng nhập" class="form-control" style="margin-bottom: 15px;">
+        <input type="password" placeholder="Mật khẩu" class="form-control" style="margin-bottom: 25px;">
+        <button class="btn btn-primary" style="width: 100%; justify-content: center; height: 45px; font-size: 15px;" onclick="window.location.href='{% url 'index' %}'">Đăng nhập</button>
+        
+        <div style="margin-top: 20px; font-size: 13px; color: #888;">
+            <a href="#" style="color: #1a73e8; text-decoration: none;">Quên mật khẩu?</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

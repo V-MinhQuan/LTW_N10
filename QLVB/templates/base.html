@@ -1,0 +1,234 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Quản lý văn bản - Vietasia Travel{% endblock %}</title>
+
+    <!-- Link Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        /* === CSS CỐT LÕI (NHÚNG ĐỂ ĐẢM BẢO ĐỒNG BỘ) === */
+        html { scrollbar-gutter: stable; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; line-height: 1.6; }
+        
+        .header { height: 80px; width: 100%; background-color: #39a6ca; position: relative; margin: 0; padding: 0; display: flex; align-items: center; margin-bottom: -1px; z-index: 10; }
+        .logo { padding: 0; height: 100%; width: 100%; }
+        .logo img { height: 100%; width: 100%; object-fit: cover; display: block; }
+        .user-info { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); line-height: normal; z-index: 100; }
+        .admin-box { 
+            border: 1px solid rgba(255,255,255,0.5); padding: 5px 15px; border-radius: 4px; 
+            background: rgba(255,255,255,0.1); cursor: pointer; color: white;
+        }
+        
+        /* USER DROPDOWN */
+        .user-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 220px;
+            background: white !important;
+            border-radius: 6px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            margin-top: 12px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+        }
+        .user-dropdown.active { display: block; }
+        .dropdown-item {
+            padding: 12px 20px;
+            text-align: center;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .dropdown-item:last-child { border-bottom: none; }
+        .dropdown-item a {
+            text-decoration: none;
+            color: #333 !important;
+            font-size: 15px;
+            font-weight: 500;
+            display: block;
+        }
+        .dropdown-item.logout a { color: #d32f2f !important; }
+        .dropdown-item:hover { background-color: #f8f9fa; }
+        
+        .navbar { background-color: #f6f6f6; border-bottom: 1px solid #ddd; margin: 0; padding: 0; display: block; }
+        .nav-links { list-style: none; display: flex; margin: 0; padding: 0; }
+        .nav-links li { border-right: 1px solid #eee; }
+        .nav-links a { display: block; padding: 12px 20px; text-decoration: none; color: #333; font-weight: 500; font-size: 14px; }
+        .nav-links li.active a { background-color: #1a73e8; color: white; }
+        
+        .main-content { padding: 20px; min-height: 600px; }
+        
+        /* GLOBAL BUTTONS */
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 8px 18px; border-radius: 4px; font-size: 13px; font-weight: bold;
+            cursor: pointer; border: 1px solid transparent; transition: 0.2s;
+            text-decoration: none; line-height: 1; text-transform: none;
+            white-space: nowrap;
+        }
+        .btn-primary, .btn-blue { background: #1a73e8; color: white; }
+        .btn-secondary, .btn-gray { background: #e0e0e0; color: #333; border: 1px solid #ccc; }
+        .btn-success, .btn-green { background: #2e7d32; color: white; }
+        .btn-danger, .btn-red { background: #d32f2f; color: white; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-blue-outline { background: white; color: #1a73e8; border: 1px solid #1a73e8; }
+        .btn:hover { opacity: 0.85; }
+        
+        /* GLOBAL FORMS */
+        .form-control {
+            width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px;
+            font-size: 13px; outline: none; background: white;
+        }
+        .form-control:focus { border-color: #1a73e8; }
+
+        /* === SHARED LAYOUT COMPONENTS === */
+        .panel, .section-card {
+            background: white; border: 1px solid #ddd; margin-bottom: 20px; border-radius: 4px; overflow: hidden;
+        }
+        .panel-header, .section-header, .modal-header {
+            background-color: #7DCCF1;
+            padding: 12px 15px; font-weight: bold; font-size: 14px; color: #333; border-bottom: 1px solid #ddd; text-transform: uppercase;
+        }
+        .header-blue { background-color: #7DCCF1; }
+        .header-gray { background-color: #D1D6DA; }
+        .panel-body, .section-body { padding: 15px; }
+
+        .search-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .alert-box {
+            background-color: #ffecd1; border: 1px solid #ffd494; padding: 15px; border-radius: 4px;
+            margin-bottom: 20px; color: #333; font-size: 14px; line-height: 1.5;
+        }
+
+        /* Standard Table in Panel */
+        .data-table, .panel table { width: 100%; border-collapse: collapse; }
+        .data-table th, .panel table th { background: #f1f4f6; padding: 10px; font-weight: bold; border: 1px solid #ddd; text-align: left; }
+        .data-table td, .panel table td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+        .data-table td a:not(.action-btn):not(.btn), .panel table td a:not(.action-btn):not(.btn) { text-decoration: none !important; color: #1a73e8 !important; font-weight: normal; }
+        .data-table td a:hover, .panel table td a:hover { text-decoration: underline !important; }
+        
+        .text-center { text-align: center !important; }
+        .text-left { text-align: left !important; }
+        .text-right { text-align: right !important; }
+
+        /* Unified Column Alignments */
+        .col-stt, .col-status { text-align: center !important; }
+        .col-actions { text-align: left !important; white-space: nowrap !important; width: 1%; }
+
+        /* Status & Action Utilities */
+        .status { padding: 4px 10px; border-radius: 12px; font-size: 11px; color: white; display: inline-block; min-width: 85px; font-weight: bold; }
+        .status.processing { background-color: #fda950; }
+        .status.completed { background-color: #43a047; }
+        .status.unassigned { background-color: #a4a4a4; }
+
+        .action-btn {
+            text-decoration: none; padding: 0; width: 28px; height: 28px; border-radius: 4px;
+            display: inline-flex; align-items: center; justify-content: center;
+            color: white; font-size: 14px; margin: 0 2px; cursor: pointer; border: none;
+        }
+        .btn-update { background-color: #4caf50; }
+        .btn-forward { background-color: #d500f9; }
+        .btn-report { background-color: #ff9800; }
+        .btn-assign { background-color: #00b0ff; padding: 6px 12px; width: auto; height: auto; font-size: 13px; font-weight: bold; }
+
+        /* Pagination & Footer */
+        .table-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 13px; }
+        .pagination { display: flex; gap: 4px; }
+        .page-btn { padding: 5px 10px; border: 1px solid #ccc; background: #f6f6f6; cursor: pointer; border-radius: 2px; transition: 0.2s; line-height: 1; }
+        .page-btn:hover { background: #e9e9e9; }
+        .page-btn.active { background-color: #1a73e8; color: white; border-color: #1a73e8; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <header class="header">
+        <div class="logo">
+            <a href="{% url 'index' %}">
+                <img src="{% static 'img/Logo_bar.png' %}" alt="Vietasia Travel Logo">
+            </a>
+        </div>
+        <div class="user-info">
+            <div class="admin-box" id="adminBox">
+                <div class="username"><i class="fas fa-user"></i> Admin</div>
+                <div class="role">Quản trị viên</div>
+            </div>
+            <div class="user-dropdown" id="userMenu">
+                <div class="dropdown-item">
+                    <a href="{% url 'thong_tin_nguoi_dung' %}">Thông tin tài khoản</a>
+                </div>
+                <div class="dropdown-item logout">
+                    <a href="{% url 'login' %}">Đăng xuất</a>
+                </div>
+            </div>
+        </div>
+    </header>
+    {% block navbar %}
+    <nav class="navbar">
+        <ul class="nav-links">
+            <li class="{% block nav_home %}{% endblock %}"><a href="{% url 'index' %}">Trang chủ</a></li>
+            <li class="{% block nav_vbd %}{% endblock %}"><a href="{% url 'vbd_index' %}">Văn bản đến</a></li>
+            <li class="{% block nav_xlvb %}{% endblock %}"><a href="{% url 'xlvb_index' %}">Xử lý văn bản điều hành</a></li>
+            <li class="{% block nav_vbdi %}{% endblock %}"><a href="{% url 'vbdi_index' %}">Văn bản đi</a></li>
+            <li class="{% block nav_qldv %}{% endblock %}"><a href="{% url 'qldv_ngoai' %}">Quản lý đơn vị</a></li>
+            <li class="{% block nav_qlnd %}{% endblock %}"><a href="{% url 'qlnd_index' %}">Quản lý người dùng</a></li>
+        </ul>
+    </nav>
+    {% endblock %}
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <div id="modalOverlay" class="modal-overlay" onclick="closeAllModals()"></div>
+
+    <script>
+        function closeAllModals() {
+            const overlay = document.getElementById('modalOverlay');
+            if (overlay) overlay.style.display = 'none';
+            const modals = document.querySelectorAll('.modal-container, .modal-box');
+            modals.forEach(m => m.style.display = 'none');
+        }
+
+        // Toggle User Dropdown
+        const adminBox = document.getElementById('adminBox');
+        const userMenu = document.getElementById('userMenu');
+
+        if (adminBox && userMenu) {
+            adminBox.addEventListener('click', function(e) {
+                e.stopPropagation();
+                userMenu.classList.toggle('active');
+            });
+
+            document.addEventListener('click', function() {
+                userMenu.classList.remove('active');
+            });
+
+            userMenu.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,14 @@
+/* CSS ĐẶC THÙ CHO TRANG QUẢN LÝ NGƯỜI DÙNG */
+.badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    color: white;
+    display: inline-block;
+    min-width: 85px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.badge-active { background-color: #43a047; }
+.badge-inactive { background-color: #9e9e9e; }

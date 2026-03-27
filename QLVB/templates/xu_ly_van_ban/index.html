@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Xử lý văn bản điều hành - Vietasia Travel{% endblock %}
+
+{% block nav_xlvb %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/xu_ly_van_ban.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="panel">
+        <div class="panel-header header-blue">TÌM KIẾM VĂN BẢN XỬ LÝ</div>
+        <div class="panel-body">
+            <div class="search-grid">
+                <input type="text" class="form-control" placeholder="Nhập số ký hiệu">
+                <select class="form-control">
+                    <option>--- Chọn người xử lý ---</option>
+                </select>
+                <input type="text" class="form-control" placeholder="dd/mm/yyyy">
+                <input type="text" class="form-control" placeholder="Tất cả" readonly style="background:#f0f0f0;">
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary"><i class="fas fa-search"></i> Tìm kiếm</button>
+                <button class="btn btn-secondary"><i class="fas fa-sync-alt"></i> Làm mới</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert-box">
+        <p><strong><i class="fas fa-exclamation-triangle"></i> Cảnh báo:</strong> Có 2 văn bản sắp đến hạn, 1 văn bản
+            quá hạn:</p>
+        <p>+ Văn bản sắp đến hạn(còn 2 ngày): 01/CV-DL, 02/TB-DL</p>
+        <p>+ Văn bản quá hạn: 03/CV-CSKH (quá hạn 2 ngày)</p>
+    </div>
+
+    <div class="panel">
+        <div class="table-panel-header panel-header header-gray" style="display: flex; justify-content: space-between;">
+            <span>DANH SÁCH VĂN BẢN</span>
+            <span>Tổng số: 4 văn bản</span>
+        </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>STT</th>
+                        <th>Số ký hiệu</th>
+                        <th>Trích yếu</th>
+                        <th>Đơn vị gửi</th>
+                        <th>Người xử lý</th>
+                        <th>Ngày nhận</th>
+                        <th>Thời hạn</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="col-stt">1</td>
+                        <td class="text-left"><a href="#">01/CV-DL</a></td>
+                        <td class="text-left">Thông báo điều chỉnh giá tour...</td>
+                        <td class="text-left">Sở Du lịch Đà Nẵng</td>
+                        <td class="text-left">Nguyễn Văn A</td>
+                        <td class="text-center">27/01/2026</td>
+                        <td class="text-center">05/02/2026</td>
+                        <td class="col-status"><span class="status processing">Đang xử lý</span></td>
+                        <td class="col-actions">
+                            <button onclick="openModalC('modalCapNhat', '01/CV-DL', 'Nguyễn Văn A')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
+                            <button onclick="openModalT('modalChuyenTiep', '01/CV-DL')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
+                            <button onclick="openModalB('modalBaoCao', '01/CV-DL')" class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="col-stt">2</td>
+                        <td class="text-left"><a href="#">04/HD-DL</a></td>
+                        <td class="text-left">Thông báo điều chỉnh giá tour...</td>
+                        <td class="text-left">Vietnam Airlines</td>
+                        <td class="text-left">Chưa phân công</td>
+                        <td class="text-center">26/01/2026</td>
+                        <td class="text-center">10/02/2026</td>
+                        <td class="col-status"><span class="status unassigned">Chưa phân công</span></td>
+                        <td class="col-actions">
+                            <button onclick="openModalP('modalPhanCong', '04/HD-DL', 'Thông báo điều chỉnh giá tour...')" class="action-btn btn-assign"><i class="fas fa-user-plus"></i> Phân công</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="table-footer">
+            <div>Hiển thị 1 - 2 / Tổng số: 2</div>
+            <div class="pagination">
+                <button class="page-btn">Đầu</button>
+                <button class="page-btn">Trước</button>
+                <button class="page-btn active">1</button>
+                <button class="page-btn">Sau</button>
+                <button class="page-btn">Cuối</button>
+            </div>
+        </div>
+
+    </div>
+    </div>
+
+    <!-- Modals Containers -->
+    <!-- Modal Cập nhật -->
+    <div id="modalCapNhat" class="modal-container">
+        <div class="modal-header">
+            Cập nhật trạng thái xử lý
+            <span class="close-btn" onclick="closeModal('modalCapNhat')">&times;</span>
+        </div>
+        <div class="modal-content">
+            <div class="form-group-row">
+                <div class="form-group">
+                    <label>Số ký hiệu</label>
+                    <input type="text" class="form-control" id="upd-soKyHieu" readonly style="background:#f0f0f0;">
+                </div>
+                <div class="form-group">
+                    <label>Người xử lý</label>
+                    <input type="text" class="form-control" id="upd-nguoiXuLy" readonly style="background:#f0f0f0;">
+                </div>
+            </div>
+            <div class="form-group-row" style="margin-bottom: 0;">
+                <div class="form-group">
+                    <label>Trạng thái (<span class="required">*</span>)</label>
+                    <select class="form-control" id="upd-trangThai">
+                        <option value="">--- Chọn trạng thái ---</option>
+                        <option value="1">Đang xử lý</option>
+                        <option value="2">Hoàn thành</option>
+                    </select>
+                </div>
+                <div class="form-group"></div>
+            </div>
+            <div class="form-group full-width" style="margin-top: 15px; flex-direction: column;">
+                <label style="margin-bottom: 5px;">Nội dung cập nhật (<span class="required">*</span>)</label>
+                <textarea class="form-control" id="upd-noiDung" placeholder="Nội dung đã xử lý"
+                    style="width: 100%; height: 80px;"></textarea>
+            </div>
+            <div class="form-group full-width"
+                style="align-items: center; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+                <label style="font-weight: bold; width: auto; margin-right: 15px;">File đính kèm</label>
+                <div style="flex: 1; border: 1px solid #ccc; padding: 5px; border-radius: 2px;">
+                    <input type="file" style="width: 100%;">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal('modalCapNhat')" class="btn btn-secondary">Hủy</button>
+            <button onclick="saveAndClose('modalCapNhat')" class="btn btn-primary">Lưu</button>
+        </div>
+    </div>
+
+    <!-- Modal Chuyển tiếp -->
+    <div id="modalChuyenTiep" class="modal-container">
+        <div class="modal-header">
+            Chuyển tiếp văn bản
+            <span class="close-btn" onclick="closeModal('modalChuyenTiep')">&times;</span>
+        </div>
+        <div class="modal-content">
+            <div class="form-group-row">
+                <div class="form-group">
+                    <label style="width: 120px;">Số ký hiệu</label>
+                    <input type="text" class="form-control" id="fwd-soKyHieu" readonly style="background:#f0f0f0;">
+                </div>
+                <div class="form-group">
+                    <label style="width: 120px;">Người nhận (<span class="required">*</span>)</label>
+                    <select class="form-control" id="fwd-nguoiNhan">
+                        <option value="">--- Chọn đơn vị ---</option>
+                        <option value="d1">Phòng Kế hoạch</option>
+                        <option value="d2">Phòng Nhân sự</option>
+                        <option value="d3">Sở Du lịch</option>
+                        <option value="d4">Ban Giám đốc</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group full-width" style="margin-top: 15px; flex-direction: column;">
+                <label style="margin-bottom: 5px; font-weight: bold;">Nội dung chuyển tiếp (<span
+                        class="required">*</span>)</label>
+                <textarea class="form-control" id="fwd-noiDung" placeholder="Nhập nội dung chuyển tiếp"
+                    style="width: 100%; height: 100px;"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal('modalChuyenTiep')" class="btn btn-secondary">Hủy</button>
+            <button onclick="saveAndClose('modalChuyenTiep')" class="btn btn-success">Chuyển tiếp</button>
+        </div>
+    </div>
+
+    <!-- Modal Báo cáo -->
+    <div id="modalBaoCao" class="modal-container">
+        <div class="modal-header">
+            Báo cáo xử lý văn bản không phù hợp
+            <span class="close-btn" onclick="closeModal('modalBaoCao')">&times;</span>
+        </div>
+        <div class="modal-content">
+            <div class="form-group-row">
+                <div class="form-group">
+                    <label style="width: 150px;">Số ký hiệu</label>
+                    <input type="text" class="form-control" id="rep-soKyHieu" readonly style="background:#f0f0f0;">
+                </div>
+                <div class="form-group"></div>
+            </div>
+            <div class="form-group-row" style="margin-bottom: 0;">
+                <div class="form-group">
+                    <label style="width: 150px;">Loại vấn đề (<span class="required">*</span>)</label>
+                    <select class="form-control" id="rep-loaiVanDe">
+                        <option value="">--- Chọn loại vấn đề ---</option>
+                        <option value="v1">Sai sót nội dung</option>
+                        <option value="v2">Chậm trễ xử lý</option>
+                        <option value="v3">Lỗi file đính kèm</option>
+                        <option value="v4">Vấn đề khác</option>
+                    </select>
+                </div>
+                <div class="form-group"></div>
+            </div>
+            <div class="form-group full-width" style="margin-top: 10px; flex-direction: column;">
+                <label style="margin-bottom: 5px; font-weight: bold;">Mô tả chi tiết (<span
+                        class="required">*</span>)</label>
+                <textarea class="form-control" id="rep-moTa" placeholder="Vui lòng mô tả chi tiết vấn đề"
+                    style="width: 100%; height: 80px;"></textarea>
+            </div>
+            <div class="form-group full-width" style="margin-top: 10px; flex-direction: column;">
+                <label style="margin-bottom: 5px; font-weight: bold;">Đề xuất giải pháp</label>
+                <textarea class="form-control" placeholder="Đề xuất cách xử lý"
+                    style="width: 100%; height: 60px;"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal('modalBaoCao')" class="btn btn-secondary">Hủy</button>
+            <button onclick="saveAndClose('modalBaoCao')" class="btn btn-warning">Gửi báo cáo</button>
+        </div>
+    </div>
+
+    <!-- Modal Phân công -->
+    <div id="modalPhanCong" class="modal-container" style="max-width: 900px;">
+        <div class="modal-header">
+            Phân công xử lý văn bản
+            <span class="close-btn" onclick="closeModal('modalPhanCong')">&times;</span>
+        </div>
+        <div class="modal-content">
+            <div class="form-group-row">
+                <div class="form-group">
+                    <label style="width: 130px;">Trích yếu</label>
+                    <input type="text" class="form-control" id="asn-trichYeu" readonly style="background:#f0f0f0;">
+                </div>
+                <div class="form-group">
+                    <label style="width: 130px;">Người xử lý (<span class="required">*</span>)</label>
+                    <select class="form-control" id="asn-nguoiXuLy">
+                        <option value="">--- Chọn người xử lý ---</option>
+                        <option value="nv_a">Nguyễn Văn A</option>
+                        <option value="nv_b">Lê Thị H</option>
+                        <option value="nv_c">Trần Minh K</option>
+                        <option value="nv_d">Phạm Thị D</option>
+                        <option value="nv_e">Hoàng Văn T</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group-row">
+                <div class="form-group">
+                    <label style="width: 130px;">Số ký hiệu</label>
+                    <input type="text" class="form-control" id="asn-soKyHieu" readonly style="background:#f0f0f0;">
+                </div>
+                <div class="form-group">
+                    <label style="width: 130px;">Thời hạn xử lý (<span class="required">*</span>)</label>
+                    <input type="date" class="form-control" id="asn-thoiHan">
+                </div>
+            </div>
+            <div class="form-group full-width" style="margin-top: 15px; flex-direction: column;">
+                <label style="margin-bottom: 5px; font-weight: bold;">Ghi chú</label>
+                <textarea class="form-control" placeholder="Nhập ghi chú nếu có"
+                    style="width: 100%; height: 80px;"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal('modalPhanCong')" class="btn btn-secondary">Hủy</button>
+            <button onclick="saveAndClose('modalPhanCong')" class="btn btn-primary">Phân công</button>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/pages/xu_ly_van_ban.js' %}"></script>
+{% endblock %}

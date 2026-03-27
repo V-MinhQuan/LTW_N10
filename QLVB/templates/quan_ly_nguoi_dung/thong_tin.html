@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Thông tin người dùng - Vietasia Travel{% endblock %}
+
+{% block nav_qlnd %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* USER PROFILE CARD */
+    .user-profile-container {
+        display: flex;
+        justify-content: center;
+        padding-top: 20px;
+    }
+    
+    .user-profile-card {
+        width: 100%;
+        max-width: 850px;
+        background: white;
+        padding: 40px 60px;
+        border-radius: 4px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .user-profile-card h2 {
+        font-size: 28px;
+        margin-bottom: 30px;
+        font-weight: bold;
+    }
+
+    .user-profile-card h3 {
+        font-size: 20px;
+        margin-top: 30px;
+        margin-bottom: 20px;
+        font-weight: bold;
+    }
+
+    .profile-summary {
+        display: flex;
+        align-items: center;
+        gap: 25px;
+        margin-bottom: 35px;
+    }
+
+    .profile-summary img {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .profile-summary .user-meta b {
+        font-size: 22px;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .profile-summary .user-meta p {
+        font-size: 16px;
+        color: #666;
+    }
+
+    .info-line {
+        display: flex;
+        justify-content: space-between;
+        padding: 15px 0;
+        border-bottom: 1px solid #eee;
+        font-size: 16px;
+    }
+
+    .info-line span:first-child {
+        color: #666;
+    }
+
+    .info-line span:last-child {
+        font-weight: 600;
+        color: #000;
+    }
+
+    .password-value {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .edit-icon {
+        cursor: pointer;
+        color: #333;
+        font-size: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="user-profile-container">
+    <div class="user-profile-card">
+        <h2>Thông tin người dùng</h2>
+
+        <h3>Thông tin cá nhân</h3>
+        <div class="profile-summary">
+            <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Avatar">
+            <div class="user-meta">
+                <b>Vương Văn Quyền</b>
+                <p>vvquyen@gmail.com</p>
+            </div>
+        </div>
+
+        <div class="info-line">
+            <span>Họ và tên</span>
+            <span>Vương Văn Quyền</span>
+        </div>
+
+        <div class="info-line">
+            <span>Ngày sinh</span>
+            <span>25/07/2005</span>
+        </div>
+
+        <div class="info-line">
+            <span>Giới tính</span>
+            <span>Nam</span>
+        </div>
+
+        <div class="info-line">
+            <span>Email</span>
+            <span>vvquyen@gmail.com</span>
+        </div>
+
+        <div class="info-line">
+            <span>Số điện thoại</span>
+            <span>09123467898</span>
+        </div>
+
+        <h3>Cài đặt tài khoản</h3>
+
+        <div class="info-line">
+            <span>Tên người dùng</span>
+            <span>vvquyen_2507</span>
+        </div>
+
+        <div class="info-line">
+            <span>Mật khẩu</span>
+            <div class="password-value">
+                <span>************</span>
+                <i class="fas fa-pen edit-icon"></i>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

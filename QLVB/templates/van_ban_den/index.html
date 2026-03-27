@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Văn bản đến - Vietasia Travel{% endblock %}
+
+{% block nav_vbd %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/van_ban_den.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-header header-blue">TÌM KIẾM VĂN BẢN ĐẾN</div>
+  <div class="panel-body">
+    <div class="search-grid">
+      <input type="text" class="form-control" placeholder="Nhập Số ký hiệu văn bản" />
+      <input type="text" class="form-control" placeholder="Nhập số văn bản" />
+      <input type="text" class="form-control" placeholder="Nhập Trích yếu" />
+      <select class="form-control">
+        <option>--- Chọn đơn vị ban hành ---</option>
+      </select>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>
+      <button class="btn btn-secondary"><i class="fa fa-sync-alt"></i> Làm mới</button>
+      <button class="btn btn-success" onclick="openVBD('popupAdd')"><i class="fa fa-plus"></i> Thêm mới</button>
+      <button class="btn btn-warning" onclick="openVBD('popupFilter')"><i class="fa fa-filter"></i> Bộ lọc</button>
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-header header-gray" style="display: flex; justify-content: space-between;">
+    <span>DANH SÁCH VĂN BẢN ĐẾN</span>
+    <span class="total">Tổng số: 500 văn bản</span>
+  </div>
+  <div class="panel-body">
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th>Số ký hiệu</th>
+            <th>Số văn bản</th>
+            <th>Trích yếu</th>
+            <th>Ngày đến</th>
+            <th>Đơn vị gửi</th>
+            <th>Độ khẩn</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="col-stt">1</td>
+            <td class="so-ky-hieu">15/CV-SDL</td>
+            <td class="text-center">15</td>
+            <td class="text-left">Thông báo về việc nghỉ lễ...</td>
+            <td class="text-center">01/03/2026</td>
+            <td class="text-left">Sở Du lịch TP.HCM</td>
+            <td class="col-status"><span class="badge red">Khẩn</span></td>
+            <td class="col-status"><span class="badge orange">Đang xử lý</span></td>
+            <td class="col-actions">
+              <button class="btn btn-primary" style="padding: 5px 10px;" onclick="openVBD('popupView')"><i class="fas fa-eye"></i></button>
+              <button class="btn btn-success" style="padding: 5px 10px;" onclick="openVBD('popupEdit')"><i class="fas fa-edit"></i></button>
+              <button class="btn btn-danger" style="padding: 5px 10px;" onclick="openVBD('popupRemove')"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+          <tr>
+            <td class="col-stt">2</td>
+            <td class="so-ky-hieu">08/HD-CTDL</td>
+            <td class="text-center">08</td>
+            <td class="text-left">Công văn triển khai tour...</td>
+            <td class="text-center">02/03/2026</td>
+            <td class="text-left">Vietnam Airlines</td>
+            <td></td>
+            <td class="col-status"><span class="badge green">Hoàn thành</span></td>
+            <td class="col-actions">
+              <button class="btn btn-primary" style="padding: 5px 10px;" onclick="openVBD('popupView')"><i class="fas fa-eye"></i></button>
+              <button class="btn btn-success" style="padding: 5px 10px;" onclick="openVBD('popupEdit')"><i class="fas fa-edit"></i></button>
+              <button class="btn btn-danger" style="padding: 5px 10px;" onclick="openVBD('popupRemove')"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <div>Hiển thị 1 - 2 / Tổng số: 2</div>
+      <div class="pagination">
+        <button class="page-btn">Đầu</button>
+        <button class="page-btn">Trước</button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn">Sau</button>
+        <button class="page-btn">Cuối</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MODALS FOR VĂN BẢN ĐẾN -->
+<!-- Popup Add -->
+<div id="popupAdd" class="vbd-popup-overlay">
+  <div class="vbd-popup">
+    <div class="vbd-popup-header">
+      <span>Thêm thông tin văn bản đến</span>
+      <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupAdd')"></i>
+    </div>
+    <div class="vbd-popup-body">
+      <div class="vbd-row-full">
+        <label>Trích yếu</label>
+        <input type="text" placeholder="Nhập trích yếu văn bản" />
+      </div>
+      <div class="vbd-grid">
+        <div class="vbd-field">
+          <label>Số ký hiệu</label>
+          <input type="text" placeholder="VD: 05/ĐN-VNA" />
+        </div>
+        <div class="vbd-field">
+          <label>Loại văn bản</label>
+          <input type="text" placeholder="VD: Công văn" />
+        </div>
+        <div class="vbd-field">
+          <label>Ngày ban hành</label>
+          <input type="date" />
+        </div>
+        <div class="vbd-field">
+          <label>Ngày nhận</label>
+          <input type="date" />
+        </div>
+        <div class="vbd-field">
+          <label>Đơn vị gửi</label>
+          <input type="text" placeholder="Nhập đơn vị gửi" />
+        </div>
+      </div>
+      <div class="vbd-upload-area">
+        <i class="fa fa-cloud-upload-alt" style="font-size: 24px; color: #6bb6d6;"></i>
+        <p style="color: #888; font-size: 14px; margin-top: 10px;">Kéo thả hoặc nhấn để tải lên tài liệu đính kèm</p>
+      </div>
+    </div>
+    <div class="vbd-popup-footer">
+      <button class="btn btn-secondary" onclick="closeVBD('popupAdd')">Hủy</button>
+      <button class="btn btn-primary" onclick="alert('Đã lưu thành công!'); closeVBD('popupAdd');">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Popup Filter -->
+<div id="popupFilter" class="vbd-popup-overlay">
+  <div class="vbd-popup" style="width: 600px;">
+    <div class="vbd-popup-header" style="background: #e9ecef; color: #333;">
+      <span>Bộ lọc tìm kiếm</span>
+      <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupFilter')"></i>
+    </div>
+    <div class="vbd-popup-body">
+      <div class="vbd-grid" style="grid-template-columns: 1fr;">
+        <div class="vbd-field">
+          <label>Loại văn bản</label>
+          <select><option>--- Tất cả ---</option></select>
+        </div>
+        <div class="vbd-field">
+          <label>Trạng thái</label>
+          <select><option>--- Tất cả ---</option></select>
+        </div>
+        <div class="vbd-field">
+          <label>Đơn vị</label>
+          <select><option>--- Tất cả ---</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="vbd-popup-footer">
+      <button class="btn btn-secondary" onclick="closeVBD('popupFilter')">Đóng</button>
+      <button class="btn btn-primary" onclick="closeVBD('popupFilter')">Áp dụng</button>
+    </div>
+  </div>
+</div>
+
+<!-- Popup View -->
+<div id="popupView" class="vbd-popup-overlay">
+  <div class="vbd-popup">
+    <div class="vbd-popup-header">
+      <span>Xem thông tin văn bản đến</span>
+      <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupView')"></i>
+    </div>
+    <div class="vbd-popup-body">
+      <div class="vbd-row-full">
+        <label>Trích yếu</label>
+        <input type="text" value="Thông báo về việc nghỉ lễ..." readonly style="background: #f8f9fa;">
+      </div>
+      <div class="vbd-grid">
+        <div class="vbd-field"><label>Số ký hiệu</label><input type="text" value="15/CV-SDL" readonly></div>
+        <div class="vbd-field"><label>Số văn bản</label><input type="text" value="15" readonly></div>
+      </div>
+    </div>
+    <div class="vbd-popup-footer">
+      <button class="btn btn-secondary" onclick="closeVBD('popupView')">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- Popup Remove -->
+<div id="popupRemove" class="vbd-popup-overlay">
+  <div class="vbd-popup" style="width: 400px; text-align: center;">
+    <div class="vbd-popup-body" style="padding: 30px;">
+      <i class="fa fa-trash" style="font-size: 40px; color: #d32f2f; margin-bottom: 20px;"></i>
+      <h3 style="margin-bottom: 10px;">Xác nhận xóa?</h3>
+      <p style="color: #666; margin-bottom: 20px;">Bạn có chắc chắn muốn xóa văn bản này không?</p>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button class="btn btn-secondary" onclick="closeVBD('popupRemove')">Hủy</button>
+        <button class="btn btn-danger" onclick="alert('Đã xóa thành công!'); closeVBD('popupRemove');">Xác nhận</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/pages/van_ban_den.js' %}"></script>
+{% endblock %}
