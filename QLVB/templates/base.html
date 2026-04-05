@@ -11,18 +11,33 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #3498DB;
+            --success-color: #24BC5C;
+            --danger-color: #E74C3C;
+            --header-bg: #E0F2FE;
+            --header-text: #0369A1;
+        }
         /* === CSS CỐT LÕI (NHÚNG ĐỂ ĐẢM BẢO ĐỒNG BỘ) === */
-        html { scrollbar-gutter: stable; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; line-height: 1.6; }
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f4f6f9; 
+            color: #333; 
+            line-height: 1.5; 
+            display: flex; 
+            flex-direction: column; 
+        }
         
         .header { height: 80px; width: 100%; background-color: #39a6ca; position: relative; margin: 0; padding: 0; display: flex; align-items: center; margin-bottom: -1px; z-index: 10; }
         .logo { padding: 0; height: 100%; width: 100%; }
         .logo img { height: 100%; width: 100%; object-fit: cover; display: block; }
         .user-info { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); line-height: normal; z-index: 100; }
         .admin-box { 
-            border: 1px solid rgba(255,255,255,0.5); padding: 5px 15px; border-radius: 4px; 
+            border: 1px solid rgba(255,255,255,0.5); padding: 5px 15px; border-radius: 5px; 
             background: rgba(255,255,255,0.1); cursor: pointer; color: white;
         }
         
@@ -62,44 +77,57 @@
         .navbar { background-color: #f6f6f6; border-bottom: 1px solid #ddd; margin: 0; padding: 0; display: block; }
         .nav-links { list-style: none; display: flex; margin: 0; padding: 0; }
         .nav-links li { border-right: 1px solid #eee; }
-        .nav-links a { display: block; padding: 12px 20px; text-decoration: none; color: #333; font-weight: 500; font-size: 14px; }
+        .nav-links a { display: block; padding: 10px 20px; text-decoration: none; color: #333; font-weight: 500; font-size: 14px; }
         .nav-links li.active a { background-color: #1a73e8; color: white; }
         
-        .main-content { padding: 20px; min-height: 600px; }
+        .main-content { 
+            flex: 1; 
+            padding: 15px 20px; 
+            overflow-y: auto; 
+            position: relative;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+        .main-content::-webkit-scrollbar { width: 6px; }
+        .main-content::-webkit-scrollbar-track { background: transparent; }
+        .main-content::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
         
         /* GLOBAL BUTTONS */
         .btn {
             display: inline-flex; align-items: center; gap: 8px;
-            padding: 8px 18px; border-radius: 4px; font-size: 13px; font-weight: bold;
+            padding: 0 18px; border-radius: 5px; font-size: 13px; font-weight: bold;
             cursor: pointer; border: 1px solid transparent; transition: 0.2s;
-            text-decoration: none; line-height: 1; text-transform: none;
-            white-space: nowrap;
+            text-decoration: none; height: 38px; text-transform: none;
+            white-space: nowrap; line-height: 36px;
         }
-        .btn-primary, .btn-blue { background: #1a73e8; color: white; }
+        .btn-primary, .btn-blue { background: #3498DB; color: white; }
         .btn-secondary, .btn-gray { background: #e0e0e0; color: #333; border: 1px solid #ccc; }
-        .btn-success, .btn-green { background: #2e7d32; color: white; }
-        .btn-danger, .btn-red { background: #d32f2f; color: white; }
+        .btn-success, .btn-green { background: #24BC5C; color: white; }
+        .btn-danger, .btn-red { background: #E74C3C; color: white; }
         .btn-warning { background: #ffc107; color: #212529; }
-        .btn-blue-outline { background: white; color: #1a73e8; border: 1px solid #1a73e8; }
+        .btn-blue-outline { background: white; color: #3498DB; border: 1px solid #3498DB; }
         .btn:hover { opacity: 0.85; }
         
         /* GLOBAL FORMS */
         .form-control {
-            width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px;
-            font-size: 13px; outline: none; background: white;
+            width: 100%; padding: 0 12px; border: 1px solid #ccc; border-radius: 5px;
+            font-size: 13px; outline: none; background: white; height: 38px;
         }
         .form-control:focus { border-color: #1a73e8; }
 
         /* === SHARED LAYOUT COMPONENTS === */
         .panel, .section-card {
-            background: white; border: 1px solid #ddd; margin-bottom: 20px; border-radius: 4px; overflow: hidden;
+            background: white; border: 1px solid #ddd; margin-bottom: 15px; border-radius: 5px; overflow: hidden !important;
         }
         .panel-header, .section-header, .modal-header {
-            background-color: #7DCCF1;
-            padding: 12px 15px; font-weight: bold; font-size: 14px; color: #333; border-bottom: 1px solid #ddd; text-transform: uppercase;
+            background-color: var(--header-bg);
+            padding: 12px 15px; font-weight: bold; font-size: 14px; color: var(--header-text); 
+            border-bottom: 1px solid #bae6fd;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
         }
-        .header-blue { background-color: #7DCCF1; }
-        .header-gray { background-color: #D1D6DA; }
+        .header-blue { background-color: var(--header-bg); color: var(--header-text); }
+        .header-gray { background-color: var(--header-bg); color: var(--header-text); }
         .panel-body, .section-body { padding: 15px; }
 
         .search-grid {
@@ -116,7 +144,7 @@
         }
 
         .alert-box {
-            background-color: #ffecd1; border: 1px solid #ffd494; padding: 15px; border-radius: 4px;
+            background-color: #ffecd1; border: 1px solid #ffd494; padding: 15px; border-radius: 5px;
             margin-bottom: 20px; color: #333; font-size: 14px; line-height: 1.5;
         }
 
@@ -135,18 +163,32 @@
         .col-stt, .col-status { text-align: center !important; }
         .col-actions { text-align: left !important; white-space: nowrap !important; width: 1%; }
 
-        /* Status & Action Utilities */
-        .status { padding: 4px 10px; border-radius: 12px; font-size: 11px; color: white; display: inline-block; min-width: 85px; font-weight: bold; }
-        .status.processing { background-color: #fda950; }
-        .status.completed { background-color: #43a047; }
-        .status.unassigned { background-color: #a4a4a4; }
+        /* Status Pill Styles (Modern) */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+            text-align: center;
+            min-width: 90px;
+            white-space: nowrap;
+        }
+        .pill-yellow { background-color: #FEF9C3; color: #854D0E; }
+        .pill-orange { background-color: #FFEDD5; color: #9A3412; }
+        .pill-blue { background-color: #DBEAFE; color: #1E40AF; }
+        .pill-green { background-color: #DCFCE7; color: #166534; }
+        .pill-red { background-color: #FEE2E2; color: #991B1B; }
+        .pill-gray { background-color: #F1F5F9; color: #475569; }
 
         .action-btn {
             text-decoration: none; padding: 0; width: 28px; height: 28px; border-radius: 4px;
             display: inline-flex; align-items: center; justify-content: center;
             color: white; font-size: 14px; margin: 0 2px; cursor: pointer; border: none;
         }
-        .btn-update { background-color: #4caf50; }
+        .btn-update { background-color: #24BC5C; }
         .btn-forward { background-color: #d500f9; }
         .btn-report { background-color: #ff9800; }
         .btn-assign { background-color: #00b0ff; padding: 6px 12px; width: auto; height: auto; font-size: 13px; font-weight: bold; }

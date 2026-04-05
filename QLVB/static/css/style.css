@@ -6,9 +6,13 @@
 }
 
 body {
-    font-family: Arial, Helvetica, sans-serif;
-    background-color: #f4f4f4;
+    font-family: 'Inter', sans-serif;
+    background-color: #f4f6f9;
     color: #333;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 /* === HEADER === */
@@ -50,7 +54,7 @@ body {
 
 .admin-box {
     border: 1px solid rgba(255, 255, 255, 0.6);
-    border-radius: 4px;
+    border-radius: 5px;
     padding: 6px 25px;
     text-align: center;
     color: #ffffff;
@@ -96,7 +100,7 @@ body {
 .nav-links a {
     display: flex;
     align-items: center;
-    padding: 14px 20px;
+    padding: 10px 20px;
     text-decoration: none;
     color: #333;
     font-size: 14px;
@@ -115,15 +119,18 @@ body {
 
 /* === MAIN CONTENT === */
 .main-content {
-    padding: 20px;
-    min-height: calc(100vh - 80px - 47px);
+    flex: 1;
+    padding: 15px 20px;
+    overflow-y: auto;
+    position: relative;
 }
 
 /* Card Section UI */
 .section-card {
     background: #ffffff;
     border: 1px solid #d0d0d0;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
+    border-radius: 5px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
@@ -131,17 +138,14 @@ body {
     padding: 12px 15px;
     font-weight: bold;
     font-size: 14px;
-    color: #333;
-    border-bottom: 1px solid #d0d0d0;
-    text-transform: uppercase;
+    color: #0369A1;
+    background-color: #E0F2FE;
+    border-bottom: 1px solid #bae6fd;
 }
 
-.header-blue { background-color: #7DCCF1; }
-.header-gray { background-color: #d1d6da; display: flex; justify-content: space-between; align-items: center; }
-
-.section-body {
-    padding: 15px;
-}
+.header-blue { background-color: #E0F2FE; color: #0369A1; }
+.header-gray { background-color: #E0F2FE; color: #0369A1; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+.panel-body, .section-body { padding: 15px; border-radius: 0 0 5px 5px; }
 
 /* Table Responsive */
 .table-responsive {
@@ -169,7 +173,7 @@ th {
 /* Badge Styles */
 .badge {
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: 5px;
     font-size: 11px;
     font-weight: bold;
     color: #fff;
@@ -184,25 +188,26 @@ th {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 16px;
-    border-radius: 4px;
+    padding: 0 16px;
+    border-radius: 5px;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     border: 1px solid transparent;
     transition: all 0.2s;
     text-decoration: none;
-    line-height: 1.2;
+    height: 38px;
+    line-height: 36px;
 }
 
-.btn-primary { background-color: #1a73e8; color: #fff; }
-.btn-primary:hover { background-color: #1557b0; }
+.btn-primary { background-color: #3498DB; color: #fff; }
+.btn-primary:hover { background-color: #2980B9; }
 
-.btn-success { background-color: #2e7d32; color: #fff; }
-.btn-success:hover { background-color: #1b5e20; }
+.btn-success { background-color: #24BC5C; color: #fff; }
+.btn-success:hover { background-color: #1E9D4B; }
 
-.btn-danger { background-color: #d32f2f; color: #fff; }
-.btn-danger:hover { background-color: #b71c1c; }
+.btn-danger { background-color: #E74C3C; color: #fff; }
+.btn-danger:hover { background-color: #C0392B; }
 
 .btn-secondary { background-color: #e0e0e0; color: #333; border-color: #ccc; }
 .btn-secondary:hover { background-color: #d5d5d5; }
@@ -210,21 +215,22 @@ th {
 .btn-warning { background-color: #fbbc04; color: #333; }
 .btn-warning:hover { background-color: #f9ab00; }
 
-.btn-blue-outline { background-color: #fff; color: #1a73e8; border-color: #1a73e8; }
+.btn-blue-outline { background-color: #fff; color: #3498DB; border-color: #3498DB; }
 .btn-blue-outline:hover { background-color: #f1f8ff; }
 
 .btn i { font-size: 14px; }
 
 /* === GLOBAL FORM CONTROL === */
 .form-control {
-    padding: 8px 12px;
+    padding: 0 12px;
     border: 1px solid #ccc;
-    border-radius: 4px;
+    border-radius: 5px;
     font-size: 13px;
     outline: none;
     background-color: #fff;
     transition: border-color 0.2s;
     font-family: Arial, sans-serif;
+    height: 38px;
 }
 
 .form-control:focus {
@@ -259,7 +265,7 @@ select.form-control {
     max-height: 90vh;
     overflow-y: auto;
     z-index: 1001;
-    border-radius: 4px;
+    border-radius: 5px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     animation: modalFadeIn 0.3s ease;
 }

@@ -11,3 +11,9 @@ window.onclick = function(event) {
         event.target.style.display = "none";
     }
 }
+
+// Attach event listeners when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Other initializations if needed
+});
+

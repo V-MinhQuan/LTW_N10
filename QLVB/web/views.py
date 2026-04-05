@@ -13,7 +13,7 @@ def login(request):
 def van_ban_den_index(request):
     return render(request, 'van_ban_den/index.html')
 
-# --- QUẢN LÝ VĂN BẢN ĐI ---
+# --- QUẢN LÝ VĂN BẢN ĐI ---    
 def van_ban_di_index(request):
     return render(request, 'van_ban_di/index.html')
 
