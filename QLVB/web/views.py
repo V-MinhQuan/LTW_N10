@@ -46,3 +46,5 @@ def xu_ly_van_ban_chuyen_tiep(request):
 
 def xu_ly_van_ban_phan_cong(request):
     return render(request, 'xu_ly_van_ban/phan_cong.html')
+
+
