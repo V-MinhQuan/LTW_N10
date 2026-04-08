@@ -36,7 +36,7 @@
 }
 .upload-box {
     border: 2px dashed #ccc;
-    padding: 40px;
+    padding: 20px;
     text-align: center;
     border-radius: 5px;
     margin-top: 10px;
@@ -73,8 +73,8 @@
     font-weight: bold; padding: 12px 15px;
     display: flex; justify-content: space-between; align-items: center;
 }
-.modal-body { padding: 20px; }
-.modal-footer { border-top: 1px solid #eee; padding: 15px 20px; display: flex; justify-content: flex-end; gap: 10px; }
+.modal-body { padding: 15px 20px; }
+.modal-footer { border-top: 1px solid #eee; padding: 10px 20px; display: flex; justify-content: flex-end; gap: 8px; }
 
 /* Form layout similar to van_ban_den */
 .form-group-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px 30px; margin-bottom: 15px; }

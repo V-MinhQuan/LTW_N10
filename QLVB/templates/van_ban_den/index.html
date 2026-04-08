@@ -7,11 +7,222 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/pages/van_ban_den.css' %}">
+<style>
+  /* INTERNAL OVERRIDE FOR POPUP VIEW */
+  .vbd-popup[style*="width: 900px"] {
+    width: 900px !important;
+  }
+
+  .vbd-popup-body {
+    padding: 20px 25px !important;
+  }
+
+  .vbd-row-full {
+    display: flex !important;
+    align-items: center !important;
+    margin-bottom: 12px !important;
+    gap: 15px !important;
+  }
+
+  .vbd-row-full label {
+    width: 130px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: #333 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .vbd-row-full input {
+    flex: 1 !important;
+    height: 38px !important;
+    border: 1px solid #ddd !important;
+    padding: 0 12px !important;
+    border-radius: 4px !important;
+    background: white !important;
+    font-size: 14px !important;
+  }
+
+  .vbd-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px 25px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .vbd-field {
+    display: flex !important;
+    align-items: center !important;
+    gap: 15px !important;
+  }
+
+  .vbd-field label {
+    width: 130px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: #333 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .vbd-field input,
+  .vbd-field select {
+    flex: 1 !important;
+    height: 38px !important;
+    border: 1px solid #ddd !important;
+    padding: 0 12px !important;
+    border-radius: 4px !important;
+    background: white !important;
+    font-size: 14px !important;
+  }
+
+  /* DATE FIELD WITH ICON */
+  .vbd-date-wrapper {
+    position: relative !important;
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .vbd-date-wrapper input {
+    width: 100% !important;
+    padding-right: 35px !important;
+  }
+
+  .vbd-date-wrapper i {
+    position: absolute !important;
+    right: 12px !important;
+    color: #666 !important;
+    font-size: 16px !important;
+    pointer-events: none !important;
+  }
+
+  /* ATTACHMENT SECTION STYLE */
+  .vbd-attachment-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-top: 15px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .vbd-attachment-header label {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: #333 !important;
+  }
+
+  .btn-attach {
+    background-color: #00adef !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px 20px !important;
+    border-radius: 6px !important;
+    font-size: 15px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    font-weight: 500 !important;
+  }
+
+  .vbd-file-list {
+    background-color: #f9f9f9 !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 8px !important;
+    padding: 15px 20px !important;
+    margin-top: 10px !important;
+  }
+
+  .vbd-file-item {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+
+  .vbd-file-info {
+    display: flex !important;
+    align-items: center !important;
+    gap: 15px !important;
+  }
+
+  .vbd-file-icon {
+    width: 44px !important;
+    height: 50px !important;
+    background-color: #ffdacc !important;
+    color: #ff5722 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    border-radius: 6px !important;
+    font-weight: bold !important;
+    font-size: 12px !important;
+    border: 1px solid #ffccbc !important;
+  }
+
+  .vbd-file-details {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+
+  .vbd-file-name {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #333 !important;
+  }
+
+  .vbd-file-size {
+    font-size: 12px !important;
+    color: #999 !important;
+  }
+
+  .vbd-file-delete {
+    color: #333 !important;
+    cursor: pointer !important;
+    font-size: 22px !important;
+  }
+
+  .vbd-file-delete:hover {
+    color: #d32f2f !important;
+  }
+
+  .vbd-popup-footer {
+    border-top: none !important;
+    padding: 15px 25px !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+  }
+
+  .btn-save-blue {
+    background-color: #1b6ec2 !important;
+    color: white !important;
+    padding: 10px 30px !important;
+    border: none !important;
+    border-radius: 4px !important;
+    font-size: 15px !important;
+    cursor: pointer !important;
+    font-weight: 500 !important;
+    min-width: 90px !important;
+  }
+
+  .btn-cancel-gray {
+    background-color: #cccccc !important;
+    color: #333 !important;
+    padding: 10px 30px !important;
+    border: none !important;
+    border-radius: 4px !important;
+    font-size: 15px !important;
+    cursor: pointer !important;
+    font-weight: 500 !important;
+    min-width: 90px !important;
+  }
+</style>
 {% endblock %}
+
 
 {% block content %}
 <section class="panel">
-  <div class="panel-header header-blue">TÌM KIẾM VĂN BẢN ĐẾN</div>
+  <div class="panel-header header-blue">Tìm kiếm văn bản đến</div>
   <div class="panel-body">
     <div class="search-grid">
       <input type="text" class="form-control" placeholder="Nhập Số ký hiệu văn bản" />
@@ -26,13 +237,14 @@
       <button class="btn btn-secondary"><i class="fa fa-sync-alt"></i> Làm mới</button>
       <button class="btn btn-success" onclick="openVBD('popupAdd')"><i class="fa fa-plus"></i> Thêm mới</button>
       <button class="btn btn-warning" onclick="openVBD('popupFilter')"><i class="fa fa-filter"></i> Bộ lọc</button>
+      <button type="button" class="btn btn-info" onclick="openVBD('historyView')"><i class="fa fa-history"></i> Lịch sử chỉnh sửa</button>
     </div>
   </div>
 </section>
 
 <section class="panel">
   <div class="panel-header header-gray" style="display: flex; justify-content: space-between;">
-    <span>DANH SÁCH VĂN BẢN ĐẾN</span>
+    <span>Danh sách văn bản đến</span>
     <span class="total">Tổng số: 500 văn bản</span>
   </div>
   <div class="panel-body">
@@ -59,12 +271,15 @@
             <td class="text-left">Thông báo về việc nghỉ lễ...</td>
             <td class="text-center">01/03/2026</td>
             <td class="text-left">Sở Du lịch TP.HCM</td>
-            <td class="col-status"><span class="badge red">Khẩn</span></td>
-            <td class="col-status"><span class="badge orange">Đang xử lý</span></td>
+            <td class="col-status"><span class="status-pill pill-red">Khẩn</span></td>
+            <td class="col-status"><span class="status-pill pill-orange">Đang xử lý</span></td>
             <td class="col-actions">
-              <button class="btn btn-primary" style="padding: 5px 10px;" onclick="openVBD('popupView')"><i class="fas fa-eye"></i></button>
-              <button class="btn btn-success" style="padding: 5px 10px;" onclick="openVBD('popupEdit')"><i class="fas fa-edit"></i></button>
-              <button class="btn btn-danger" style="padding: 5px 10px;" onclick="openVBD('popupRemove')"><i class="fas fa-trash"></i></button>
+              <button class="btn btn-primary" style="padding: 5px 10px;" onclick="openVBD('popupView')"><i
+                  class="fas fa-eye"></i></button>
+              <button class="btn btn-success" style="padding: 5px 10px;" onclick="openVBD('popupEdit')"><i
+                  class="fas fa-edit"></i></button>
+              <button class="btn btn-danger" style="padding: 5px 10px;" onclick="openVBD('popupRemove')"><i
+                  class="fas fa-trash"></i></button>
             </td>
           </tr>
           <tr>
@@ -75,11 +290,14 @@
             <td class="text-center">02/03/2026</td>
             <td class="text-left">Vietnam Airlines</td>
             <td></td>
-            <td class="col-status"><span class="badge green">Hoàn thành</span></td>
+            <td class="col-status"><span class="status-pill pill-green">Hoàn thành</span></td>
             <td class="col-actions">
-              <button class="btn btn-primary" style="padding: 5px 10px;" onclick="openVBD('popupView')"><i class="fas fa-eye"></i></button>
-              <button class="btn btn-success" style="padding: 5px 10px;" onclick="openVBD('popupEdit')"><i class="fas fa-edit"></i></button>
-              <button class="btn btn-danger" style="padding: 5px 10px;" onclick="openVBD('popupRemove')"><i class="fas fa-trash"></i></button>
+              <button class="btn btn-primary" style="padding: 5px 10px;" onclick="openVBD('popupView')"><i
+                  class="fas fa-eye"></i></button>
+              <button class="btn btn-success" style="padding: 5px 10px;" onclick="openVBD('popupEdit')"><i
+                  class="fas fa-edit"></i></button>
+              <button class="btn btn-danger" style="padding: 5px 10px;" onclick="openVBD('popupRemove')"><i
+                  class="fas fa-trash"></i></button>
             </td>
           </tr>
         </tbody>
@@ -94,9 +312,85 @@
         <button class="page-btn">Sau</button>
         <button class="page-btn">Cuối</button>
       </div>
+</section>
+
+<!-- Popup History -->
+<div id="historyView" class="vbd-popup-overlay">
+  <div class="vbd-popup" style="width: 1100px; max-width: 95%;">
+    <div class="vbd-popup-header">
+      <span>Lịch sử chỉnh sửa văn bản đến</span>
+      <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('historyView')"></i>
+    </div>
+    <div class="vbd-popup-body">
+      <div class="history-search-grid">
+        <div class="search-item">
+          <label>Từ ngày - Đến ngày</label>
+          <div class="date-range">
+            <input type="date" class="form-control" />
+            <span>-</span>
+            <input type="date" class="form-control" />
+          </div>
+        </div>
+        <div class="search-item">
+          <label>Số hiệu/Số văn bản</label>
+          <input type="text" class="form-control" placeholder="Nhập số hiệu hoặc số văn bản" />
+        </div>
+        <div class="search-item">
+          <label>Trích yếu</label>
+          <input type="text" class="form-control" placeholder="Nhập trích yếu" />
+        </div>
+      </div>
+      <div class="btn-group" style="margin-top: 15px; margin-bottom: 25px;">
+        <button class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>
+        <button class="btn btn-secondary" onclick="closeVBD('historyView')"><i class="fa fa-sync-alt"></i> Làm mới</button>
+      </div>
+      
+      <div class="table-responsive">
+        <table class="history-table-full">
+          <thead>
+            <tr>
+              <th style="width: 50px;">STT</th>
+              <th style="width: 150px;">Thời gian</th>
+              <th style="width: 150px;">Người thực hiện</th>
+              <th style="width: 120px;">Mã văn bản</th>
+              <th style="width: 250px;">Trích yếu</th>
+              <th>Nội dung thay đổi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-center">1</td>
+              <td class="text-center">01/03/2026 14:30</td>
+              <td>Nguyễn Văn A</td>
+              <td class="text-center">15/CV-SDL</td>
+              <td>Thông báo nghỉ lễ 30/4</td>
+              <td><span class="status-pill pill-blue">Thêm mới</span> văn bản</td>
+            </tr>
+            <tr>
+              <td class="text-center">2</td>
+              <td class="text-center">03/03/2026 09:15</td>
+              <td>Trần Thị B</td>
+              <td class="text-center">15/CV-SDL</td>
+              <td>Thông báo nghỉ lễ 30/4</td>
+              <td>Cập nhật bộ phận xử lý</td>
+            </tr>
+            <tr>
+              <td class="text-center">3</td>
+              <td class="text-center">05/03/2026 16:45</td>
+              <td>Lê Văn C</td>
+              <td class="text-center">08/HD-CTDL</td>
+              <td>Công văn triển khai tour mới</td>
+              <td>Thay đổi trạng thái sang <span class="status-pill pill-green">Hoàn thành</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="vbd-popup-footer">
+      <button class="btn btn-cancel-gray" onclick="closeVBD('historyView')">Đóng</button>
     </div>
   </div>
-</section>
+</div>
 
 <!-- MODALS FOR VĂN BẢN ĐẾN -->
 <!-- Popup Add -->
@@ -156,15 +450,21 @@
       <div class="vbd-grid" style="grid-template-columns: 1fr;">
         <div class="vbd-field">
           <label>Loại văn bản</label>
-          <select><option>--- Tất cả ---</option></select>
+          <select>
+            <option>--- Tất cả ---</option>
+          </select>
         </div>
         <div class="vbd-field">
           <label>Trạng thái</label>
-          <select><option>--- Tất cả ---</option></select>
+          <select>
+            <option>--- Tất cả ---</option>
+          </select>
         </div>
         <div class="vbd-field">
           <label>Đơn vị</label>
-          <select><option>--- Tất cả ---</option></select>
+          <select>
+            <option>--- Tất cả ---</option>
+          </select>
         </div>
       </div>
     </div>
@@ -177,7 +477,7 @@
 
 <!-- Popup View -->
 <div id="popupView" class="vbd-popup-overlay">
-  <div class="vbd-popup">
+  <div class="vbd-popup" style="width: 900px;">
     <div class="vbd-popup-header">
       <span>Xem thông tin văn bản đến</span>
       <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupView')"></i>
@@ -185,18 +485,64 @@
     <div class="vbd-popup-body">
       <div class="vbd-row-full">
         <label>Trích yếu</label>
-        <input type="text" value="Thông báo về việc nghỉ lễ..." readonly style="background: #f8f9fa;">
+        <input type="text" value="Thống báo về việc nghỉ lễ 30/4" readonly>
       </div>
       <div class="vbd-grid">
-        <div class="vbd-field"><label>Số ký hiệu</label><input type="text" value="15/CV-SDL" readonly></div>
-        <div class="vbd-field"><label>Số văn bản</label><input type="text" value="15" readonly></div>
+        <div class="vbd-field">
+          <label>Số ký hiệu</label>
+          <input type="text" value="15/CV-SDL" readonly>
+        </div>
+        <div class="vbd-field">
+          <label>Loại văn bản</label>
+          <input type="text" value="Công văn" readonly>
+        </div>
+        <div class="vbd-field">
+          <label>Ngày ban hành</label>
+          <div class="vbd-date-wrapper">
+            <input type="text" value="03/03/2026" readonly>
+            <i class="far fa-calendar-alt"></i>
+          </div>
+        </div>
+        <div class="vbd-field">
+          <label>Ngày nhận</label>
+          <div class="vbd-date-wrapper">
+            <input type="text" value="03/03/2026" readonly>
+            <i class="far fa-calendar-alt"></i>
+          </div>
+        </div>
       </div>
+      <div class="vbd-row-full">
+        <label>Đơn vị gửi</label>
+        <input type="text" value="Vietnam Airlines" readonly>
+      </div>
+
+      <div class="vbd-attachment-header">
+        <label>Tài liệu đính kèm</label>
+        <button class="btn-attach"><i class="fas fa-paperclip"></i> Đính kèm tập tin</button>
+      </div>
+
+      <div class="vbd-file-list">
+        <div class="vbd-file-item">
+          <div class="vbd-file-info">
+            <div class="vbd-file-icon">PDF</div>
+            <div class="vbd-file-details">
+              <span class="vbd-file-name">Thong_bao_nghi_le_30/4.pdf</span>
+              <span class="vbd-file-size">2.4 MB</span>
+            </div>
+          </div>
+          <i class="fas fa-trash-alt vbd-file-delete"></i>
+        </div>
+      </div>
+
+
     </div>
     <div class="vbd-popup-footer">
-      <button class="btn btn-secondary" onclick="closeVBD('popupView')">Đóng</button>
+      <button class="btn btn-cancel-gray" onclick="closeVBD('popupView')">Hủy</button>
+      <button class="btn btn-save-blue" onclick="closeVBD('popupView')">Lưu</button>
     </div>
   </div>
 </div>
+
 
 <!-- Popup Remove -->
 <div id="popupRemove" class="vbd-popup-overlay">

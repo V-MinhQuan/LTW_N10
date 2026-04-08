@@ -2,22 +2,27 @@
 .sub-tabs {
     display: flex;
     margin-bottom: 15px;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid #1a73e8;
+    width: fit-content;
 }
 
 .sub-tab {
     padding: 10px 20px;
     background-color: #fff;
     color: #1a73e8;
-    border: 1px solid #1a73e8;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    border-right: none;
     text-decoration: none;
+    border: none;
+    border-right: 1px solid #1a73e8;
+    outline: none;
 }
 
 .sub-tab:last-child {
-    border-right: 1px solid #1a73e8;
+    border-right: none;
 }
 
 .sub-tab.active {

@@ -11,7 +11,7 @@
 
 {% block content %}
     <div class="panel">
-        <div class="panel-header header-blue">TÌM KIẾM VĂN BẢN XỬ LÝ</div>
+        <div class="panel-header header-blue">Tìm kiếm văn bản xử lý</div>
         <div class="panel-body">
             <div class="search-grid">
                 <input type="text" class="form-control" placeholder="Nhập số ký hiệu">
@@ -37,7 +37,7 @@
 
     <div class="panel">
         <div class="table-panel-header panel-header header-gray" style="display: flex; justify-content: space-between;">
-            <span>DANH SÁCH VĂN BẢN</span>
+            <span>Danh sách văn bản</span>
             <span>Tổng số: 4 văn bản</span>
         </div>
     <div class="panel-body">
@@ -65,7 +65,7 @@
                         <td class="text-left">Nguyễn Văn A</td>
                         <td class="text-center">27/01/2026</td>
                         <td class="text-center">05/02/2026</td>
-                        <td class="col-status"><span class="status processing">Đang xử lý</span></td>
+                        <td class="col-status"><span class="status-pill pill-orange">Đang xử lý</span></td>
                         <td class="col-actions">
                             <button onclick="openModalC('modalCapNhat', '01/CV-DL', 'Nguyễn Văn A')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
                             <button onclick="openModalT('modalChuyenTiep', '01/CV-DL')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
@@ -80,7 +80,7 @@
                         <td class="text-left">Chưa phân công</td>
                         <td class="text-center">26/01/2026</td>
                         <td class="text-center">10/02/2026</td>
-                        <td class="col-status"><span class="status unassigned">Chưa phân công</span></td>
+                        <td class="col-status"><span class="status-pill pill-gray">Chưa phân công</span></td>
                         <td class="col-actions">
                             <button onclick="openModalP('modalPhanCong', '04/HD-DL', 'Thông báo điều chỉnh giá tour...')" class="action-btn btn-assign"><i class="fas fa-user-plus"></i> Phân công</button>
                         </td>
