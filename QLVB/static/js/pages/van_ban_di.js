@@ -1,10 +1,35 @@
 function openVBD(id) {
-    document.getElementById('modalOverlay').style.display = 'block';
-    document.getElementById(id).style.display = 'block';
+    let el = document.getElementById(id);
+    if (el) {
+        if (el.classList.contains('vbd-popup-overlay')) {
+            // Move ra body để tránh bị trapped bởi overflow của parent
+            if (el.parentElement !== document.body) {
+                document.body.appendChild(el);
+            }
+            el.style.display = 'flex';
+        } else {
+            let overlay = document.getElementById('modalOverlay');
+            if (overlay) overlay.style.display = 'block';
+            el.style.display = 'block';
+        }
+    }
 }
 function closeVBD(id) {
-    document.getElementById('modalOverlay').style.display = 'none';
-    document.getElementById(id).style.display = 'none';
+    let el = document.getElementById(id);
+    if (el) {
+        el.style.display = 'none';
+        if (!el.classList.contains('vbd-popup-overlay')) {
+            let overlay = document.getElementById('modalOverlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+    }
+}
+
+// Close on overlay click
+window.onclick = function(event) {
+    if (event.target.classList.contains('vbd-popup-overlay')) {
+        event.target.style.display = "none";
+    }
 }
 
 function checkDonVi() {
