@@ -1,11 +1,15 @@
 /* CSS ĐẶC THÙ CHO TRANG XỬ LÝ VĂN BẢN */
 .alert-box {
-    background-color: #fdf5e6; /* Peach/Light orange */
-    border: 1px solid #f8cbad; /* Orange border */
+    background-color: #fff8e1;
+    border: 1px solid #ffe082;
     color: #333;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    border-left: 5px solid #ffb300;
 }
 .alert-box i.fa-exclamation-triangle {
-    color: #d32f2f; /* Red icon */
+    color: #d32f2f;
     margin-right: 5px;
 }
 .alert-box p {
@@ -13,4 +17,104 @@
 }
 .alert-box p:last-child {
     margin-bottom: 0;
+}
+
+/* Table Styling */
+.table-responsive table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-responsive th {
+    background-color: #f8f9fa;
+    color: #333;
+    font-weight: 600;
+    padding: 12px 8px;
+    text-align: center;
+    border: 1px solid #dee2e6;
+}
+
+.table-responsive td {
+    padding: 10px 8px;
+    border: 1px solid #dee2e6;
+    vertical-align: middle;
+}
+
+/* Status Pills */
+.status-pill {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #fff;
+    display: inline-block;
+}
+.pill-orange { background-color: #ff9800; }
+.pill-gray { background-color: #9e9e9e; }
+
+/* Description Badges */
+.desc-item {
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+.desc-label {
+    color: #666;
+}
+.desc-value {
+    color: #333;
+    font-weight: 500;
+}
+/* Force action text colors */
+.desc-item span.action-text.text-purple { color: #bf24d6 !important; }
+.desc-item span.action-text.text-blue { color: #00adef !important; }
+
+.action-text {
+    font-weight: 600;
+    margin-left: 5px;
+}
+
+/* Action Buttons */
+.action-btn {
+    width: 36px;
+    height: 36px;
+    border: none !important;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+    transition: transform 0.1s;
+    font-size: 16px;
+}
+.action-btn:hover {
+    transform: scale(1.05);
+}
+.btn-update { background-color: #2fb370; }
+.btn-forward { background-color: #bf24d6; }
+.btn-report { background-color: #f7941d; }
+
+/* Force Phân công button to be compact, blue and modern */
+.table-responsive table tbody tr td.col-actions .btn-assign-wide,
+button.btn-assign-wide {
+    background-color: #00adef !important;
+    color: white !important;
+    border: none !important;
+    padding: 8px 18px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: auto !important;
+    justify-content: center !important;
+    outline: none !important;
+    transition: background-color 0.2s ease !important;
+}
+
+.btn-assign-wide:hover {
+    background-color: #008ec0 !important;
 }

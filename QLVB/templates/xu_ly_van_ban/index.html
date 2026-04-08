@@ -48,11 +48,11 @@
                         <th>STT</th>
                         <th>Số ký hiệu</th>
                         <th>Trích yếu</th>
-                        <th>Đơn vị gửi</th>
-                        <th>Người xử lý</th>
+                        <th>Đơn vị gửi-Người xử lý</th>
                         <th>Ngày nhận</th>
                         <th>Thời hạn</th>
                         <th>Trạng thái</th>
+                        <th>Mô tả</th>
                         <th>Thao tác</th>
                     </tr>
                 </thead>
@@ -61,28 +61,44 @@
                         <td class="col-stt">1</td>
                         <td class="text-left"><a href="#">01/CV-DL</a></td>
                         <td class="text-left">Thông báo điều chỉnh giá tour...</td>
-                        <td class="text-left">Sở Du lịch Đà Nẵng</td>
-                        <td class="text-left">Nguyễn Văn A</td>
+                        <td class="text-left">
+                            Nguyễn Văn A<br>
+                            <small class="text-muted">(Sở Du lịch Đà Nẵng)</small>
+                        </td>
                         <td class="text-center">27/01/2026</td>
                         <td class="text-center">05/02/2026</td>
                         <td class="col-status"><span class="status-pill pill-orange">Đang xử lý</span></td>
+                        <td class="text-left">
+                            <div class="desc-item"><span class="desc-label">Chuyển tới:</span> <span class="desc-value">Lê Bảo Bình</span></div>
+                            <div class="desc-item"><span class="desc-label">Thao tác:</span> <span class="action-text text-purple" style="color: #bf24d6 !important;">Chuyển tiếp</span></div>
+                        </td>
                         <td class="col-actions">
-                            <button onclick="openModalC('modalCapNhat', '01/CV-DL', 'Nguyễn Văn A')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
-                            <button onclick="openModalT('modalChuyenTiep', '01/CV-DL')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
-                            <button onclick="openModalB('modalBaoCao', '01/CV-DL')" class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
+                            <div style="display: flex; gap: 5px;">
+                                <button onclick="openModalC('modalCapNhat', '01/CV-DL', 'Nguyễn Văn A')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
+                                <button onclick="openModalT('modalChuyenTiep', '01/CV-DL')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
+                                <button onclick="openModalB('modalBaoCao', '01/CV-DL')" class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
+                            </div>
                         </td>
                     </tr>
                     <tr>
                         <td class="col-stt">2</td>
                         <td class="text-left"><a href="#">04/HD-DL</a></td>
                         <td class="text-left">Thông báo điều chỉnh giá tour...</td>
-                        <td class="text-left">Vietnam Airlines</td>
-                        <td class="text-left">Chưa phân công</td>
+                        <td class="text-left">
+                            Trần Quang Huy<br>
+                            <small class="text-muted">(Vietnam Airlines)</small>
+                        </td>
                         <td class="text-center">26/01/2026</td>
                         <td class="text-center">10/02/2026</td>
                         <td class="col-status"><span class="status-pill pill-gray">Chưa phân công</span></td>
+                        <td class="text-left">
+                            <div class="desc-item"><span class="desc-label">Chuyển tới:</span> <span class="desc-value">Đỗ Kim Ngân</span></div>
+                            <div class="desc-item"><span class="desc-label">Thao tác:</span> <span class="action-text text-blue" style="color: #00adef !important;">Phân công</span></div>
+                        </td>
                         <td class="col-actions">
-                            <button onclick="openModalP('modalPhanCong', '04/HD-DL', 'Thông báo điều chỉnh giá tour...')" class="action-btn btn-assign"><i class="fas fa-user-plus"></i> Phân công</button>
+                            <button onclick="openModalP('modalPhanCong', '04/HD-DL', 'Thông báo điều chỉnh giá tour...')" class="btn-assign-wide" style="background-color: #00adef; color: #fff; border: none !important; border-radius: 8px; padding: 8px 18px; font-weight: 600;">
+                                <i class="fas fa-user-plus"></i> Phân công
+                            </button>
                         </td>
                     </tr>
                 </tbody>
