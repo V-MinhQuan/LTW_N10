@@ -37,6 +37,10 @@ urlpatterns = [
     # Đơn vị
     path('quan-ly-don-vi/ben-ngoai/', views.quan_ly_don_vi_ben_ngoai, name='qldv_ngoai'),
     path('quan-ly-don-vi/ben-trong/', views.quan_ly_don_vi_ben_trong, name='qldv_trong'),
+    
+    # API Đơn vị
+    path('api/don-vi/upsert/', views.api_upsert_don_vi, name='api_upsert_don_vi'),
+    path('api/don-vi/delete/', views.api_delete_don_vi, name='api_delete_don_vi'),
 
     # Xử lý văn bản
     path('xu-ly-van-ban/', views.xu_ly_van_ban_index, name='xlvb_index'),
