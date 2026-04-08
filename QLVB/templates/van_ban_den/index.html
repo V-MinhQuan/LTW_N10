@@ -11,10 +11,14 @@
   /* INTERNAL OVERRIDE FOR POPUP VIEW */
   .vbd-popup[style*="width: 900px"] {
     width: 900px !important;
+    max-height: 90vh !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
   .vbd-popup-body {
     padding: 20px 25px !important;
+    overflow-y: auto !important;
   }
 
   .vbd-row-full {
@@ -215,6 +219,95 @@
     cursor: pointer !important;
     font-weight: 500 !important;
     min-width: 90px !important;
+  }
+
+  .vbd-process-box {
+    margin-top: 24px !important;
+    background: #fff !important;
+  }
+
+  .vbd-process-title {
+    margin: 0 0 14px !important;
+    color: #2c3e50 !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
+  }
+
+  .vbd-process-header,
+  .vbd-process-row {
+    display: grid !important;
+    grid-template-columns: 1fr 2fr 2fr !important;
+    gap: 20px !important;
+  }
+
+  .vbd-process-header {
+    padding: 0 0 10px !important;
+    color: #6c7a89 !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+  }
+
+  .vbd-process-rows {
+    max-height: 221px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    border-top: 1px solid #eee !important;
+    border-bottom: 1px solid #eee !important;
+  }
+
+  .vbd-process-row {
+    padding: 12px 0 !important;
+    border-bottom: 1px solid #eee !important;
+    align-items: start !important;
+  }
+
+  .vbd-process-row:last-child {
+    border-bottom: none !important;
+  }
+
+  .vbd-process-tag {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 6px 12px !important;
+    border-radius: 15px !important;
+    width: fit-content !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+  }
+
+  .vbd-process-tag-blue {
+    background: #e6f0ff !important;
+    color: #2f80ed !important;
+  }
+
+  .vbd-process-tag-gray {
+    background: #f2f2f2 !important;
+    color: #7f8c8d !important;
+  }
+
+  .vbd-process-tag-active {
+    background: #2f80ed !important;
+    color: #fff !important;
+  }
+
+  .vbd-process-user p {
+    margin: 3px 0 !important;
+    font-size: 13px !important;
+    color: #34495e !important;
+  }
+
+  .vbd-process-action {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 100% !important;
+    color: #34495e !important;
+    font-size: 13px !important;
+  }
+
+  .vbd-process-action-highlight {
+    color: #2f80ed !important;
+    font-weight: 700 !important;
   }
 </style>
 {% endblock %}
@@ -483,6 +576,11 @@
       <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupView')"></i>
     </div>
     <div class="vbd-popup-body">
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+        <button type="button" class="btn" style="background: #f8f9fa; border: 1px solid #ced4da; color: #333; padding: 4px 10px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;" onclick="openVBD('historyOverlay')">
+          <i class="fa fa-history" style="color: #666;"></i> Lịch sử chỉnh sửa
+        </button>
+      </div>
       <div class="vbd-row-full">
         <label>Trích yếu</label>
         <input type="text" value="Thống báo về việc nghỉ lễ 30/4" readonly>
@@ -534,11 +632,195 @@
         </div>
       </div>
 
+      <div class="vbd-process-box">
+        <h3 class="vbd-process-title">NỘI DUNG XỬ LÝ VĂN BẢN</h3>
+        <div class="vbd-process-header">
+          <div>PHÂN LOẠI</div>
+          <div>NHÂN SỰ THỰC HIỆN</div>
+          <div>THAO TÁC XỬ LÝ</div>
+        </div>
+        <div class="vbd-process-rows">
+          <div class="vbd-process-row">
+            <div class="vbd-process-tag vbd-process-tag-blue">Chuyển tiếp</div>
+            <div class="vbd-process-user">
+              <p><b>CHUYỂN TỚI</b></p>
+              <p>Lê Minh Nguyệt (nguyetlm)</p>
+              <p><b>ĐỒNG XỬ LÝ</b></p>
+              <p>Trần Bá Hùng (hungtb)</p>
+            </div>
+            <div class="vbd-process-action">Chuyển Văn thư Tập đoàn</div>
+          </div>
+          <div class="vbd-process-row">
+            <div class="vbd-process-tag vbd-process-tag-gray">Báo cáo</div>
+            <div class="vbd-process-user">
+              <p><b>CHUYỂN TỚI</b></p>
+              <p>Phạm Đức Long (longpd)</p>
+            </div>
+            <div class="vbd-process-action">Trình lãnh đạo Tập đoàn</div>
+          </div>
+          <div class="vbd-process-row">
+            <div class="vbd-process-tag vbd-process-tag-active">Đang thực hiện</div>
+            <div class="vbd-process-user">
+              <p><b>CHUYỂN TỚI</b></p>
+              <p>Lê Anh Tuấn (tuanla)</p>
+              <p><b>ĐỒNG XỬ LÝ</b></p>
+              <p>Phạm Thu Thảo, Quách Gia Huy</p>
+            </div>
+            <div class="vbd-process-action vbd-process-action-highlight">Đề xuất phương án hạ tầng số</div>
+          </div>
+        </div>
+      </div>
 
     </div>
     <div class="vbd-popup-footer">
-      <button class="btn btn-cancel-gray" onclick="closeVBD('popupView')">Hủy</button>
-      <button class="btn btn-save-blue" onclick="closeVBD('popupView')">Lưu</button>
+      <button class="btn btn-cancel-gray" onclick="closeVBD('popupView')">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- History Overlay (inside popupView) -->
+<div id="historyOverlay" class="vbd-popup-overlay">
+  <div class="vbd-popup" style="width: 1100px; max-width: 95%;">
+    <div class="vbd-popup-header">
+      <span>Lịch sử chỉnh sửa văn bản đến</span>
+      <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('historyOverlay')"></i>
+    </div>
+    <div class="vbd-popup-body">
+      <div class="history-search-grid">
+        <div class="search-item">
+          <label>Từ ngày - Đến ngày</label>
+          <div class="date-range">
+            <input type="date" class="form-control" />
+            <span>-</span>
+            <input type="date" class="form-control" />
+          </div>
+        </div>
+        <div class="search-item">
+          <label>Số hiệu/Số văn bản</label>
+          <input type="text" class="form-control" placeholder="Nhập số hiệu hoặc số văn bản" />
+        </div>
+        <div class="search-item">
+          <label>Trích yếu</label>
+          <input type="text" class="form-control" placeholder="Nhập trích yếu" />
+        </div>
+      </div>
+      <div class="btn-group" style="margin-top: 15px; margin-bottom: 25px;">
+        <button class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>
+        <button class="btn btn-secondary"><i class="fa fa-sync-alt"></i> Làm mới</button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="history-table-full">
+          <thead>
+            <tr>
+              <th style="width: 50px;">STT</th>
+              <th style="width: 150px;">Thời gian</th>
+              <th style="width: 150px;">Người thực hiện</th>
+              <th style="width: 120px;">Mã văn bản</th>
+              <th style="width: 250px;">Trích yếu</th>
+              <th>Nội dung thay đổi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-center">1</td>
+              <td class="text-center">01/03/2026 14:30</td>
+              <td>Nguyễn Văn A</td>
+              <td class="text-center">15/CV-SDL</td>
+              <td>Thông báo nghỉ lễ 30/4</td>
+              <td><span class="status-pill pill-blue">Thêm mới</span> văn bản</td>
+            </tr>
+            <tr>
+              <td class="text-center">2</td>
+              <td class="text-center">03/03/2026 09:15</td>
+              <td>Trần Thị B</td>
+              <td class="text-center">15/CV-SDL</td>
+              <td>Thông báo nghỉ lễ 30/4</td>
+              <td>Cập nhật bộ phận xử lý</td>
+            </tr>
+            <tr>
+              <td class="text-center">3</td>
+              <td class="text-center">05/03/2026 16:45</td>
+              <td>Lê Văn C</td>
+              <td class="text-center">15/CV-SDL</td>
+              <td>Thông báo nghỉ lễ 30/4</td>
+              <td>Thay đổi trạng thái sang <span class="status-pill pill-green">Hoàn thành</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="vbd-popup-footer">
+      <button class="btn btn-cancel-gray" onclick="closeVBD('historyOverlay')">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- Popup Edit -->
+<div id="popupEdit" class="vbd-popup-overlay">
+  <div class="vbd-popup" style="width: 900px;">
+    <div class="vbd-popup-header" style="height: auto; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;">
+      <span>Chỉnh sửa thông tin văn bản đến</span>
+      <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupEdit')"></i>
+    </div>
+
+    <div class="vbd-popup-body">
+      <div class="vbd-row-full">
+        <label>Trích yếu</label>
+        <input type="text" value="Đề nghị hỗ trợ vé máy bay đoàn khách Hàn Quốc" />
+      </div>
+
+      <div class="vbd-grid">
+        <div class="vbd-field">
+          <label>Số ký hiệu</label>
+          <input type="text" value="05/ĐN-VNA" />
+        </div>
+
+        <div class="vbd-field">
+          <label>Loại văn bản</label>
+          <input type="text" value="Công văn" />
+        </div>
+
+        <div class="vbd-field">
+          <label>Ngày ban hành</label>
+          <input type="date" value="2026-03-03" />
+        </div>
+
+        <div class="vbd-field">
+          <label>Ngày nhận</label>
+          <input type="date" value="2026-03-03" />
+        </div>
+      </div>
+
+      <div class="vbd-row-full">
+        <label>Đơn vị gửi</label>
+        <input type="text" value="Vietnam Airlines" />
+      </div>
+
+      <div class="vbd-attachment-header">
+        <label>Tài liệu đính kèm</label>
+        <button class="btn-attach">
+          <i class="fa fa-paperclip"></i> Đính kèm tập tin
+        </button>
+      </div>
+
+      <div class="vbd-file-list">
+        <div class="vbd-file-item">
+          <div class="vbd-file-info">
+            <div class="vbd-file-icon">PDF</div>
+            <div class="vbd-file-details">
+              <span class="vbd-file-name">De_nghi_ho_tro_ve_may_bay.pdf</span>
+              <span class="vbd-file-size">2.4 MB</span>
+            </div>
+          </div>
+          <i class="fas fa-trash-alt vbd-file-delete"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="vbd-popup-footer">
+      <button class="btn btn-cancel-gray" onclick="closeVBD('popupEdit')">Hủy</button>
+      <button class="btn btn-save-blue">Lưu</button>
     </div>
   </div>
 </div>
