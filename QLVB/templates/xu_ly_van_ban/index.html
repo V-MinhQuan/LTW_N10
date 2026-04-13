@@ -75,26 +75,26 @@
         </div>
     <div class="panel-body">
         <div class="table-responsive">
-            <table>
+            <table class="data-table">
                 <thead>
                     <tr>
-                        <th>STT</th>
-                        <th>Số ký hiệu</th>
-                        <th>Trích yếu</th>
-                        <th>Đơn vị gửi-Người xử lý</th>
-                        <th>Ngày nhận</th>
-                        <th>Thời hạn</th>
-                        <th>Trạng thái</th>
-                        <th>Mô tả</th>
-                        <th>Thao tác</th>
+                        <th width="5%" class="col-stt">STT</th>
+                        <th width="12%">Số ký hiệu</th>
+                        <th width="20%">Trích yếu</th>
+                        <th width="15%">Đơn vị gửi-Người xử lý</th>
+                        <th width="10%">Ngày nhận</th>
+                        <th width="10%">Thời hạn</th>
+                        <th width="10%" class="col-status">Trạng thái</th>
+                        <th width="10%">Mô tả</th>
+                        <th width="8%" class="col-actions">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for doc in page_obj %}
                     <tr>
-                        <td class="col-stt">{{ forloop.counter0|add:page_obj.start_index }}</td>
-                        <td class="text-left"><a href="#">{{ doc.SoKyHieu }}</a></td>
-                        <td class="text-left">{{ doc.TrichYeu }}</td>
+                        <td class="col-stt">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+                        <td class="text-left"><a href="javascript:void(0)" class="text-blue">{{ doc.SoKyHieu }}</a></td>
+                        <td class="text-left" style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ doc.TrichYeu }}">{{ doc.TrichYeu }}</td>
                         <td class="text-left">
                             {% with phan_cong=doc.phancong_set.first %}
                             {% if phan_cong %}
@@ -135,15 +135,11 @@
                         <td class="col-actions">
                             {% with phan_cong=doc.phancong_set.first %}
                             <div style="display: flex; gap: 5px;">
+                                <button onclick="openModalP('modalPhanCong', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu }}')" class="action-btn" style="background-color: #00adef;" title="Phân công"><i class="fas fa-user-plus"></i></button>
                                 {% if phan_cong %}
-                                <button onclick="openModalP('modalPhanCong', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu }}')" class="action-btn btn-assign" title="Phân công (Giao lại)"><i class="fas fa-user-plus"></i></button>
                                 <button onclick="openModalC('modalCapNhat', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
                                 <button onclick="openModalT('modalChuyenTiep', '{{ doc.SoKyHieu }}')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
                                 <button onclick="openModalB('modalBaoCao', '{{ doc.SoKyHieu }}')" class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
-                                {% else %}
-                                <button onclick="openModalP('modalPhanCong', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu }}')" class="btn-assign-wide" style="background-color: #00adef; color: #fff; border: none !important; border-radius: 8px; padding: 8px 18px; font-weight: 600; cursor: pointer;">
-                                    <i class="fas fa-user-plus"></i> Phân công
-                                </button>
                                 {% endif %}
                             </div>
                             {% endwith %}
@@ -160,15 +156,15 @@
         <div class="table-footer">
             <div>Hiển thị {{ page_obj.start_index }} - {{ page_obj.end_index }} / Tổng số: {{ page_obj.paginator.count }}</div>
             <div class="pagination">
-                {% if page_obj.has_previous %}
+                {% if page_obj.paginator.num_pages > 1 %}
                 <a href="?page=1&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}" class="page-btn">Đầu</a>
-                <a href="?page={{ page_obj.previous_page_number }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}" class="page-btn">Trước</a>
-                {% endif %}
-                
-                <button class="page-btn active">{{ page_obj.number }}</button>
-                
-                {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}" class="page-btn">Sau</a>
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <button type="button" class="page-btn active">{{ num }}</button>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a href="?page={{ num }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}" class="page-btn">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
                 <a href="?page={{ page_obj.paginator.num_pages }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}" class="page-btn">Cuối</a>
                 {% endif %}
             </div>

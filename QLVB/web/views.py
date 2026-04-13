@@ -1,35 +1,25 @@
-from django.shortcuts import render
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-from django.db.models import Q
-from django.core.paginator import Paginator
-from django.utils import timezone
-from .models import DonViBenTrong, DonViBenNgoai, VanBanDi, LichSuHoatDong, PheDuyet, PhatHanh, UserAccount
-from .models import DonViBenTrong, DonViBenNgoai, UserAccount, VanBanDen, PhanCong, ChuyenTiep, BaoCao, LichSuHoatDong
-from django.utils import timezone
+from .models import VanBanDi, PheDuyet, PhatHanh
+import json
 from datetime import timedelta
-import json
-from django.shortcuts import render
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-from django.db.models import Q, Max
-from django.core.paginator import Paginator
-from .models import DonViBenTrong, DonViBenNgoai, UserAccount, VaiTro
-import json
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.utils import timezone
-import json
-from .models import VanBanDen, DonViBenNgoai, LichSuHoatDong
-from .forms import VanBanDenForm
-from django.shortcuts import render, redirect
+
 # IMPORT ĐẦY ĐỦ CHO HỆ THỐNG ĐĂNG NHẬP
-from django.contrib.auth import authenticate, login as auth_login, logout, update_session_auth_hash
+from django.contrib.auth import login as auth_login, logout
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_http_methods
+from django.core.paginator import Paginator
+from django.db.models import Q, Max
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.shortcuts import render, redirect
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+
 # IMPORT CHO HỆ THỐNG THÔNG BÁO LỖI (MESSAGES)
-from django.contrib import messages
 from .forms import LoginForm
+from .forms import VanBanDenForm
+from .models import DonViBenTrong, UserAccount, VaiTro
+from .models import PhanCong, ChuyenTiep, BaoCao
+from .models import VanBanDen, DonViBenNgoai, LichSuHoatDong
+from .models import VanBanDi, PheDuyet, PhatHanh
 
 
 # --- TRANG CHỦ ---
@@ -413,6 +403,8 @@ def quan_ly_nguoi_dung_index(request):
 def thong_tin_nguoi_dung(request):
     return render(request, 'quan_ly_nguoi_dung/thong_tin.html')
 
+def thong_tin_view(request):
+    return render(request, 'thong_tin.html')
 
 # --- API NGƯỜI DÙNG ---
 def api_nguoi_dung_list(request):
@@ -730,9 +722,12 @@ def xu_ly_van_ban_index(request):
         HanXuLy__date__range=[today, today + timedelta(days=5)]
     ).exclude(TrangThaiXuLy='Hoàn thành').select_related('VanBanDenID')
     
-    overdue_qs = PhanCong.objects.filter(
+    overdue_qs_all = PhanCong.objects.filter(
         HanXuLy__date__lt=today
-    ).exclude(TrangThaiXuLy='Hoàn thành').select_related('VanBanDenID')
+    ).exclude(TrangThaiXuLy='Hoàn thành')
+    
+    overdue_count = overdue_qs_all.count()
+    overdue_qs = overdue_qs_all.select_related('VanBanDenID').order_by('-HanXuLy')[:5]
 
     # Nhóm theo số ngày
     coming_soon_groups = {}
@@ -762,7 +757,7 @@ def xu_ly_van_ban_index(request):
         'query_nguoi_xu_ly': query_nguoi_xu_ly,
         'query_ngay_nhan': query_ngay_nhan,
         'coming_soon_count': coming_soon_qs.count(),
-        'overdue_count': overdue_qs.count(),
+        'overdue_count': overdue_count,
         'coming_soon_groups': coming_soon_groups,
         'overdue_groups': overdue_groups,
     }

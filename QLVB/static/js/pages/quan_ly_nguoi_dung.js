@@ -113,13 +113,15 @@ function renderTable(users, pagination) {
     users.forEach((user, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${user.stt || (startSTT + index)}</td>
+            <td class="col-stt">${user.stt || (startSTT + index)}</td>
             <td>${user.username}</td>
             <td style="text-align: left;">${user.fullname}</td>
             <td>${user.dept || ''}</td>
             <td>${user.role_name || ''}</td>
             <td>${user.email}</td>
-            <td><span class="status-badge ${user.status === 'Đang hoạt động' ? 'status-active' : 'status-disabled'}">${user.status}</span></td>
+            <td class="col-status">
+                <span class="status-pill ${user.status === 'Đang hoạt động' ? 'pill-green' : 'pill-red'}">${user.status}</span>
+            </td>
             <td class="col-actions">
                 <button type="button" class="action-btn btn-primary" onclick="viewUserById(${user.id})" title="Xem"><i class="fas fa-eye"></i></button>
                 <button type="button" class="action-btn btn-success" onclick="editUserById(${user.id})" title="Sửa"><i class="fas fa-edit"></i></button>
@@ -137,7 +139,10 @@ function renderPagination(pagination) {
 
     if (pagination.total_pages <= 1) return;
 
-    container.appendChild(createPageBtn('Đầu', 1));
+    if (pagination.current_page > 1) {
+        container.appendChild(createPageBtn('Đầu', 1));
+        container.appendChild(createPageBtn('Trước', pagination.current_page - 1));
+    }
 
     let startPage = Math.max(1, pagination.current_page - 2);
     let endPage = Math.min(pagination.total_pages, startPage + 4);
@@ -151,9 +156,8 @@ function renderPagination(pagination) {
 
     if (pagination.has_next) {
         container.appendChild(createPageBtn('Sau', pagination.current_page + 1));
+        container.appendChild(createPageBtn('Cuối', pagination.total_pages));
     }
-    
-    container.appendChild(createPageBtn('Cuối', pagination.total_pages));
 }
 
 function createPageBtn(text, page, active = false) {

@@ -1,5 +1,6 @@
 from django import forms
 from .models import VanBanDen, DonViBenNgoai
+from django.contrib.auth.forms import AuthenticationForm
 
 class VanBanDenForm(forms.Form):
     so_ky_hieu = forms.CharField(max_length=50, required=True, error_messages={'required': 'Số ký hiệu là bắt buộc.'})

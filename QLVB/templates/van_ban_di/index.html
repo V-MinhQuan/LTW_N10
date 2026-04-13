@@ -46,27 +46,27 @@
     </div>
     <div class="panel-body">
         <div class="table-responsive">
-            <table>
+            <table class="data-table">
                 <thead>
                     <tr>
-                        <th>STT</th>
-                        <th>Số ký hiệu</th>
-                        <th>Trích yếu</th>
-                        <th>Đơn vị nhận</th>
-                        <th>Loại văn bản</th>
-                        <th>Người soạn thảo</th>
-                        <th>Ngày ban hành</th>
-                        <th>Trạng thái</th>
-                        <th>Thao tác</th>
+                        <th width="5%" class="col-stt">STT</th>
+                        <th width="12%">Số ký hiệu</th>
+                        <th width="20%">Trích yếu</th>
+                        <th width="15%">Đơn vị nhận</th>
+                        <th width="12%">Loại văn bản</th>
+                        <th width="12%">Người soạn thảo</th>
+                        <th width="10%">Ngày ban hành</th>
+                        <th width="10%" class="col-status">Trạng thái</th>
+                        <th width="4%" class="col-actions">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for vb in page_obj %}
                     {% with tt=vb.TrangThai %}
                     <tr data-id="{{ vb.VanBanDiID }}">
-                        <td class="col-stt">{{ forloop.counter }}</td>
-                        <td class="text-left"><a href="#" class="link">{{ vb.SoKyHieu }}</a></td>
-                        <td class="text-left">{{ vb.TrichYeu }}</td>
+                        <td class="col-stt">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+                        <td class="text-left"><a href="javascript:void(0)" class="text-blue" onclick="xemChiTiet(this)">{{ vb.SoKyHieu }}</a></td>
+                        <td class="text-left" style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ vb.TrichYeu }}">{{ vb.TrichYeu }}</td>
                         <td class="text-left">
                             {% if vb.DonViNgoaiID %}{{ vb.DonViNgoaiID.TenDonVi }} (BN){% endif %}
                             {% if vb.DonViNgoaiID and vb.DonViTrongID %}<br>{% endif %}
@@ -82,16 +82,16 @@
                             {% else %}<span class="status-pill pill-gray">Dự thảo</span>{% endif %}
                         </td>
                         <td class="col-actions">
-                            <button class="action-btn btn-primary" onclick="xemChiTiet(this)"><i class="fa fa-eye"></i></button>
+                            <button class="action-btn btn-primary" onclick="xemChiTiet(this)" title="Xem"><i class="fa fa-eye"></i></button>
                             {% if tt == 'DA_PHE_DUYET' %}
-                            <button class="action-btn btn-info" onclick="phatHanhVanBan(this)"><i class="fa fa-paper-plane"></i></button>
+                            <button class="action-btn btn-info" onclick="phatHanhVanBan(this)" title="Phát hành"><i class="fa fa-paper-plane"></i></button>
                             {% endif %}
                             {% if tt == 'CHO_PHE_DUYET' %}
-                            <button class="action-btn btn-forward" onclick="pheDuyetVanBan(this)"><i class="fa fa-check"></i></button>
+                            <button class="action-btn btn-forward" onclick="pheDuyetVanBan(this)" title="Phê duyệt"><i class="fa fa-check"></i></button>
                             {% endif %}
                             {% if tt == 'DU_THAO' %}
-                            <button class="action-btn btn-success" onclick="suaVanBan(this)"><i class="fas fa-edit"></i></button>
-                            <button class="action-btn btn-danger" style="padding: 5px 10px;" onclick="xoaVanBan(this)"><i class="fas fa-trash-alt"></i></button>
+                            <button class="action-btn btn-success" onclick="suaVanBan(this)" title="Sửa"><i class="fas fa-edit"></i></button>
+                            <button class="action-btn btn-danger" onclick="xoaVanBan(this)" title="Xóa"><i class="fas fa-trash-alt"></i></button>
                             {% endif %}
                         </td>
                     </tr>
@@ -105,13 +105,17 @@
         <div class="table-footer">
             <div>Hiển thị {{ page_obj.start_index }} - {{ page_obj.end_index }} / Tổng số: {{ paginator.count }}</div>
             <div class="pagination">
-                <button class="page-btn" {% if not page_obj.has_previous %}disabled{% endif %} onclick="goPage(1)">Đầu</button>
-                <button class="page-btn" {% if not page_obj.has_previous %}disabled{% endif %} onclick="goPage({% if page_obj.has_previous %}{{ page_obj.previous_page_number }}{% else %}1{% endif %})">Trước</button>
-                {% for p in page_range %}
-                <button class="page-btn {% if p == page_obj.number %}active{% endif %}" onclick="goPage({{ p }})">{{ p }}</button>
+                {% if paginator.num_pages > 1 %}
+                <button class="page-btn" onclick="goPage(1)">Đầu</button>
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <button type="button" class="page-btn active">{{ num }}</button>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <button type="button" class="page-btn" onclick="goPage({{ num }})">{{ num }}</button>
+                    {% endif %}
                 {% endfor %}
-                <button class="page-btn" {% if not page_obj.has_next %}disabled{% endif %} onclick="goPage({% if page_obj.has_next %}{{ page_obj.next_page_number }}{% else %}{{ paginator.num_pages }}{% endif %})">Sau</button>
-                <button class="page-btn" {% if not page_obj.has_next %}disabled{% endif %} onclick="goPage({{ paginator.num_pages }})">Cuối</button>
+                <button class="page-btn" onclick="goPage({{ paginator.num_pages }})">Cuối</button>
+                {% endif %}
             </div>
         </div>
     </div>
