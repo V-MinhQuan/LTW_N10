@@ -1,4 +1,24 @@
 /* CSS ĐẶC THÙ CHO TRANG VĂN BẢN ĐI */
+
+/* Thu gọn bảng để vừa 1400x1024 không scroll */
+.panel table th,
+.panel table td {
+    padding: 6px 8px !important;
+    font-size: 13px !important;
+}
+.panel table td.col-actions,
+.panel table th:last-child {
+    padding: 6px 8px !important;
+    white-space: nowrap !important;
+    width: 120px !important;
+    min-width: 120px !important;
+}
+.panel-body { padding: 10px !important; }
+.panel { margin-bottom: 8px !important; }
+.btn-group { margin-top: 8px !important; }
+.search-grid { margin-bottom: 8px !important; }
+.table-footer { margin-top: 8px !important; }
+
 .link {
     color: #1a73e8;
     cursor: pointer;

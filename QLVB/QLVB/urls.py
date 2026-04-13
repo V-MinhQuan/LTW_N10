@@ -16,6 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
 from web import views
 
 urlpatterns = [
@@ -29,6 +31,13 @@ urlpatterns = [
 
     # Văn bản đi
     path('van-ban-di/', views.van_ban_di_index, name='vbdi_index'),
+    path('api/van-ban-di/them-moi/', views.api_vbdi_them_moi, name='api_vbdi_them_moi'),
+    path('api/van-ban-di/<int:pk>/chi-tiet/', views.api_vbdi_chi_tiet, name='api_vbdi_chi_tiet'),
+    path('api/van-ban-di/<int:pk>/cap-nhat/', views.api_vbdi_cap_nhat, name='api_vbdi_cap_nhat'),
+    path('api/van-ban-di/<int:pk>/xoa/', views.api_vbdi_xoa, name='api_vbdi_xoa'),
+    path('api/van-ban-di/<int:pk>/phe-duyet/', views.api_vbdi_phe_duyet, name='api_vbdi_phe_duyet'),
+    path('api/van-ban-di/<int:pk>/phat-hanh/', views.api_vbdi_phat_hanh, name='api_vbdi_phat_hanh'),
+    path('api/van-ban-di/<int:pk>/lich-su/', views.api_vbdi_lich_su, name='api_vbdi_lich_su'),
 
     # Người dùng
     path('quan-ly-nguoi-dung/', views.quan_ly_nguoi_dung_index, name='qlnd_index'),
@@ -48,4 +57,4 @@ urlpatterns = [
     path('xu-ly-van-ban/cap-nhat/', views.xu_ly_van_ban_cap_nhat, name='xlvb_cap_nhat'),
     path('xu-ly-van-ban/chuyen-tiep/', views.xu_ly_van_ban_chuyen_tiep, name='xlvb_chuyen_tiep'),
     path('xu-ly-van-ban/phan-cong/', views.xu_ly_van_ban_phan_cong, name='xlvb_phan_cong'),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
