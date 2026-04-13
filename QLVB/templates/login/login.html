@@ -1,0 +1,140 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - Vietasia Travel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+
+        body {
+            height: 100vh;
+            width: 100%;
+            background: url("{% static 'img/bg_login.png' %}") no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 1. LOGO TO HƠN */
+        .logo-container {
+            text-align: center;
+            margin-top: 60px;
+            width: 100%;
+        }
+
+        .logo-vietasia {
+            width: 650px; /* Tăng từ 550px lên 650px cho hoành tráng */
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.3));
+        }
+
+        .login-wrapper {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            flex-grow: 1;
+            padding-right: 12%;
+            padding-bottom: 50px;
+        }
+
+        /* 2. KHUNG ĐĂNG NHẬP TO HƠN */
+        .login-card {
+            width: 480px; /* Tăng từ 420px lên 480px */
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 50px 45px; /* Tăng khoảng trống bên trong để form thoáng hơn */
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .form-group { margin-bottom: 25px; }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 16px; /* Tăng size chữ label xíu */
+        }
+
+        /* Ô nhập liệu to hơn xíu cho cân đối */
+        .form-input {
+            width: 100%;
+            padding: 15px 15px; /* Tăng chiều cao ô nhập liệu */
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        .form-input:focus { border-color: #00adef; box-shadow: 0 0 5px rgba(0,173,239,0.4); }
+
+        .footer-links {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 15px;
+            margin-bottom: 30px;
+        }
+        .footer-links a { color: #008080; text-decoration: none; }
+
+        /* Nút bấm to hơn */
+        .btn-submit {
+            width: 100%;
+            padding: 16px; /* Tăng độ dày nút bấm */
+            background-color: #00adef;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px; /* Tăng size chữ nút bấm */
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-submit:hover { background-color: #008ec4; transform: translateY(-1px); }
+    </style>
+</head>
+<body>
+
+    <div class="logo-container">
+        <img src="{% static 'img/logo_login.png' %}" alt="Vietasia Travel" class="logo-vietasia">
+    </div>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            <form method="POST">
+                {% csrf_token %}
+
+                {% if form.errors %}
+                    <p style="color: red; text-align: center; margin-bottom: 15px; font-weight: bold; font-size: 15px;">Sai tài khoản hoặc mật khẩu!</p>
+                {% endif %}
+
+                <div class="form-group">
+                    <label>Tên đăng nhập</label>
+                    <input type="text" name="username" class="form-input" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Mật khẩu</label>
+                    <div style="position: relative;">
+                        <input type="password" name="password" class="form-input" required>
+                        <span style="position: absolute; right: 15px; top: 15px; color: #888; font-size: 14px; cursor: pointer;">Hiện</span>
+                    </div>
+                </div>
+
+                <div class="footer-links">
+                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox"> Ghi nhớ đăng nhập
+                    </label>
+                    <a href="#">Quên mật khẩu?</a>
+                </div>
+
+                <button type="submit" class="btn-submit">Đăng nhập</button>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>

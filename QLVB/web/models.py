@@ -16,6 +16,8 @@ class UserAccount(AbstractUser):
     VaiTroID = models.ForeignKey(VaiTro, on_delete=models.SET_NULL, null=True, blank=True)
     HoTen = models.CharField(max_length=100)
     SoDienThoai = models.CharField(max_length=15)
+    NgaySinh = models.DateField(null=True, blank=True)
+    GioiTinh = models.CharField(max_length=10, choices=[('Nam', 'Nam'), ('Nữ', 'Nữ')], null=True, blank=True)
     TrangThai = models.BooleanField(default=True)
     SoThuTu = models.IntegerField(default=0, null=True, blank=True)
     PhongBan = models.CharField(max_length=100, null=True, blank=True)
