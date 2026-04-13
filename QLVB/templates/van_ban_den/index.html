@@ -309,6 +309,58 @@
     color: #2f80ed !important;
     font-weight: 700 !important;
   }
+
+  /* UPLOAD AREA (popupAdd) */
+  .vbd-upload-area-new {
+    border: 2px dashed #cce4f0 !important;
+    border-radius: 8px !important;
+    background: #f7fbfe !important;
+    padding: 30px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-top: 4px !important;
+  }
+
+  .vbd-upload-area-new .upload-icon {
+    width: 48px !important;
+    height: 48px !important;
+    background: #e0f3fc !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 20px !important;
+    color: #00adef !important;
+  }
+
+  .vbd-upload-area-new p {
+    color: #777 !important;
+    font-size: 13px !important;
+    text-align: center !important;
+    margin: 0 !important;
+    line-height: 1.5 !important;
+  }
+
+  .btn-attach-new {
+    background-color: #00adef !important;
+    color: white !important;
+    border: none !important;
+    padding: 8px 20px !important;
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    font-weight: 500 !important;
+    margin-top: 4px !important;
+  }
+
+  .btn-attach-new:hover {
+    background-color: #0099d6 !important;
+  }
 </style>
 {% endblock %}
 
@@ -317,94 +369,93 @@
 <section class="panel">
   <div class="panel-header header-blue">Tìm kiếm văn bản đến</div>
   <div class="panel-body">
-    <div class="search-grid">
-      <input type="text" class="form-control" placeholder="Nhập Số ký hiệu văn bản" />
-      <input type="text" class="form-control" placeholder="Nhập số văn bản" />
-      <input type="text" class="form-control" placeholder="Nhập Trích yếu" />
-      <select class="form-control">
-        <option>--- Chọn đơn vị ban hành ---</option>
-      </select>
-    </div>
-    <div class="btn-group">
-      <button class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>
-      <button class="btn btn-secondary"><i class="fa fa-sync-alt"></i> Làm mới</button>
-      <button class="btn btn-success" onclick="openVBD('popupAdd')"><i class="fa fa-plus"></i> Thêm mới</button>
-      <button class="btn btn-warning" onclick="openVBD('popupFilter')"><i class="fa fa-filter"></i> Bộ lọc</button>
-      <button type="button" class="btn btn-info" onclick="openVBD('historyView')"><i class="fa fa-history"></i> Lịch sử chỉnh sửa</button>
-    </div>
+    <form method="GET" action="{% url 'vbd_index' %}">
+      <div class="search-grid">
+        <input type="text" name="so_ky_hieu" class="form-control" placeholder="Nhập Số ký hiệu văn bản" value="{{ request.GET.so_ky_hieu }}" />
+        <input type="text" class="form-control" placeholder="Nhập số văn bản" />
+        <input type="text" name="trich_yeu" class="form-control" placeholder="Nhập Trích yếu" value="{{ request.GET.trich_yeu }}" />
+        <select class="form-control" name="don_vi">
+          <option value="">--- Chọn đơn vị ban hành ---</option>
+          {% for dv in don_vi_ngoai %}
+          <option value="{{ dv.DonViNgoaiID }}" {% if request.GET.don_vi == dv.DonViNgoaiID|stringformat:"s" %}selected{% endif %}>{{ dv.TenDonVi }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="btn-group">
+        <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>
+        <a href="{% url 'vbd_index' %}" class="btn btn-secondary"><i class="fa fa-sync-alt"></i> Làm mới</a>
+        <button type="button" class="btn btn-success" onclick="openVBD('popupAdd')"><i class="fa fa-plus"></i> Thêm mới</button>
+        <button type="button" class="btn btn-warning" onclick="openVBD('popupFilter')"><i class="fa fa-filter"></i> Bộ lọc</button>
+      </div>
+    </form>
   </div>
 </section>
 
 <section class="panel">
   <div class="panel-header header-gray" style="display: flex; justify-content: space-between;">
     <span>Danh sách văn bản đến</span>
-    <span class="total">Tổng số: 500 văn bản</span>
+    <span class="total">Tổng số: {{ tong_so }} văn bản</span>
   </div>
   <div class="panel-body">
     <div class="table-responsive">
       <table>
         <thead>
           <tr>
-            <th>STT</th>
-            <th>Số ký hiệu</th>
-            <th>Số văn bản</th>
-            <th>Trích yếu</th>
-            <th>Ngày đến</th>
-            <th>Đơn vị gửi</th>
-            <th>Độ khẩn</th>
-            <th>Trạng thái</th>
-            <th>Thao tác</th>
+            <th style="text-align: center;">STT</th>
+            <th style="text-align: center;">Số ký hiệu</th>
+            <th style="text-align: center;">Số văn bản</th>
+            <th style="text-align: center;">Trích yếu</th>
+            <th style="text-align: center;">Ngày nhận</th>
+            <th style="text-align: center;">Đơn vị gửi</th>
+            <th style="text-align: center;">Trạng thái</th>
+            <th style="text-align: center;">Thao tác</th>
           </tr>
         </thead>
         <tbody>
+          {% for vbd in danh_sach %}
           <tr>
-            <td class="col-stt">1</td>
-            <td class="so-ky-hieu">15/CV-SDL</td>
-            <td class="text-center">15</td>
-            <td class="text-left">Thông báo về việc nghỉ lễ...</td>
-            <td class="text-center">01/03/2026</td>
-            <td class="text-left">Sở Du lịch TP.HCM</td>
-            <td class="col-status"><span class="status-pill pill-red">Khẩn</span></td>
-            <td class="col-status"><span class="status-pill pill-orange">Đang xử lý</span></td>
+            <td class="col-stt">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+            <td class="so-ky-hieu">{{ vbd.SoKyHieu }}</td>
+            <td class="text-center">{{ vbd.VanBanDenID }}</td>
+            <td class="text-left" style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ vbd.TrichYeu }}">{{ vbd.TrichYeu|default:"" }}</td>
+            <td class="text-center">{{ vbd.NgayNhan|date:"d/m/Y" }}</td>
+            <td class="text-left">{{ vbd.DonViNgoaiID.TenDonVi|default:"" }}</td>
+            <td class="col-status">
+              {% if vbd.TrangThai == 'HOAN_THANH' %}
+              <span class="status-pill pill-green">Hoàn thành</span>
+              {% else %}
+              <span class="status-pill pill-orange">Đang xử lý</span>
+              {% endif %}
+            </td>
             <td class="col-actions">
-              <button class="btn btn-primary" style="padding: 5px 10px;" onclick="openVBD('popupView')"><i
-                  class="fas fa-eye"></i></button>
-              <button class="btn btn-success" style="padding: 5px 10px;" onclick="openVBD('popupEdit')"><i
-                  class="fas fa-edit"></i></button>
-              <button class="btn btn-danger" style="padding: 5px 10px;" onclick="openVBD('popupRemove')"><i
-                  class="fas fa-trash"></i></button>
+              <button class="btn btn-primary" style="padding: 5px 10px;" onclick="xemVBD({{ vbd.VanBanDenID }})"><i class="fas fa-eye"></i></button>
+              <button class="btn btn-success" style="padding: 5px 10px;" onclick="suaVBD({{ vbd.VanBanDenID }})"><i class="fas fa-edit"></i></button>
+              <button class="btn btn-danger" style="padding: 5px 10px;" onclick="xoaVBD({{ vbd.VanBanDenID }})"><i class="fas fa-trash"></i></button>
             </td>
           </tr>
-          <tr>
-            <td class="col-stt">2</td>
-            <td class="so-ky-hieu">08/HD-CTDL</td>
-            <td class="text-center">08</td>
-            <td class="text-left">Công văn triển khai tour...</td>
-            <td class="text-center">02/03/2026</td>
-            <td class="text-left">Vietnam Airlines</td>
-            <td></td>
-            <td class="col-status"><span class="status-pill pill-green">Hoàn thành</span></td>
-            <td class="col-actions">
-              <button class="btn btn-primary" style="padding: 5px 10px;" onclick="openVBD('popupView')"><i
-                  class="fas fa-eye"></i></button>
-              <button class="btn btn-success" style="padding: 5px 10px;" onclick="openVBD('popupEdit')"><i
-                  class="fas fa-edit"></i></button>
-              <button class="btn btn-danger" style="padding: 5px 10px;" onclick="openVBD('popupRemove')"><i
-                  class="fas fa-trash"></i></button>
-            </td>
-          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="text-center">Không có văn bản nào.</td></tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
     <div class="table-footer">
-      <div>Hiển thị 1 - 2 / Tổng số: 2</div>
+      <div>Hiển thị {{ page_obj.start_index|default:0 }} - {{ page_obj.end_index|default:0 }} / Tổng số: {{ tong_so }}</div>
+      <!-- Lưu trữ request queryString (ngoại trừ page) để dùng làm prefix cho pagination -->
       <div class="pagination">
-        <button class="page-btn">Đầu</button>
-        <button class="page-btn">Trước</button>
-        <button class="page-btn active">1</button>
-        <button class="page-btn">Sau</button>
-        <button class="page-btn">Cuối</button>
+        {% if page_obj.has_previous %}
+        <a href="?page=1{{ query_string }}" class="page-btn">Đầu</a>
+        <a href="?page={{ page_obj.previous_page_number }}{{ query_string }}" class="page-btn">Trước</a>
+        {% endif %}
+        
+        <button class="page-btn active">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</button>
+        
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{{ query_string }}" class="page-btn">Sau</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{{ query_string }}" class="page-btn">Cuối</a>
+        {% endif %}
       </div>
+    </div>
 </section>
 
 <!-- Popup History -->
@@ -442,39 +493,14 @@
         <table class="history-table-full">
           <thead>
             <tr>
-              <th style="width: 50px;">STT</th>
               <th style="width: 150px;">Thời gian</th>
               <th style="width: 150px;">Người thực hiện</th>
-              <th style="width: 120px;">Mã văn bản</th>
-              <th style="width: 250px;">Trích yếu</th>
+              <th style="width: 120px;">Hành động</th>
               <th>Nội dung thay đổi</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td class="text-center">1</td>
-              <td class="text-center">01/03/2026 14:30</td>
-              <td>Nguyễn Văn A</td>
-              <td class="text-center">15/CV-SDL</td>
-              <td>Thông báo nghỉ lễ 30/4</td>
-              <td><span class="status-pill pill-blue">Thêm mới</span> văn bản</td>
-            </tr>
-            <tr>
-              <td class="text-center">2</td>
-              <td class="text-center">03/03/2026 09:15</td>
-              <td>Trần Thị B</td>
-              <td class="text-center">15/CV-SDL</td>
-              <td>Thông báo nghỉ lễ 30/4</td>
-              <td>Cập nhật bộ phận xử lý</td>
-            </tr>
-            <tr>
-              <td class="text-center">3</td>
-              <td class="text-center">05/03/2026 16:45</td>
-              <td>Lê Văn C</td>
-              <td class="text-center">08/HD-CTDL</td>
-              <td>Công văn triển khai tour mới</td>
-              <td>Thay đổi trạng thái sang <span class="status-pill pill-green">Hoàn thành</span></td>
-            </tr>
+          <tbody id="historyTableBody">
+            <!-- JS will populate this -->
           </tbody>
         </table>
       </div>
@@ -494,40 +520,68 @@
       <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupAdd')"></i>
     </div>
     <div class="vbd-popup-body">
-      <div class="vbd-row-full">
-        <label>Trích yếu</label>
-        <input type="text" placeholder="Nhập trích yếu văn bản" />
-      </div>
-      <div class="vbd-grid">
-        <div class="vbd-field">
-          <label>Số ký hiệu</label>
-          <input type="text" placeholder="VD: 05/ĐN-VNA" />
+      <form id="formAddVBD">
+        <div class="vbd-row-full">
+          <label>Trích yếu (<span style="color:red">*</span>)</label>
+          <input type="text" name="trich_yeu" placeholder="Nhập trích yếu văn bản" required />
         </div>
-        <div class="vbd-field">
-          <label>Loại văn bản</label>
-          <input type="text" placeholder="VD: Công văn" />
+        <div class="vbd-grid">
+          <div class="vbd-field">
+            <label>Số ký hiệu (<span style="color:red">*</span>)</label>
+            <input type="text" name="so_ky_hieu" placeholder="VD: 05/ĐN-VNA" required />
+          </div>
+          <div class="vbd-field">
+            <label>Loại văn bản (<span style="color:red">*</span>)</label>
+            <input type="text" name="loai_van_ban" placeholder="VD: Công văn" required />
+          </div>
+          <div class="vbd-field">
+            <label>Ngày ban hành (<span style="color:red">*</span>)</label>
+            <input type="date" name="ngay_ban_hanh" required />
+          </div>
+          <div class="vbd-field">
+            <label>Ngày nhận</label>
+            <input type="date" name="ngay_nhan" />
+          </div>
+          <div class="vbd-field">
+            <label>Đơn vị gửi (<span style="color:red">*</span>)</label>
+            <select name="don_vi_ngoai_id" class="form-control" style="flex:1;" required>
+              <option value="">- Chọn đơn vị -</option>
+              {% for dv in don_vi_ngoai %}
+              <option value="{{ dv.DonViNgoaiID }}">{{ dv.TenDonVi }}</option>
+              {% endfor %}
+            </select>
+          </div>
         </div>
-        <div class="vbd-field">
-          <label>Ngày ban hành</label>
-          <input type="date" />
+        <div style="margin-top: 12px;">
+          <label style="font-size: 14px; font-weight: 500; color: #333; display: block; margin-bottom: 8px;">Tài liệu đính kèm (<span style="color:red">*</span>)</label>
+          <div class="vbd-upload-area-new" id="add_upload_area">
+            <div class="upload-icon">
+              <i class="fa fa-cloud-upload-alt"></i>
+            </div>
+            <p>Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính</p>
+            <input type="file" id="popupAddFileInput" name="tep_dinh_kem" style="display:none;" multiple required>
+            <button type="button" class="btn-attach-new" onclick="document.getElementById('popupAddFileInput').click()">
+              <i class="fas fa-paperclip"></i> Đính kèm tập tin
+            </button>
+          </div>
+          <div class="vbd-file-list" id="add_tep_dinh_kem_container" style="display:none; margin-top: 10px;">
+            <div class="vbd-file-item">
+              <div class="vbd-file-info">
+                <div class="vbd-file-icon" style="background-color: #e3f2fd; border-color: #bbdefb; color: #1976d2;"><i class="fas fa-file-alt"></i></div>
+                <div class="vbd-file-details">
+                  <span class="vbd-file-name" id="add_tep_dinh_kem_name" style="font-weight: 500; color: #333; font-size: 14px;"></span>
+                  <span class="vbd-file-size" id="add_tep_dinh_kem_size" style="font-size: 12px; color: #666;">Vừa chọn</span>
+                </div>
+              </div>
+              <i class="fas fa-trash-alt vbd-file-delete" onclick="removeAddSelectedFile()" title="Bỏ chọn tệp"></i>
+            </div>
+          </div>
         </div>
-        <div class="vbd-field">
-          <label>Ngày nhận</label>
-          <input type="date" />
-        </div>
-        <div class="vbd-field">
-          <label>Đơn vị gửi</label>
-          <input type="text" placeholder="Nhập đơn vị gửi" />
-        </div>
-      </div>
-      <div class="vbd-upload-area">
-        <i class="fa fa-cloud-upload-alt" style="font-size: 24px; color: #6bb6d6;"></i>
-        <p style="color: #888; font-size: 14px; margin-top: 10px;">Kéo thả hoặc nhấn để tải lên tài liệu đính kèm</p>
-      </div>
+      </form>
     </div>
     <div class="vbd-popup-footer">
       <button class="btn btn-secondary" onclick="closeVBD('popupAdd')">Hủy</button>
-      <button class="btn btn-primary" onclick="alert('Đã lưu thành công!'); closeVBD('popupAdd');">Lưu</button>
+      <button class="btn btn-primary" onclick="submitAddVBD()">Lưu</button>
     </div>
   </div>
 </div>
@@ -568,6 +622,7 @@
   </div>
 </div>
 
+
 <!-- Popup View -->
 <div id="popupView" class="vbd-popup-overlay">
   <div class="vbd-popup" style="width: 900px;">
@@ -575,60 +630,57 @@
       <span>Xem thông tin văn bản đến</span>
       <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupView')"></i>
     </div>
-    <div class="vbd-popup-body">
+    <div class="vbd-popup-body" id="popupViewBody">
       <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
-        <button type="button" class="btn" style="background: #f8f9fa; border: 1px solid #ced4da; color: #333; padding: 4px 10px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;" onclick="openVBD('historyOverlay')">
+        <button type="button" class="btn btn-history" style="background: #f8f9fa; border: 1px solid #ced4da; color: #333; padding: 4px 10px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;" onclick="closeVBD('popupView'); openHistory(this.dataset.id);">
           <i class="fa fa-history" style="color: #666;"></i> Lịch sử chỉnh sửa
         </button>
       </div>
       <div class="vbd-row-full">
         <label>Trích yếu</label>
-        <input type="text" value="Thống báo về việc nghỉ lễ 30/4" readonly>
+        <input type="text" id="view_trich_yeu" readonly>
       </div>
       <div class="vbd-grid">
         <div class="vbd-field">
           <label>Số ký hiệu</label>
-          <input type="text" value="15/CV-SDL" readonly>
+          <input type="text" id="view_so_ky_hieu" readonly>
         </div>
         <div class="vbd-field">
           <label>Loại văn bản</label>
-          <input type="text" value="Công văn" readonly>
+          <input type="text" id="view_loai_van_ban" readonly>
         </div>
         <div class="vbd-field">
           <label>Ngày ban hành</label>
           <div class="vbd-date-wrapper">
-            <input type="text" value="03/03/2026" readonly>
+            <input type="text" id="view_ngay_ban_hanh" readonly>
             <i class="far fa-calendar-alt"></i>
           </div>
         </div>
         <div class="vbd-field">
           <label>Ngày nhận</label>
           <div class="vbd-date-wrapper">
-            <input type="text" value="03/03/2026" readonly>
+            <input type="text" id="view_ngay_nhan" readonly>
             <i class="far fa-calendar-alt"></i>
           </div>
         </div>
       </div>
       <div class="vbd-row-full">
         <label>Đơn vị gửi</label>
-        <input type="text" value="Vietnam Airlines" readonly>
+        <input type="text" id="view_don_vi_gui" readonly>
       </div>
 
       <div class="vbd-attachment-header">
         <label>Tài liệu đính kèm</label>
-        <button class="btn-attach"><i class="fas fa-paperclip"></i> Đính kèm tập tin</button>
       </div>
 
-      <div class="vbd-file-list">
+      <div class="vbd-file-list" id="view_tep_dinh_kem_container" style="display:none;">
         <div class="vbd-file-item">
           <div class="vbd-file-info">
-            <div class="vbd-file-icon">PDF</div>
+            <div class="vbd-file-icon">FILE</div>
             <div class="vbd-file-details">
-              <span class="vbd-file-name">Thong_bao_nghi_le_30/4.pdf</span>
-              <span class="vbd-file-size">2.4 MB</span>
+              <a href="#" target="_blank" class="vbd-file-name" id="view_tep_dinh_kem_name"></a>
             </div>
           </div>
-          <i class="fas fa-trash-alt vbd-file-delete"></i>
         </div>
       </div>
 
@@ -672,14 +724,12 @@
       </div>
 
     </div>
-    <div class="vbd-popup-footer">
-      <button class="btn btn-cancel-gray" onclick="closeVBD('popupView')">Đóng</button>
-    </div>
+
   </div>
 </div>
 
 <!-- History Overlay (inside popupView) -->
-<div id="historyOverlay" class="vbd-popup-overlay">
+<div id="historyOverlay" class="vbd-popup-overlay" style="z-index: 1100;">
   <div class="vbd-popup" style="width: 1100px; max-width: 95%;">
     <div class="vbd-popup-header">
       <span>Lịch sử chỉnh sửa văn bản đến</span>
@@ -751,7 +801,7 @@
       </div>
     </div>
     <div class="vbd-popup-footer">
-      <button class="btn btn-cancel-gray" onclick="closeVBD('historyOverlay')">Đóng</button>
+      <button class="btn btn-cancel-gray" onclick="closeVBD('historyOverlay'); openVBD('popupView');">Đóng</button>
     </div>
   </div>
 </div>
@@ -765,62 +815,81 @@
     </div>
 
     <div class="vbd-popup-body">
-      <div class="vbd-row-full">
-        <label>Trích yếu</label>
-        <input type="text" value="Đề nghị hỗ trợ vé máy bay đoàn khách Hàn Quốc" />
-      </div>
-
-      <div class="vbd-grid">
-        <div class="vbd-field">
-          <label>Số ký hiệu</label>
-          <input type="text" value="05/ĐN-VNA" />
+      <form id="formEditVBD">
+        <input type="hidden" name="vbd_id" id="edit_id">
+        <div class="vbd-row-full">
+          <label>Trích yếu</label>
+          <input type="text" name="trich_yeu" id="edit_trich_yeu" />
         </div>
 
-        <div class="vbd-field">
-          <label>Loại văn bản</label>
-          <input type="text" value="Công văn" />
+        <div class="vbd-grid">
+          <div class="vbd-field">
+            <label>Số ký hiệu</label>
+            <input type="text" name="so_ky_hieu" id="edit_so_ky_hieu" />
+          </div>
+
+          <div class="vbd-field">
+            <label>Loại văn bản</label>
+            <input type="text" name="loai_van_ban" id="edit_loai_van_ban" />
+          </div>
+
+          <div class="vbd-field">
+            <label>Ngày ban hành</label>
+            <input type="date" name="ngay_ban_hanh" id="edit_ngay_ban_hanh" />
+          </div>
+
+          <div class="vbd-field">
+            <label>Ngày nhận</label>
+            <input type="date" name="ngay_nhan" id="edit_ngay_nhan" />
+          </div>
         </div>
 
-        <div class="vbd-field">
-          <label>Ngày ban hành</label>
-          <input type="date" value="2026-03-03" />
+        <div class="vbd-row-full">
+          <label>Đơn vị gửi</label>
+          <select name="don_vi_ngoai_id" id="edit_don_vi_gui" class="form-control" style="flex:1;">
+            <option value="">- Chọn đơn vị -</option>
+            {% for dv in don_vi_ngoai %}
+            <option value="{{ dv.DonViNgoaiID }}">{{ dv.TenDonVi }}</option>
+            {% endfor %}
+          </select>
         </div>
 
-        <div class="vbd-field">
-          <label>Ngày nhận</label>
-          <input type="date" value="2026-03-03" />
+        <div class="vbd-attachment-header">
+          <label>Tài liệu đính kèm</label>
+          <input type="file" id="popupEditFileInput" name="tep_dinh_kem" style="display:none;" multiple>
+          <button type="button" class="btn-attach" onclick="document.getElementById('popupEditFileInput').click()">
+            <i class="fa fa-paperclip"></i> Chọn tập tin
+          </button>
         </div>
-      </div>
-
-      <div class="vbd-row-full">
-        <label>Đơn vị gửi</label>
-        <input type="text" value="Vietnam Airlines" />
-      </div>
-
-      <div class="vbd-attachment-header">
-        <label>Tài liệu đính kèm</label>
-        <button class="btn-attach">
-          <i class="fa fa-paperclip"></i> Đính kèm tập tin
-        </button>
-      </div>
-
-      <div class="vbd-file-list">
-        <div class="vbd-file-item">
-          <div class="vbd-file-info">
-            <div class="vbd-file-icon">PDF</div>
-            <div class="vbd-file-details">
-              <span class="vbd-file-name">De_nghi_ho_tro_ve_may_bay.pdf</span>
-              <span class="vbd-file-size">2.4 MB</span>
+        <div class="vbd-file-list" id="edit_tep_dinh_kem_container" style="display:none; margin-top: 10px;">
+          <div class="vbd-file-item">
+            <div class="vbd-file-info">
+              <div class="vbd-file-icon" style="background-color: #e3f2fd; border-color: #bbdefb; color: #1976d2;"><i class="fas fa-file-alt"></i></div>
+              <div class="vbd-file-details">
+                <a href="#" target="_blank" class="vbd-file-name" id="edit_tep_dinh_kem_name" style="text-decoration: none; color: #1b6ec2;"></a>
+                <span class="vbd-file-size">Đã tải lên trước đó</span>
+              </div>
             </div>
           </div>
-          <i class="fas fa-trash-alt vbd-file-delete"></i>
         </div>
-      </div>
+        <div class="vbd-file-list" id="edit_new_tep_container" style="display:none; margin-top: 10px;">
+          <div class="vbd-file-item">
+            <div class="vbd-file-info">
+              <div class="vbd-file-icon" style="background-color: #e3f2fd; border-color: #bbdefb; color: #1976d2;"><i class="fas fa-file-alt"></i></div>
+              <div class="vbd-file-details">
+                <span class="vbd-file-name" id="edit_new_tep_name" style="font-weight: 500; color: #333; font-size: 14px;"></span>
+                <span class="vbd-file-size" id="edit_new_tep_size" style="font-size: 12px; color: #666;">Vừa chọn</span>
+              </div>
+            </div>
+            <i class="fas fa-trash-alt vbd-file-delete" onclick="removeEditSelectedFile()" title="Bỏ chọn tệp"></i>
+          </div>
+        </div>
+      </form>
     </div>
 
     <div class="vbd-popup-footer">
       <button class="btn btn-cancel-gray" onclick="closeVBD('popupEdit')">Hủy</button>
-      <button class="btn btn-save-blue">Lưu</button>
+      <button class="btn btn-save-blue" onclick="submitEditVBD()">Lưu</button>
     </div>
   </div>
 </div>
@@ -835,7 +904,7 @@
       <p style="color: #666; margin-bottom: 20px;">Bạn có chắc chắn muốn xóa văn bản này không?</p>
       <div style="display: flex; gap: 10px; justify-content: center;">
         <button class="btn btn-secondary" onclick="closeVBD('popupRemove')">Hủy</button>
-        <button class="btn btn-danger" onclick="alert('Đã xóa thành công!'); closeVBD('popupRemove');">Xác nhận</button>
+        <button class="btn btn-danger" onclick="submitXoaVBD()">Xác nhận</button>
       </div>
     </div>
   </div>

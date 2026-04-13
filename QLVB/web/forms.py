@@ -1,0 +1,77 @@
+from django import forms
+from .models import VanBanDen, DonViBenNgoai
+
+class VanBanDenForm(forms.Form):
+    so_ky_hieu = forms.CharField(max_length=50, required=True, error_messages={'required': 'Số ký hiệu là bắt buộc.'})
+    trich_yeu = forms.CharField(max_length=255, required=False)
+    loai_van_ban = forms.CharField(max_length=50, required=False)
+    ngay_ban_hanh = forms.DateField(required=False)
+    ngay_nhan = forms.DateField(required=False)
+    dont_vi_ngoai_id = forms.CharField(required=False)
+    tep_dinh_kem = forms.FileField(required=False)
+    xoa_tep_dinh_kem = forms.CharField(required=False)
+
+    def clean_don_vi_ngoai_id(self):
+        don_vi_id = self.cleaned_data.get('don_vi_ngoai_id', '')
+        
+        if not don_vi_id:
+            # Fallback nếu không có đơn vị
+            dv = DonViBenNgoai.objects.first()
+            if not dv:
+                dv = DonViBenNgoai.objects.create(TenDonVi="Chưa xác định")
+            return dv
+            
+        # Kiểm tra nếu là ID (số)
+        if str(don_vi_id).isdigit():
+            dv = DonViBenNgoai.objects.filter(pk=don_vi_id).first()
+            if dv:
+                return dv
+                
+        # Nếu là string (tên) hoặc ID không tồn tại, tạo mới
+        dv, created = DonViBenNgoai.objects.get_or_create(TenDonVi=don_vi_id)
+        return dv
+
+    def save(self, user=None, instance=None):
+        data = self.cleaned_data
+        
+        if instance:
+            # Update existing instance
+            instance.SoKyHieu = data.get('so_ky_hieu', instance.SoKyHieu)
+            if data.get('trich_yeu') is not None:
+                instance.TrichYeu = data.get('trich_yeu')
+            if data.get('loai_van_ban') is not None:
+                instance.LoaiVanBan = data.get('loai_van_ban')
+                
+            if data.get('ngay_ban_hanh'):
+                instance.NgayBanHanh = data.get('ngay_ban_hanh')
+            if data.get('ngay_nhan'):
+                instance.NgayNhan = data.get('ngay_nhan')
+                
+            if 'don_vi_ngoai_id' in data and data['don_vi_ngoai_id']:
+                instance.DonViNgoaiID = data['don_vi_ngoai_id']
+                
+            # files can be accessed via self.files or data if FileField
+            file_upload = self.files.get('tep_dinh_kem') or data.get('tep_dinh_kem')
+            if file_upload:
+                instance.TepDinhKem = file_upload
+            elif data.get('xoa_tep_dinh_kem') == '1':
+                if instance.TepDinhKem:
+                    instance.TepDinhKem.delete(save=False)
+                instance.TepDinhKem = None
+                
+            instance.save()
+            return instance
+        else:
+            file_upload = self.files.get('tep_dinh_kem') or data.get('tep_dinh_kem')
+            # Create new instance
+            vbd = VanBanDen.objects.create(
+                SoKyHieu=data.get('so_ky_hieu'),
+                TrichYeu=data.get('trich_yeu'),
+                LoaiVanBan=data.get('loai_van_ban'),
+                NgayBanHanh=data.get('ngay_ban_hanh'),
+                NgayNhan=data.get('ngay_nhan'),
+                DonViNgoaiID=data.get('don_vi_ngoai_id'), # this is the cleaned object
+                TepDinhKem=file_upload,
+                UserID=user
+            )
+            return vbd
