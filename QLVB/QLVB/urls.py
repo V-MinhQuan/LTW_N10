@@ -19,6 +19,11 @@ urlpatterns = [
 
     # --- Văn bản đến ---
     path('van-ban-den/', views.van_ban_den_index, name='vbd_index'),
+    path('van-ban-den/them/', views.van_ban_den_them, name='vbd_them'),
+    path('van-ban-den/<int:pk>/xem/', views.van_ban_den_xem, name='vbd_xem'),
+    path('van-ban-den/<int:pk>/sua/', views.van_ban_den_sua, name='vbd_sua'),
+    path('van-ban-den/<int:pk>/xoa/', views.van_ban_den_xoa, name='vbd_xoa'),
+    path('van-ban-den/lich-su/', views.van_ban_den_lich_su, name='vbd_lich_su'),
 
     # --- Văn bản đi ---
     path('van-ban-di/', views.van_ban_di_index, name='vbdi_index'),

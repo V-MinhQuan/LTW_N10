@@ -1,12 +1,24 @@
+from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from django.db.models import Q
+from django.core.paginator import Paginator
+from django.utils import timezone
+from .models import DonViBenTrong, DonViBenNgoai, VanBanDi, LichSuHoatDong, PheDuyet, PhatHanh, UserAccount
+import json
+from django.shortcuts import render
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.db.models import Q, Max
 from django.core.paginator import Paginator
 from .models import DonViBenTrong, DonViBenNgoai, UserAccount, VaiTro
-from django.utils import timezone
-from .models import DonViBenTrong, DonViBenNgoai, VanBanDi, LichSuHoatDong, PheDuyet, PhatHanh, UserAccount
 import json
-
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+import json
+from .models import VanBanDen, DonViBenNgoai, LichSuHoatDong
+from .forms import VanBanDenForm
 from django.shortcuts import render, redirect
 # IMPORT ĐẦY ĐỦ CHO HỆ THỐNG ĐĂNG NHẬP
 from django.contrib.auth import authenticate, login as auth_login, logout, update_session_auth_hash
@@ -23,12 +35,170 @@ def index(request):
     """View cho trang Dashboard - Chỉ cho phép người đã đăng nhập"""
     return render(request, 'index.html')
 
-def login(request):
-    return render(request, 'login.html')
+
+# --- HỆ THỐNG ĐĂNG NHẬP / ĐĂNG XUẤT ---
+def login_view(request):
+    if request.method == 'POST':
+        form = LoginForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            auth_login(request, user)
+            return redirect('index')
+        else:
+            # Nếu form không hợp lệ (sai pass, thiếu user), in lỗi ra terminal để xem
+            print(form.errors)
+    else:
+        form = LoginForm()
+    return render(request, 'login/login.html', {'form': form})
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')
+
 
 # --- QUẢN LÝ VĂN BẢN ĐẾN ---
 def van_ban_den_index(request):
-    return render(request, 'van_ban_den/index.html')
+    danh_sach = VanBanDen.objects.select_related('DonViNgoaiID').all().order_by('-VanBanDenID')
+    don_vi_ngoai = DonViBenNgoai.objects.all()
+
+    so_ky_hieu = request.GET.get('so_ky_hieu', '')
+    trich_yeu = request.GET.get('trich_yeu', '')
+    don_vi_id = request.GET.get('don_vi', '')
+
+    if so_ky_hieu:
+        danh_sach = danh_sach.filter(SoKyHieu__icontains=so_ky_hieu)
+    if trich_yeu:
+        danh_sach = danh_sach.filter(TrichYeu__icontains=trich_yeu)
+    if don_vi_id:
+        danh_sach = danh_sach.filter(DonViNgoaiID_id=don_vi_id)
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(danh_sach, 4)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Tạo query string cho các filter (loại bỏ tham số page)
+    q = request.GET.copy()
+    if 'page' in q:
+        del q['page']
+    query_string = f"&{q.urlencode()}" if q else ""
+
+    return render(request, 'van_ban_den/index.html', {
+        'page_obj': page_obj,
+        'danh_sach': page_obj.object_list,
+        'don_vi_ngoai': don_vi_ngoai,
+        'tong_so': paginator.count,
+        'query_string': query_string
+    })
+
+
+@csrf_exempt
+def van_ban_den_them(request):
+    if request.method == 'POST':
+        try:
+            form = VanBanDenForm(request.POST, request.FILES)
+            if form.is_valid():
+                vbd = form.save(user=request.user if request.user.is_authenticated else None)
+
+                LichSuHoatDong.objects.create(
+                    UserID=request.user if request.user.is_authenticated else None,
+                    LoaiDoiTuong='VanBanDen',
+                    DoiTuongID=vbd.VanBanDenID,
+                    HanhDong='Thêm',
+                    NoiDungThayDoi=f'Thêm mới văn bản đến: {vbd.SoKyHieu}'
+                )
+                return JsonResponse({'status': 'success'})
+            else:
+                return JsonResponse({'status': 'error', 'message': str(form.errors)})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    return JsonResponse({'status': 'invalid method'})
+
+
+def van_ban_den_xem(request, pk):
+    vbd = VanBanDen.objects.filter(pk=pk).first()
+    if not vbd:
+        return JsonResponse({'status': 'error', 'message': 'Không tìm thấy'})
+    return JsonResponse({
+        'status': 'success',
+        'data': {
+            'id': vbd.VanBanDenID,
+            'so_ky_hieu': vbd.SoKyHieu,
+            'trich_yeu': vbd.TrichYeu,
+            'loai_van_ban': vbd.LoaiVanBan,
+            'ngay_ban_hanh': vbd.NgayBanHanh.strftime('%Y-%m-%d') if vbd.NgayBanHanh else '',
+            'ngay_nhan': vbd.NgayNhan.strftime('%Y-%m-%d') if vbd.NgayNhan else '',
+            'don_vi_ngoai_ten': vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else '',
+            'don_vi_ngoai_id': vbd.DonViNgoaiID_id,
+            'tep_dinh_kem': vbd.TepDinhKem.url if vbd.TepDinhKem else '',
+            'tep_name': vbd.TepDinhKem.name.split('/')[-1] if vbd.TepDinhKem else '',
+            'trang_thai': vbd.TrangThai
+        }
+    })
+
+
+@csrf_exempt
+def van_ban_den_sua(request, pk):
+    if request.method == 'POST':
+        vbd = VanBanDen.objects.filter(pk=pk).first()
+        if not vbd:
+            return JsonResponse({'status': 'error', 'message': 'Không tìm thấy'})
+
+        old_val = f"{vbd.SoKyHieu} - {vbd.TrichYeu}"
+
+        form = VanBanDenForm(request.POST, request.FILES)
+        if form.is_valid():
+            vbd = form.save(user=request.user if request.user.is_authenticated else None, instance=vbd)
+
+            LichSuHoatDong.objects.create(
+                UserID=request.user if request.user.is_authenticated else None,
+                LoaiDoiTuong='VanBanDen',
+                DoiTuongID=vbd.VanBanDenID,
+                HanhDong='Cập nhật',
+                NoiDungThayDoi=f'Cập nhật từ {old_val} thành {vbd.SoKyHieu} - {vbd.TrichYeu}'
+            )
+            return JsonResponse({'status': 'success'})
+        else:
+            return JsonResponse({'status': 'error', 'message': str(form.errors)})
+    return JsonResponse({'status': 'error'})
+
+
+@csrf_exempt
+def van_ban_den_xoa(request, pk):
+    if request.method == 'POST':
+        vbd = VanBanDen.objects.filter(pk=pk).first()
+        if vbd:
+            so_k_h = vbd.SoKyHieu
+            vbd.delete()
+            LichSuHoatDong.objects.create(
+                UserID=request.user if request.user.is_authenticated else None,
+                LoaiDoiTuong='VanBanDen',
+                DoiTuongID=pk,
+                HanhDong='Xóa',
+                NoiDungThayDoi=f'Đã xóa văn bản {so_k_h}'
+            )
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error'})
+
+
+def van_ban_den_lich_su(request):
+    pk = request.GET.get('id')
+    lich_su = LichSuHoatDong.objects.filter(LoaiDoiTuong='VanBanDen')
+    if pk:
+        lich_su = lich_su.filter(DoiTuongID=pk)
+    lich_su = lich_su.order_by('-ThoiGianCapNhat')
+
+    data = []
+    for ls in lich_su:
+        data.append({
+            'ThoiGianCapNhat': ls.ThoiGianCapNhat.strftime('%d/%m/%Y %H:%M') if ls.ThoiGianCapNhat else '',
+            'NguoiThucHien': ls.UserID.HoTen if ls.UserID and ls.UserID.HoTen else (
+                ls.UserID.username if ls.UserID else 'Hệ thống'),
+            'HanhDong': ls.HanhDong,
+            'NoiDungThayDoi': ls.NoiDungThayDoi
+        })
+    return JsonResponse({'status': 'success', 'data': data})
 
 # --- QUẢN LÝ VĂN BẢN ĐI ---
 def van_ban_di_index(request):
@@ -232,192 +402,6 @@ def _ghi_lich_su(request, loai, doi_tuong_id, hanh_dong, noi_dung, trang_thai_cu
     except Exception:
         pass
 
-# --- QUẢN LÝ NGƯỜI DÙNG ---
-def quan_ly_nguoi_dung_index(request):
-    return render(request, 'quan_ly_nguoi_dung/index.html')
-
-def thong_tin_nguoi_dung(request):
-    return render(request, 'quan_ly_nguoi_dung/thong_tin.html')
-
-# --- QUẢN LÝ ĐƠN VỊ ---
-def quan_ly_don_vi_ben_ngoai(request):
-    query_name = request.GET.get('name', '')
-    query_address = request.GET.get('address', '')
-    query_contact = request.GET.get('contact', '')
-    page_number = request.GET.get('page', 1)
-    page_size = 5
-
-    units = DonViBenNgoai.objects.all().order_by('-pk')
-    if query_name:
-        units = units.filter(TenDonVi__icontains=query_name)
-    if query_address:
-        units = units.filter(DiaChi__icontains=query_address)
-    if query_contact:
-        units = units.filter(NguoiLienHe__icontains=query_contact)
-
-    paginator = Paginator(units, page_size)
-    page_obj  = paginator.get_page(page_number)
-
-    if request.GET.get('ajax') == '1':
-        unit_list = [{'id': u.DonViNgoaiID, 'name': u.TenDonVi, 'address': u.DiaChi,
-                      'phone': u.SoDienThoai, 'email': u.Email, 'contact': u.NguoiLienHe}
-                     for u in page_obj]
-        return JsonResponse({'status': 'success', 'data': unit_list,
-                             'pagination': {'total_count': paginator.count, 'total_pages': paginator.num_pages,
-                                            'current_page': page_obj.number, 'has_next': page_obj.has_next(),
-                                            'has_previous': page_obj.has_previous()}})
-
-    return render(request, 'quan_ly_don_vi/ben_ngoai.html', {
-        'page_obj': page_obj, 'query_name': query_name,
-        'query_address': query_address, 'query_contact': query_contact
-    })
-
-def quan_ly_don_vi_ben_trong(request):
-    query_name = request.GET.get('name', '')
-    query_address = request.GET.get('address', '')
-    query_contact = request.GET.get('contact', '')
-    page_number = request.GET.get('page', 1)
-    page_size = 5
-
-    units = DonViBenTrong.objects.all().order_by('-pk')
-    if query_name:
-        units = units.filter(TenDonVi__icontains=query_name)
-    if query_address:
-        units = units.filter(DiaChi__icontains=query_address)
-    if query_contact:
-        units = units.filter(NguoiLienHe__icontains=query_contact)
-
-    paginator = Paginator(units, page_size)
-    page_obj  = paginator.get_page(page_number)
-
-    if request.GET.get('ajax') == '1':
-        unit_list = [{'id': u.DonViTrongID, 'name': u.TenDonVi, 'address': u.DiaChi,
-                      'phone': u.SoDienThoai, 'email': u.Email, 'contact': u.NguoiLienHe}
-                     for u in page_obj]
-        return JsonResponse({'status': 'success', 'data': unit_list,
-                             'pagination': {'total_count': paginator.count, 'total_pages': paginator.num_pages,
-                                            'current_page': page_obj.number, 'has_next': page_obj.has_next(),
-                                            'has_previous': page_obj.has_previous()}})
-
-    return render(request, 'quan_ly_don_vi/ben_trong.html', {
-        'page_obj': page_obj, 'query_name': query_name,
-        'query_address': query_address, 'query_contact': query_contact
-    })
-
-def api_upsert_don_vi(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            unit_type = data.get('type')
-            unit_id   = data.get('id')
-            model = DonViBenTrong if unit_type == 'trong' else DonViBenNgoai
-            if unit_id:
-                unit = get_object_or_404(model, pk=unit_id)
-            else:
-                unit = model()
-            unit.TenDonVi    = data.get('name')
-            unit.DiaChi      = data.get('address')
-            unit.SoDienThoai = data.get('phone')
-            unit.Email       = data.get('email')
-            unit.NguoiLienHe = data.get('contact')
-            unit.save()
-            return JsonResponse({'status': 'success', 'message': 'Lưu thành công!'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
-
-def api_delete_don_vi(request):
-    if request.method == 'POST':
-        try:
-            data      = json.loads(request.body)
-            unit_type = data.get('type')
-            unit_id   = data.get('id')
-            model = DonViBenTrong if unit_type == 'trong' else DonViBenNgoai
-            unit  = get_object_or_404(model, pk=unit_id)
-            unit.delete()
-            return JsonResponse({'status': 'success', 'message': 'Xóa thành công!'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
-
-# --- XỬ LÝ VĂN BẢN ĐIỀU HÀNH ---
-def xu_ly_van_ban_index(request):
-    return render(request, 'xu_ly_van_ban/index.html')
-
-def xu_ly_van_ban_bao_cao(request):
-    return render(request, 'xu_ly_van_ban/bao_cao.html')
-
-def xu_ly_van_ban_cap_nhat(request):
-    return render(request, 'xu_ly_van_ban/cap_nhat.html')
-
-def xu_ly_van_ban_chuyen_tiep(request):
-    return render(request, 'xu_ly_van_ban/chuyen_tiep.html')
-
-def xu_ly_van_ban_phan_cong(request):
-    return render(request, 'xu_ly_van_ban/phan_cong.html')
-
-
-# --- TRANG CHỦ & ĐĂNG NHẬP ---
-def index(request):
-    """View cho trang Dashboard"""
-    return render(request, 'index.html')
-
-
-# --- HỆ THỐNG ĐĂNG NHẬP / ĐĂNG XUẤT ---
-def login_view(request):
-    if request.method == 'POST':
-        form = LoginForm(request, data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            auth_login(request, user)
-            return redirect('index')
-        else:
-            # Nếu form không hợp lệ (sai pass, thiếu user), in lỗi ra terminal để xem
-            print(form.errors)
-    else:
-        form = LoginForm()
-    return render(request, 'login/login.html', {'form': form})
-
-
-def logout_view(request):
-    logout(request)
-    return redirect('login')
-
-#--THÔNG TIN NGƯỜI DÙNG--
-@login_required(login_url='/login/')
-def thong_tin_view(request):
-    # Xử lý đổi mật khẩu từ Popup
-    if request.method == 'POST' and 'old_password' in request.POST:
-        old_password = request.POST.get('old_password')
-        new_password = request.POST.get('new_password')
-        confirm_password = request.POST.get('confirm_password')
-
-        if not request.user.check_password(old_password):
-            messages.error(request, 'Mật khẩu hiện tại không đúng!')
-            request.session['open_modal'] = True
-        elif new_password != confirm_password:
-            messages.error(request, 'Mật khẩu mới không khớp!')
-            request.session['open_modal'] = True
-        else:
-            # Đổi pass thành công
-            request.user.set_password(new_password)
-            request.user.save()
-            # Cực kỳ quan trọng: Giữ lại phiên đăng nhập sau khi đổi pass
-            update_session_auth_hash(request, request.user)
-            messages.success(request, 'Đổi mật khẩu thành công!')
-            request.session['open_modal'] = False
-
-        return redirect('thong_tin') # Chú ý: url pattern của ông phải tên là 'thong_tin'
-
-    # Load trang thông tin (GET)
-    open_modal = request.session.pop('open_modal', False)
-
-    return render(request, 'quan_ly_nguoi_dung/thong_tin.html', {
-        'open_modal': open_modal
-    })
-# --- QUẢN LÝ VĂN BẢN ĐẾN ---
-def van_ban_den_index(request):
-    return render(request, 'van_ban_den/index.html')
 
 # --- QUẢN LÝ NGƯỜI DÙNG ---
 def quan_ly_nguoi_dung_index(request):
@@ -426,179 +410,6 @@ def quan_ly_nguoi_dung_index(request):
 def thong_tin_nguoi_dung(request):
     return render(request, 'quan_ly_nguoi_dung/thong_tin.html')
 
-# --- QUẢN LÝ ĐƠN VỊ ---
-def quan_ly_don_vi_ben_ngoai(request):
-    query_name = request.GET.get('name', '')
-    query_address = request.GET.get('address', '')
-    query_contact = request.GET.get('contact', '')
-    page_number = request.GET.get('page', 1)
-    page_size = 5  # Giới hạn duy nhất cho quản lý đơn vị
-    unit_id = request.GET.get('id')
-
-    units = DonViBenNgoai.objects.all().order_by('SoThuTu', '-pk')
-    
-    if unit_id:
-        units = units.filter(DonViNgoaiID=unit_id)
-        units = units.filter(TenDonVi__icontains=query_name)
-    if query_address:
-        units = units.filter(DiaChi__icontains=query_address)
-    if query_contact:
-        units = units.filter(NguoiLienHe__icontains=query_contact)
-
-    paginator = Paginator(units, page_size)
-    page_obj = paginator.get_page(page_number)
-
-    if request.GET.get('ajax') == '1':
-        unit_list = []
-        for u in page_obj:
-            unit_list.append({
-                'id': u.DonViNgoaiID,
-                'name': u.TenDonVi,
-                'address': u.DiaChi,
-                'phone': u.SoDienThoai,
-                'email': u.Email,
-                'contact': u.NguoiLienHe
-            })
-        return JsonResponse({
-            'status': 'success',
-            'data': unit_list,
-            'pagination': {
-                'total_count': paginator.count,
-                'total_pages': paginator.num_pages,
-                'current_page': page_obj.number,
-                'has_next': page_obj.has_next(),
-                'has_previous': page_obj.has_previous(),
-            }
-        })
-
-    return render(request, 'quan_ly_don_vi/ben_ngoai.html', {
-        'page_obj': page_obj,
-        'query_name': query_name,
-        'query_address': query_address,
-        'query_contact': query_contact
-    })
-
-def quan_ly_don_vi_ben_trong(request):
-    query_name = request.GET.get('name', '')
-    query_address = request.GET.get('address', '')
-    query_contact = request.GET.get('contact', '')
-    page_number = request.GET.get('page', 1)
-    page_size = 5  # Giới hạn duy nhất cho quản lý đơn vị
-    unit_id = request.GET.get('id')
-
-    units = DonViBenTrong.objects.all().order_by('SoThuTu', '-pk')
-    
-    if unit_id:
-        units = units.filter(DonViTrongID=unit_id)
-        units = units.filter(TenDonVi__icontains=query_name)
-    if query_address:
-        units = units.filter(DiaChi__icontains=query_address)
-    if query_contact:
-        units = units.filter(NguoiLienHe__icontains=query_contact)
-
-    paginator = Paginator(units, page_size)
-    page_obj = paginator.get_page(page_number)
-
-    if request.GET.get('ajax') == '1':
-        unit_list = []
-        for u in page_obj:
-            unit_list.append({
-                'id': u.DonViTrongID,
-                'name': u.TenDonVi,
-                'address': u.DiaChi,
-                'phone': u.SoDienThoai,
-                'email': u.Email,
-                'contact': u.NguoiLienHe
-            })
-        return JsonResponse({
-            'status': 'success',
-            'data': unit_list,
-            'pagination': {
-                'total_count': paginator.count,
-                'total_pages': paginator.num_pages,
-                'current_page': page_obj.number,
-                'has_next': page_obj.has_next(),
-                'has_previous': page_obj.has_previous(),
-            }
-        })
-
-    return render(request, 'quan_ly_don_vi/ben_trong.html', {
-        'page_obj': page_obj,
-        'query_name': query_name,
-        'query_address': query_address,
-        'query_contact': query_contact
-    })
-
-def api_upsert_don_vi(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            unit_type = data.get('type')  # 'trong' or 'ngoai'
-            unit_id = data.get('id')
-            
-            model = DonViBenTrong if unit_type == 'trong' else DonViBenNgoai
-            
-            if unit_id:
-                # Update
-                if unit_type == 'trong':
-                    unit = get_object_or_404(DonViBenTrong, DonViTrongID=unit_id)
-                else:
-                    unit = get_object_or_404(DonViBenNgoai, DonViNgoaiID=unit_id)
-            else:
-                # Create
-                unit = model()
-
-            unit.TenDonVi = data.get('name')
-            unit.DiaChi = data.get('address')
-            unit.SoDienThoai = data.get('phone')
-            unit.Email = data.get('email')
-            unit.NguoiLienHe = data.get('contact')
-            
-            if not unit.pk:
-                # Tự động gán Số thứ tự (STT) lớn nhất + 1
-                max_stt = model.objects.aggregate(Max('SoThuTu'))['SoThuTu__max'] or 0
-                unit.SoThuTu = max_stt + 1
-
-            unit.save()
-
-            return JsonResponse({'status': 'success', 'message': 'Lưu thành công!'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
-
-def api_delete_don_vi(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            unit_type = data.get('type')
-            unit_id = data.get('id')
-            
-            if unit_type == 'trong':
-                unit = get_object_or_404(DonViBenTrong, DonViTrongID=unit_id)
-            else:
-                unit = get_object_or_404(DonViBenNgoai, DonViNgoaiID=unit_id)
-            
-            unit.delete()
-            return JsonResponse({'status': 'success', 'message': 'Xóa thành công!'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
-
-# --- XỬ LÝ VĂN BẢN ĐIỀU HÀNH ---
-def xu_ly_van_ban_index(request):
-    return render(request, 'xu_ly_van_ban/index.html')
-
-def xu_ly_van_ban_bao_cao(request):
-    return render(request, 'xu_ly_van_ban/bao_cao.html')
-
-def xu_ly_van_ban_cap_nhat(request):
-    return render(request, 'xu_ly_van_ban/cap_nhat.html')
-
-def xu_ly_van_ban_chuyen_tiep(request):
-    return render(request, 'xu_ly_van_ban/chuyen_tiep.html')
-
-def xu_ly_van_ban_phan_cong(request):
-    return render(request, 'xu_ly_van_ban/phan_cong.html')
 
 # --- API NGƯỜI DÙNG ---
 def api_nguoi_dung_list(request):
@@ -654,12 +465,13 @@ def api_nguoi_dung_list(request):
         }
     })
 
+
 def api_upsert_user(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             user_id = data.get('id')
-            
+
             if user_id:
                 user = get_object_or_404(UserAccount, UserID=user_id)
             else:
@@ -673,16 +485,16 @@ def api_upsert_user(request):
             user.email = data.get('email')
             user.SoDienThoai = data.get('phone')
             user.PhongBan = data.get('dept')
-            
+
             # Vai trò
             role_id = data.get('role_id')
             if role_id:
                 user.VaiTroID = get_object_or_404(VaiTro, VaiTroID=role_id)
-            
+
             # Trạng thái
             status_text = data.get('status')
             user.TrangThai = True if status_text == 'Đang hoạt động' else False
-            
+
             # Mật khẩu (chỉ set nếu là tạo mới hoặc có nhập pass mới)
             password = data.get('password')
             if password:
@@ -697,6 +509,7 @@ def api_upsert_user(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
+
 def api_delete_user(request):
     if request.method == 'POST':
         try:
@@ -709,7 +522,185 @@ def api_delete_user(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
+
 def api_vai_tro_list(request):
     roles = VaiTro.objects.all().order_by('ChucVu')
     role_list = [{'id': r.VaiTroID, 'name': r.ChucVu} for r in roles]
     return JsonResponse({'status': 'success', 'data': role_list})
+
+
+# --- QUẢN LÝ ĐƠN VỊ ---
+def quan_ly_don_vi_ben_ngoai(request):
+    query_name = request.GET.get('name', '')
+    query_address = request.GET.get('address', '')
+    query_contact = request.GET.get('contact', '')
+    page_number = request.GET.get('page', 1)
+    page_size = 5  # Giới hạn duy nhất cho quản lý đơn vị
+    unit_id = request.GET.get('id')
+
+    units = DonViBenNgoai.objects.all().order_by('SoThuTu', '-pk')
+
+    if unit_id:
+        units = units.filter(DonViNgoaiID=unit_id)
+        units = units.filter(TenDonVi__icontains=query_name)
+    if query_address:
+        units = units.filter(DiaChi__icontains=query_address)
+    if query_contact:
+        units = units.filter(NguoiLienHe__icontains=query_contact)
+
+    paginator = Paginator(units, page_size)
+    page_obj = paginator.get_page(page_number)
+
+    if request.GET.get('ajax') == '1':
+        unit_list = []
+        for u in page_obj:
+            unit_list.append({
+                'id': u.DonViNgoaiID,
+                'name': u.TenDonVi,
+                'address': u.DiaChi,
+                'phone': u.SoDienThoai,
+                'email': u.Email,
+                'contact': u.NguoiLienHe
+            })
+        return JsonResponse({
+            'status': 'success',
+            'data': unit_list,
+            'pagination': {
+                'total_count': paginator.count,
+                'total_pages': paginator.num_pages,
+                'current_page': page_obj.number,
+                'has_next': page_obj.has_next(),
+                'has_previous': page_obj.has_previous(),
+            }
+        })
+
+    return render(request, 'quan_ly_don_vi/ben_ngoai.html', {
+        'page_obj': page_obj,
+        'query_name': query_name,
+        'query_address': query_address,
+        'query_contact': query_contact
+    })
+
+
+def quan_ly_don_vi_ben_trong(request):
+    query_name = request.GET.get('name', '')
+    query_address = request.GET.get('address', '')
+    query_contact = request.GET.get('contact', '')
+    page_number = request.GET.get('page', 1)
+    page_size = 5  # Giới hạn duy nhất cho quản lý đơn vị
+    unit_id = request.GET.get('id')
+
+    units = DonViBenTrong.objects.all().order_by('SoThuTu', '-pk')
+
+    if unit_id:
+        units = units.filter(DonViTrongID=unit_id)
+        units = units.filter(TenDonVi__icontains=query_name)
+    if query_address:
+        units = units.filter(DiaChi__icontains=query_address)
+    if query_contact:
+        units = units.filter(NguoiLienHe__icontains=query_contact)
+
+    paginator = Paginator(units, page_size)
+    page_obj = paginator.get_page(page_number)
+
+    if request.GET.get('ajax') == '1':
+        unit_list = []
+        for u in page_obj:
+            unit_list.append({
+                'id': u.DonViTrongID,
+                'name': u.TenDonVi,
+                'address': u.DiaChi,
+                'phone': u.SoDienThoai,
+                'email': u.Email,
+                'contact': u.NguoiLienHe
+            })
+        return JsonResponse({
+            'status': 'success',
+            'data': unit_list,
+            'pagination': {
+                'total_count': paginator.count,
+                'total_pages': paginator.num_pages,
+                'current_page': page_obj.number,
+                'has_next': page_obj.has_next(),
+                'has_previous': page_obj.has_previous(),
+            }
+        })
+
+    return render(request, 'quan_ly_don_vi/ben_trong.html', {
+        'page_obj': page_obj,
+        'query_name': query_name,
+        'query_address': query_address,
+        'query_contact': query_contact
+    })
+
+
+def api_upsert_don_vi(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            unit_type = data.get('type')  # 'trong' or 'ngoai'
+            unit_id = data.get('id')
+
+            model = DonViBenTrong if unit_type == 'trong' else DonViBenNgoai
+
+            if unit_id:
+                # Update
+                if unit_type == 'trong':
+                    unit = get_object_or_404(DonViBenTrong, DonViTrongID=unit_id)
+                else:
+                    unit = get_object_or_404(DonViBenNgoai, DonViNgoaiID=unit_id)
+            else:
+                # Create
+                unit = model()
+
+            unit.TenDonVi = data.get('name')
+            unit.DiaChi = data.get('address')
+            unit.SoDienThoai = data.get('phone')
+            unit.Email = data.get('email')
+            unit.NguoiLienHe = data.get('contact')
+
+            if not unit.pk:
+                # Tự động gán Số thứ tự (STT) lớn nhất + 1
+                max_stt = model.objects.aggregate(Max('SoThuTu'))['SoThuTu__max'] or 0
+                unit.SoThuTu = max_stt + 1
+
+            unit.save()
+
+            return JsonResponse({'status': 'success', 'message': 'Lưu thành công!'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+
+
+def api_delete_don_vi(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            unit_type = data.get('type')
+            unit_id = data.get('id')
+
+            if unit_type == 'trong':
+                unit = get_object_or_404(DonViBenTrong, DonViTrongID=unit_id)
+            else:
+                unit = get_object_or_404(DonViBenNgoai, DonViNgoaiID=unit_id)
+
+            unit.delete()
+            return JsonResponse({'status': 'success', 'message': 'Xóa thành công!'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+# --- XỬ LÝ VĂN BẢN ĐIỀU HÀNH ---
+def xu_ly_van_ban_index(request):
+    return render(request, 'xu_ly_van_ban/index.html')
+
+def xu_ly_van_ban_bao_cao(request):
+    return render(request, 'xu_ly_van_ban/bao_cao.html')
+
+def xu_ly_van_ban_cap_nhat(request):
+    return render(request, 'xu_ly_van_ban/cap_nhat.html')
+
+def xu_ly_van_ban_chuyen_tiep(request):
+    return render(request, 'xu_ly_van_ban/chuyen_tiep.html')
+
+def xu_ly_van_ban_phan_cong(request):
+    return render(request, 'xu_ly_van_ban/phan_cong.html')
