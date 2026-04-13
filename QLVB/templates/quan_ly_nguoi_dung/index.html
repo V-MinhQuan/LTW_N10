@@ -14,18 +14,21 @@
     <div class="panel-header header-blue">Tìm kiếm người dùng</div>
     <div class="panel-body">
         <div class="search-grid">
-            <input type="text" class="form-control" placeholder="Nhập tên đăng nhập">
-            <input type="text" class="form-control" placeholder="Nhập họ và tên">
-            <select class="form-control">
+            <input type="text" id="searchUsername" class="form-control" placeholder="Nhập tên đăng nhập">
+            <input type="text" id="searchFullName" class="form-control" placeholder="Nhập họ và tên">
+            <select id="searchDept" class="form-control">
                 <option value="">--- Chọn phòng ban ---</option>
                 <option>Phòng Kế hoạch</option>
                 <option>Phòng Kinh doanh</option>
+                <option>Phòng Hành chính</option>
+                <option>Phòng CSKH</option>
             </select>
-            <select class="form-control">
+            <select id="searchStatus" class="form-control">
                 <option value="">Tất cả</option>
                 <option>Đang hoạt động</option>
                 <option>Vô hiệu hóa</option>
             </select>
+
         </div>
         <div class="btn-group">
             <button class="btn btn-primary"><i class="fas fa-search"></i> Tìm kiếm</button>
@@ -55,48 +58,19 @@
                         <th width="8%">Thao tác</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td class="col-stt">1</td>
-                        <td class="text-left">admin</td>
-                        <td class="text-left">Nguyễn Văn A</td>
-                        <td class="text-left">Phòng Kế hoạch</td>
-                        <td class="text-left">Trưởng phòng</td>
-                        <td class="text-left">nguyenvana@company.vn</td>
-                        <td class="col-status"><span class="status-pill pill-green">Đang hoạt động</span></td>
-                        <td class="col-actions">
-                            <button class="action-btn btn-primary" onclick="viewUser(this)" style="padding: 5px 10px;"><i class="fas fa-eye"></i></button>
-                            <button class="action-btn btn-success" onclick="editUser(this)" style="padding: 5px 10px;"><i class="fas fa-edit"></i></button>
-                            <button class="action-btn btn-danger" onclick="confirmDeleteUser(this)" style="padding: 5px 10px;"><i class="fas fa-trash-alt"></i></button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="col-stt">2</td>
-                        <td class="text-left">tranthib</td>
-                        <td class="text-left">Trần Thị B</td>
-                        <td class="text-left">Phòng Kinh doanh</td>
-                        <td class="text-left">Nhân viên</td>
-                        <td class="text-left">tranthib@company.vn</td>
-                        <td class="col-status"><span class="status-pill pill-green">Đang hoạt động</span></td>
-                        <td class="col-actions">
-                            <button class="action-btn btn-primary" onclick="viewUser(this)" style="padding: 5px 10px;"><i class="fas fa-eye"></i></button>
-                            <button class="action-btn btn-success" onclick="editUser(this)" style="padding: 5px 10px;"><i class="fas fa-edit"></i></button>
-                            <button class="action-btn btn-danger" onclick="confirmDeleteUser(this)" style="padding: 5px 10px;"><i class="fas fa-trash-alt"></i></button>
-                        </td>
-                    </tr>
+                <tbody id="userTableBody">
+                    <!-- Loaded via AJAX -->
                 </tbody>
+
             </table>
         </div>
         <div class="table-footer">
-            <div>Hiển thị 1 - 2 / Tổng số: 2</div>
-            <div class="pagination">
-                <button class="page-btn">Đầu</button>
-                <button class="page-btn">Trước</button>
-                <button class="page-btn active">1</button>
-                <button class="page-btn">Sau</button>
-                <button class="page-btn">Cuối</button>
+            <div id="tableTotal">Tổng số: 0 người dùng</div>
+            <div class="pagination" id="paginationControls">
+                <!-- Loaded via AJAX -->
             </div>
         </div>
+
     </div>
 </div>
 
@@ -146,7 +120,10 @@
                 </div>
                 <div class="form-group">
                     <label>Chức vụ (<span class="required">*</span>)</label>
-                    <input type="text" id="userRole" class="modal-input" placeholder="Nhập chức vụ">
+                    <select id="userRole" class="modal-input">
+                        <option value="">--- Chọn chức vụ ---</option>
+                        <!-- Loaded via API -->
+                    </select>
                 </div>
             </div>
 

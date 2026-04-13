@@ -1,8 +1,8 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
-from django.db.models import Q
+from django.db.models import Q, Max
 from django.core.paginator import Paginator
-from .models import DonViBenTrong, DonViBenNgoai
+from .models import DonViBenTrong, DonViBenNgoai, UserAccount, VaiTro
 import json
 
 # --- TRANG CHỦ & ĐĂNG NHẬP ---
@@ -36,10 +36,12 @@ def quan_ly_don_vi_ben_ngoai(request):
     query_contact = request.GET.get('contact', '')
     page_number = request.GET.get('page', 1)
     page_size = 5  # Giới hạn duy nhất cho quản lý đơn vị
+    unit_id = request.GET.get('id')
 
-    units = DonViBenNgoai.objects.all().order_by('-pk')
+    units = DonViBenNgoai.objects.all().order_by('SoThuTu', '-pk')
     
-    if query_name:
+    if unit_id:
+        units = units.filter(DonViNgoaiID=unit_id)
         units = units.filter(TenDonVi__icontains=query_name)
     if query_address:
         units = units.filter(DiaChi__icontains=query_address)
@@ -85,10 +87,12 @@ def quan_ly_don_vi_ben_trong(request):
     query_contact = request.GET.get('contact', '')
     page_number = request.GET.get('page', 1)
     page_size = 5  # Giới hạn duy nhất cho quản lý đơn vị
+    unit_id = request.GET.get('id')
 
-    units = DonViBenTrong.objects.all().order_by('-pk')
+    units = DonViBenTrong.objects.all().order_by('SoThuTu', '-pk')
     
-    if query_name:
+    if unit_id:
+        units = units.filter(DonViTrongID=unit_id)
         units = units.filter(TenDonVi__icontains=query_name)
     if query_address:
         units = units.filter(DiaChi__icontains=query_address)
@@ -152,6 +156,12 @@ def api_upsert_don_vi(request):
             unit.SoDienThoai = data.get('phone')
             unit.Email = data.get('email')
             unit.NguoiLienHe = data.get('contact')
+            
+            if not unit.pk:
+                # Tự động gán Số thứ tự (STT) lớn nhất + 1
+                max_stt = model.objects.aggregate(Max('SoThuTu'))['SoThuTu__max'] or 0
+                unit.SoThuTu = max_stt + 1
+
             unit.save()
 
             return JsonResponse({'status': 'success', 'message': 'Lưu thành công!'})
@@ -192,3 +202,117 @@ def xu_ly_van_ban_chuyen_tiep(request):
 
 def xu_ly_van_ban_phan_cong(request):
     return render(request, 'xu_ly_van_ban/phan_cong.html')
+
+# --- API NGƯỜI DÙNG ---
+def api_nguoi_dung_list(request):
+    query_username = request.GET.get('username', '')
+    query_fullname = request.GET.get('fullname', '')
+    query_dept = request.GET.get('dept', '')
+    query_status = request.GET.get('status', '')
+    user_id = request.GET.get('id')
+    page_number = request.GET.get('page', 1)
+    page_size = 5
+
+    users = UserAccount.objects.all().order_by('SoThuTu', '-pk')
+
+    if user_id:
+        users = users.filter(UserID=user_id)
+    if query_username:
+        users = users.filter(username__icontains=query_username)
+    if query_fullname:
+        users = users.filter(HoTen__icontains=query_fullname)
+    if query_dept:
+        users = users.filter(PhongBan__icontains=query_dept)
+    if query_status:
+        status_val = True if query_status == 'Đang hoạt động' else False
+        users = users.filter(TrangThai=status_val)
+
+    paginator = Paginator(users, page_size)
+    page_obj = paginator.get_page(page_number)
+
+    user_list = []
+    for u in page_obj:
+        user_list.append({
+            'id': u.UserID,
+            'username': u.username,
+            'fullname': u.HoTen,
+            'email': u.email,
+            'phone': u.SoDienThoai,
+            'dept': u.PhongBan,
+            'role_id': u.VaiTroID.VaiTroID if u.VaiTroID else None,
+            'role_name': u.VaiTroID.ChucVu if u.VaiTroID else '',
+            'status': 'Đang hoạt động' if u.TrangThai else 'Vô hiệu hóa',
+            'stt': u.SoThuTu
+        })
+
+    return JsonResponse({
+        'status': 'success',
+        'data': user_list,
+        'pagination': {
+            'total_count': paginator.count,
+            'total_pages': paginator.num_pages,
+            'current_page': page_obj.number,
+            'has_next': page_obj.has_next(),
+            'has_previous': page_obj.has_previous(),
+        }
+    })
+
+def api_upsert_user(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_id = data.get('id')
+            
+            if user_id:
+                user = get_object_or_404(UserAccount, UserID=user_id)
+            else:
+                user = UserAccount()
+                # Tự động gán STT
+                max_stt = UserAccount.objects.aggregate(Max('SoThuTu'))['SoThuTu__max'] or 0
+                user.SoThuTu = max_stt + 1
+
+            user.username = data.get('username')
+            user.HoTen = data.get('fullname')
+            user.email = data.get('email')
+            user.SoDienThoai = data.get('phone')
+            user.PhongBan = data.get('dept')
+            
+            # Vai trò
+            role_id = data.get('role_id')
+            if role_id:
+                user.VaiTroID = get_object_or_404(VaiTro, VaiTroID=role_id)
+            
+            # Trạng thái
+            status_text = data.get('status')
+            user.TrangThai = True if status_text == 'Đang hoạt động' else False
+            
+            # Mật khẩu (chỉ set nếu là tạo mới hoặc có nhập pass mới)
+            password = data.get('password')
+            if password:
+                user.set_password(password)
+            elif not user_id:
+                # Nếu tạo mới mà ko nhập pass (mặc định cho demo)
+                user.set_password('123456')
+
+            user.save()
+            return JsonResponse({'status': 'success', 'message': 'Lưu người dùng thành công!'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+
+def api_delete_user(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_id = data.get('id')
+            user = get_object_or_404(UserAccount, UserID=user_id)
+            user.delete()
+            return JsonResponse({'status': 'success', 'message': 'Xóa người dùng thành công!'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+
+def api_vai_tro_list(request):
+    roles = VaiTro.objects.all().order_by('ChucVu')
+    role_list = [{'id': r.VaiTroID, 'name': r.ChucVu} for r in roles]
+    return JsonResponse({'status': 'success', 'data': role_list})

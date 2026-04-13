@@ -41,6 +41,12 @@ urlpatterns = [
     # API Đơn vị
     path('api/don-vi/upsert/', views.api_upsert_don_vi, name='api_upsert_don_vi'),
     path('api/don-vi/delete/', views.api_delete_don_vi, name='api_delete_don_vi'),
+    
+    # API Người dùng
+    path('api/nguoi-dung/list/', views.api_nguoi_dung_list, name='api_user_list'),
+    path('api/nguoi-dung/upsert/', views.api_upsert_user, name='api_user_upsert'),
+    path('api/nguoi-dung/delete/', views.api_delete_user, name='api_user_delete'),
+    path('api/vai-tro/list/', views.api_vai_tro_list, name='api_role_list'),
 
     # Xử lý văn bản
     path('xu-ly-van-ban/', views.xu_ly_van_ban_index, name='xlvb_index'),
