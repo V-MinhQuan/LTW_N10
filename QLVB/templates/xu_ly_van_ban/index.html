@@ -13,32 +13,65 @@
     <div class="panel">
         <div class="panel-header header-blue">Tìm kiếm văn bản xử lý</div>
         <div class="panel-body">
-            <div class="search-grid">
-                <input type="text" class="form-control" placeholder="Nhập số ký hiệu">
-                <select class="form-control">
-                    <option>--- Chọn người xử lý ---</option>
+            <form method="GET" action="{% url 'xlvb_index' %}" class="search-grid">
+                <input type="text" name="so_ky_hieu" class="form-control" placeholder="Nhập số ký hiệu" value="{{ query_so_ky_hieu|default:'' }}">
+                <select name="nguoi_xu_ly" class="form-control" style="background-color: #f5f5f5;">
+                    <option value="">--- Chọn người xử lý ---</option>
+                    {% for user in users %}
+                    <option value="{{ user.HoTen }}" {% if query_nguoi_xu_ly == user.HoTen %}selected{% endif %}>{{ user.HoTen }}</option>
+                    {% endfor %}
                 </select>
-                <input type="text" class="form-control" placeholder="dd/mm/yyyy">
-                <input type="text" class="form-control" placeholder="Tất cả" readonly style="background:#f0f0f0;">
-            </div>
-            <div class="btn-group">
-                <button class="btn btn-primary"><i class="fas fa-search"></i> Tìm kiếm</button>
-                <button class="btn btn-secondary"><i class="fas fa-sync-alt"></i> Làm mới</button>
-            </div>
+                <input type="text" name="ngay_nhan" class="form-control" placeholder="dd/mm/yyyy" value="{{ query_ngay_nhan|default:'' }}">
+                <input type="text" class="form-control" placeholder="Tất cả" readonly style="background-color: #f5f5f5;">
+                <div class="btn-group" style="grid-column: span 4; justify-content: flex-start; margin-top: 0;">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Tìm kiếm</button>
+                    <a href="{% url 'xlvb_index' %}" class="btn btn-secondary"><i class="fas fa-sync-alt"></i> Làm mới</a>
+                </div>
+            </form>
         </div>
     </div>
 
     <div class="alert-box">
-        <p><strong><i class="fas fa-exclamation-triangle"></i> Cảnh báo:</strong> Có 2 văn bản sắp đến hạn, 1 văn bản
-            quá hạn:</p>
-        <p>+ Văn bản sắp đến hạn(còn 2 ngày): 01/CV-DL, 02/TB-DL</p>
-        <p>+ Văn bản quá hạn: 03/CV-CSKH (quá hạn 2 ngày)</p>
+        <div class="alert-title">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>Cảnh báo: Có {{ coming_soon_count }} văn bản sắp đến hạn, {{ overdue_count }} văn bản quá hạn</span>
+        </div>
+        <div class="alert-separator"></div>
+        <div class="alert-items-container">
+            <div class="alert-items-scroll" id="alert-scroll">
+                {% for days_str, symbols in coming_soon_groups.items %}
+                    {% for symbol in symbols %}
+                    <div class="alert-tag">
+                        <span class="tag-symbol">{{ symbol }}</span>
+                        <span class="tag-status">{{ days_str }}</span>
+                    </div>
+                    {% endfor %}
+                {% endfor %}
+                {% for days_str, symbols in overdue_groups.items %}
+                    {% for symbol in symbols %}
+                    <div class="alert-tag">
+                        <span class="tag-symbol">{{ symbol }}</span>
+                        <span class="tag-status">{{ days_str }}</span>
+                    </div>
+                    {% endfor %}
+                {% endfor %}
+                {% if coming_soon_count == 0 and overdue_count == 0 %}
+                <div class="alert-tag">
+                    <span class="tag-status">Hiện tại không có văn bản nào cần lưu ý.</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="alert-nav">
+            <button class="nav-btn" onclick="document.getElementById('alert-scroll').scrollBy({left: -200, behavior: 'smooth'})"><i class="fas fa-chevron-left"></i></button>
+            <button class="nav-btn" onclick="document.getElementById('alert-scroll').scrollBy({left: 200, behavior: 'smooth'})"><i class="fas fa-chevron-right"></i></button>
+        </div>
     </div>
 
     <div class="panel">
         <div class="table-panel-header panel-header header-gray" style="display: flex; justify-content: space-between;">
             <span>Danh sách văn bản</span>
-            <span>Tổng số: 4 văn bản</span>
+            <span>Tổng số: {{ page_obj.paginator.count }} văn bản</span>
         </div>
     <div class="panel-body">
         <div class="table-responsive">
@@ -57,61 +90,87 @@
                     </tr>
                 </thead>
                 <tbody>
+                    {% for doc in page_obj %}
                     <tr>
-                        <td class="col-stt">1</td>
-                        <td class="text-left"><a href="#">01/CV-DL</a></td>
-                        <td class="text-left">Thông báo điều chỉnh giá tour...</td>
+                        <td class="col-stt">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                        <td class="text-left"><a href="#">{{ doc.SoKyHieu }}</a></td>
+                        <td class="text-left">{{ doc.TrichYeu }}</td>
                         <td class="text-left">
-                            Nguyễn Văn A<br>
-                            <small class="text-muted">(Sở Du lịch Đà Nẵng)</small>
+                            {% with phan_cong=doc.phancong_set.first %}
+                            {% if phan_cong %}
+                                {{ phan_cong.UserID.HoTen }}<br>
+                                <small class="text-muted">({{ doc.DonViNgoaiID.TenDonVi }})</small>
+                            {% else %}
+                                <span class="text-muted">Chưa phân công</span><br>
+                                <small class="text-muted">({{ doc.DonViNgoaiID.TenDonVi }})</small>
+                            {% endif %}
+                            {% endwith %}
                         </td>
-                        <td class="text-center">27/01/2026</td>
-                        <td class="text-center">05/02/2026</td>
-                        <td class="col-status"><span class="status-pill pill-orange">Đang xử lý</span></td>
+                        <td class="text-center">{{ doc.NgayNhan|date:"d/m/Y" }}</td>
+                        <td class="text-center">
+                            {% with phan_cong=doc.phancong_set.first %}
+                                {{ phan_cong.HanXuLy|date:"d/m/Y"|default:"-" }}
+                            {% endwith %}
+                        </td>
+                        <td class="col-status">
+                            {% with phan_cong=doc.phancong_set.first %}
+                            {% if phan_cong %}
+                                {% if phan_cong.TrangThaiXuLy == 'Hoàn thành' %}
+                                <span class="status-pill pill-green">Hoàn thành</span>
+                                {% else %}
+                                <span class="status-pill pill-orange">Đang xử lý</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="status-pill pill-gray">Chưa phân công</span>
+                            {% endif %}
+                            {% endwith %}
+                        </td>
                         <td class="text-left">
-                            <div class="desc-item"><span class="desc-label">Chuyển tới:</span> <span class="desc-value">Lê Bảo Bình</span></div>
-                            <div class="desc-item"><span class="desc-label">Thao tác:</span> <span class="action-text text-purple" style="color: #bf24d6 !important;">Chuyển tiếp</span></div>
+                            {% with phan_cong=doc.phancong_set.first %}
+                                {% if phan_cong and phan_cong.GhiChu %}
+                                <div class="desc-item"><span class="desc-label">Ghi chú:</span> <span class="desc-value">{{ phan_cong.GhiChu }}</span></div>
+                                {% endif %}
+                            {% endwith %}
                         </td>
                         <td class="col-actions">
+                            {% with phan_cong=doc.phancong_set.first %}
                             <div style="display: flex; gap: 5px;">
-                                <button onclick="openModalC('modalCapNhat', '01/CV-DL', 'Nguyễn Văn A')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
-                                <button onclick="openModalT('modalChuyenTiep', '01/CV-DL')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
-                                <button onclick="openModalB('modalBaoCao', '01/CV-DL')" class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
+                                {% if phan_cong %}
+                                <button onclick="openModalP('modalPhanCong', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu }}')" class="action-btn btn-assign" title="Phân công (Giao lại)"><i class="fas fa-user-plus"></i></button>
+                                <button onclick="openModalC('modalCapNhat', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
+                                <button onclick="openModalT('modalChuyenTiep', '{{ doc.SoKyHieu }}')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
+                                <button onclick="openModalB('modalBaoCao', '{{ doc.SoKyHieu }}')" class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
+                                {% else %}
+                                <button onclick="openModalP('modalPhanCong', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu }}')" class="btn-assign-wide" style="background-color: #00adef; color: #fff; border: none !important; border-radius: 8px; padding: 8px 18px; font-weight: 600; cursor: pointer;">
+                                    <i class="fas fa-user-plus"></i> Phân công
+                                </button>
+                                {% endif %}
                             </div>
+                            {% endwith %}
                         </td>
                     </tr>
+                    {% empty %}
                     <tr>
-                        <td class="col-stt">2</td>
-                        <td class="text-left"><a href="#">04/HD-DL</a></td>
-                        <td class="text-left">Thông báo điều chỉnh giá tour...</td>
-                        <td class="text-left">
-                            Trần Quang Huy<br>
-                            <small class="text-muted">(Vietnam Airlines)</small>
-                        </td>
-                        <td class="text-center">26/01/2026</td>
-                        <td class="text-center">10/02/2026</td>
-                        <td class="col-status"><span class="status-pill pill-gray">Chưa phân công</span></td>
-                        <td class="text-left">
-                            <div class="desc-item"><span class="desc-label">Chuyển tới:</span> <span class="desc-value">Đỗ Kim Ngân</span></div>
-                            <div class="desc-item"><span class="desc-label">Thao tác:</span> <span class="action-text text-blue" style="color: #00adef !important;">Phân công</span></div>
-                        </td>
-                        <td class="col-actions">
-                            <button onclick="openModalP('modalPhanCong', '04/HD-DL', 'Thông báo điều chỉnh giá tour...')" class="btn-assign-wide" style="background-color: #00adef; color: #fff; border: none !important; border-radius: 8px; padding: 8px 18px; font-weight: 600;">
-                                <i class="fas fa-user-plus"></i> Phân công
-                            </button>
-                        </td>
+                        <td colspan="9" class="text-center">Không tìm thấy văn bản nào.</td>
                     </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
         <div class="table-footer">
-            <div>Hiển thị 1 - 2 / Tổng số: 2</div>
+            <div>Hiển thị {{ page_obj.start_index }} - {{ page_obj.end_index }} / Tổng số: {{ page_obj.paginator.count }}</div>
             <div class="pagination">
-                <button class="page-btn">Đầu</button>
-                <button class="page-btn">Trước</button>
-                <button class="page-btn active">1</button>
-                <button class="page-btn">Sau</button>
-                <button class="page-btn">Cuối</button>
+                {% if page_obj.has_previous %}
+                <a href="?page=1&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}" class="page-btn">Đầu</a>
+                <a href="?page={{ page_obj.previous_page_number }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}" class="page-btn">Trước</a>
+                {% endif %}
+                
+                <button class="page-btn active">{{ page_obj.number }}</button>
+                
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}" class="page-btn">Sau</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}" class="page-btn">Cuối</a>
+                {% endif %}
             </div>
         </div>
 
@@ -182,10 +241,9 @@
                     <label style="width: 120px;">Người nhận (<span class="required">*</span>)</label>
                     <select class="form-control" id="fwd-nguoiNhan">
                         <option value="">--- Chọn đơn vị ---</option>
-                        <option value="d1">Phòng Kế hoạch</option>
-                        <option value="d2">Phòng Nhân sự</option>
-                        <option value="d3">Sở Du lịch</option>
-                        <option value="d4">Ban Giám đốc</option>
+                        {% for unit in units_trong %}
+                        <option value="{{ unit.DonViTrongID }}">{{ unit.TenDonVi }}</option>
+                        {% endfor %}
                     </select>
                 </div>
             </div>
@@ -263,11 +321,9 @@
                     <label style="width: 130px;">Người xử lý (<span class="required">*</span>)</label>
                     <select class="form-control" id="asn-nguoiXuLy">
                         <option value="">--- Chọn người xử lý ---</option>
-                        <option value="nv_a">Nguyễn Văn A</option>
-                        <option value="nv_b">Lê Thị H</option>
-                        <option value="nv_c">Trần Minh K</option>
-                        <option value="nv_d">Phạm Thị D</option>
-                        <option value="nv_e">Hoàng Văn T</option>
+                        {% for user in users %}
+                        <option value="{{ user.UserID }}">{{ user.HoTen }}</option>
+                        {% endfor %}
                     </select>
                 </div>
             </div>
@@ -283,7 +339,7 @@
             </div>
             <div class="form-group full-width" style="margin-top: 15px; flex-direction: column;">
                 <label style="margin-bottom: 5px; font-weight: bold;">Ghi chú</label>
-                <textarea class="form-control" placeholder="Nhập ghi chú nếu có"
+                <textarea class="form-control" id="asn-ghiChu" placeholder="Nhập ghi chú nếu có"
                     style="width: 100%; height: 80px;"></textarea>
             </div>
         </div>

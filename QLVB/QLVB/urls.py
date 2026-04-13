@@ -48,4 +48,10 @@ urlpatterns = [
     path('xu-ly-van-ban/cap-nhat/', views.xu_ly_van_ban_cap_nhat, name='xlvb_cap_nhat'),
     path('xu-ly-van-ban/chuyen-tiep/', views.xu_ly_van_ban_chuyen_tiep, name='xlvb_chuyen_tiep'),
     path('xu-ly-van-ban/phan-cong/', views.xu_ly_van_ban_phan_cong, name='xlvb_phan_cong'),
+
+    # API Xử lý văn bản
+    path('api/xu-ly-van-ban/phan-cong/', views.api_phan_cong_xlvb, name='api_phan_cong_xlvb'),
+    path('api/xu-ly-van-ban/cap-nhat/', views.api_cap_nhat_xlvb, name='api_cap_nhat_xlvb'),
+    path('api/xu-ly-van-ban/chuyen-tiep/', views.api_chuyen_tiep_xlvb, name='api_chuyen_tiep_xlvb'),
+    path('api/xu-ly-van-ban/bao-cao/', views.api_bao_cao_xlvb, name='api_bao_cao_xlvb'),
 ]
