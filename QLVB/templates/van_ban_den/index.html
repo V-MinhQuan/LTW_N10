@@ -688,8 +688,11 @@
       <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupView')"></i>
     </div>
     <div class="vbd-popup-body" id="popupViewBody">
-      <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
-        <button type="button" class="btn btn-history" style="background: #f8f9fa; border: 1px solid #ced4da; color: #333; padding: 4px 10px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;" onclick="closeVBD('popupView'); openHistory(this.dataset.id);">
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 15px; gap: 10px;">
+        <button type="button" id="btn_goto_processing" class="btn" style="background: #007bff; border: 1px solid #007bff; color: white; padding: 5px 15px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" onclick="gotoProcessing(this.dataset.so_ky_hieu)">
+          <i class="fa fa-search"></i> Tìm để xử lý
+        </button>
+        <button type="button" class="btn btn-history" style="background: #f8f9fa; border: 1px solid #ced4da; color: #333; padding: 5px 12px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px;" onclick="closeVBD('popupView'); openHistory(this.dataset.id);">
           <i class="fa fa-history" style="color: #666;"></i> Lịch sử chỉnh sửa
         </button>
       </div>
@@ -774,9 +777,11 @@
         <table class="history-table-full">
           <thead>
             <tr>
+              <th style="width: 50px;">STT</th>
               <th style="width: 150px;">Thời gian</th>
               <th style="width: 150px;">Người thực hiện</th>
-              <th style="width: 120px;">Hành động</th>
+              <th style="width: 150px;">Mã văn bản</th>
+              <th style="width: 250px;">Trích yếu</th>
               <th>Nội dung thay đổi</th>
             </tr>
           </thead>
@@ -786,9 +791,7 @@
         </table>
       </div>
     </div>
-    <div class="vbd-popup-footer">
-      <button class="btn btn-cancel-gray" onclick="closeVBD('historyOverlay'); openVBD('popupView');">Đóng</button>
-    </div>
+    <!-- Popup footer removed as per user request -->
   </div>
 </div>
 

@@ -8,7 +8,7 @@ class VanBanDenForm(forms.Form):
     loai_van_ban = forms.CharField(max_length=50, required=False)
     ngay_ban_hanh = forms.DateField(required=False)
     ngay_nhan = forms.DateField(required=False)
-    dont_vi_ngoai_id = forms.CharField(required=False)
+    don_vi_ngoai_id = forms.CharField(required=False)
     tep_dinh_kem = forms.FileField(required=False)
     xoa_tep_dinh_kem = forms.CharField(required=False)
     trang_thai = forms.CharField(max_length=50, required=False)
@@ -37,22 +37,20 @@ class VanBanDenForm(forms.Form):
         data = self.cleaned_data
         
         if instance:
-            # Update existing instance
-            instance.SoKyHieu = data.get('so_ky_hieu', instance.SoKyHieu)
-            if data.get('trich_yeu') is not None:
-                instance.TrichYeu = data.get('trich_yeu')
-            if data.get('loai_van_ban') is not None:
-                instance.LoaiVanBan = data.get('loai_van_ban')
-                
-            if data.get('ngay_ban_hanh'):
-                instance.NgayBanHanh = data.get('ngay_ban_hanh')
-            if data.get('ngay_nhan'):
-                instance.NgayNhan = data.get('ngay_nhan')
-                
-            if 'don_vi_ngoai_id' in data and data['don_vi_ngoai_id']:
-                instance.DonViNgoaiID = data['don_vi_ngoai_id']
-                
-            # files can be accessed via self.files or data if FileField
+            fields = ['so_ky_hieu', 'trich_yeu', 'loai_van_ban', 'ngay_ban_hanh', 'ngay_nhan', 'don_vi_ngoai_id', 'trang_thai']
+            for field in fields:
+                if field in data:
+                    model_field = "".join(x.capitalize() for x in field.split('_'))
+                    # Mapping manual cases
+                    if field == 'so_ky_hieu': model_field = 'SoKyHieu'
+                    if field == 'loai_van_ban': model_field = 'LoaiVanBan'
+                    if field == 'trich_yeu': model_field = 'TrichYeu'
+                    if field == 'trang_thai': model_field = 'TrangThai'
+                    if field == 'don_vi_ngoai_id': model_field = 'DonViNgoaiID'
+                    
+                    setattr(instance, model_field, data[field])
+            
+            # Handle files separately
             file_upload = self.files.get('tep_dinh_kem') or data.get('tep_dinh_kem')
             if file_upload:
                 instance.TepDinhKem = file_upload
@@ -60,9 +58,6 @@ class VanBanDenForm(forms.Form):
                 if instance.TepDinhKem:
                     instance.TepDinhKem.delete(save=False)
                 instance.TepDinhKem = None
-
-            if data.get('trang_thai') is not None:
-                instance.TrangThai = data.get('trang_thai')
 
             instance.save()
             return instance

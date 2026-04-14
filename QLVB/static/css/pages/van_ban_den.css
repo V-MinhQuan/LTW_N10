@@ -265,7 +265,13 @@
 }
 
 /* HISTORY VIEW SCREEN STYLES */
-#historyView { margin-top: 20px; }
+#historyView , #historyOverlay { margin-top: 0px; }
+
+#historyOverlay .vbd-popup-body,
+#historyView .vbd-popup-body {
+    max-height: 65vh;
+    overflow-y: auto;
+}
 
 .btn-back {
     background: white;
@@ -328,6 +334,7 @@
     font-weight: 600 !important;
     font-size: 14px !important;
     color: #333 !important;
+    vertical-align: middle !important;
 }
 
 .history-table-full td {
@@ -335,6 +342,9 @@
     border-bottom: 1px solid #eee !important;
     font-size: 14px !important;
     color: #444 !important;
+    white-space: pre-wrap !important;
+    vertical-align: middle !important;
+    text-align: left !important;
 }
 
 .history-table-full tr:hover {
@@ -352,3 +362,8 @@
 }
 
 .pill-blue { background: #007bff !important; }
+
+/* Utility classes */
+.text-center { text-align: center !important; }
+.text-left { text-align: left !important; }
+.text-right { text-align: right !important; }

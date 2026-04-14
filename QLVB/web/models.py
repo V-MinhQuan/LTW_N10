@@ -125,8 +125,8 @@ class PhanCong(models.Model):
 
 class ChuyenTiep(models.Model):
     ChuyenTiepID = models.AutoField(primary_key=True)
-    VanBanDenID = models.ForeignKey(VanBanDen, on_delete=models.CASCADE)
-    VanBanDiID = models.ForeignKey(VanBanDi, on_delete=models.CASCADE)
+    VanBanDenID = models.ForeignKey(VanBanDen, on_delete=models.CASCADE, null=True, blank=True)
+    VanBanDiID = models.ForeignKey(VanBanDi, on_delete=models.CASCADE, null=True, blank=True)
     UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE)
     NgayChuyenTiep = models.DateTimeField(null=True, blank=True)
     NgayBatDau = models.DateTimeField(null=True, blank=True)
@@ -157,8 +157,8 @@ class BaoCao(models.Model):
         PHAN_HOI = 'PHAN_HOI', 'Phản hồi'
 
     PhanHoiID = models.AutoField(primary_key=True)
-    VanBanDiID = models.ForeignKey(VanBanDi, on_delete=models.CASCADE)
-    VanBanDenID = models.ForeignKey(VanBanDen, on_delete=models.CASCADE)
+    VanBanDiID = models.ForeignKey(VanBanDi, on_delete=models.CASCADE, null=True, blank=True)
+    VanBanDenID = models.ForeignKey(VanBanDen, on_delete=models.CASCADE, null=True, blank=True)
     UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE)
     NgayBaoCao = models.DateTimeField(null=True, blank=True)
     LoaiBaoCao = models.CharField(max_length=50, choices=LoaiBaoCaoChoices.choices, null=True, blank=True)

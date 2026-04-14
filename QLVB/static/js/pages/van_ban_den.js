@@ -103,8 +103,12 @@ function xemVBD(id) {
             const historyBtn = document.querySelector('#popupView .btn-history');
             if (historyBtn) {
                 historyBtn.dataset.id = id;
-            } else {
-                console.error("Không tìm thấy nút .btn-history trong #popupView");
+            }
+            
+            // Gán số ký hiệu cho nút sang xử lý
+            const gotoBtn = document.getElementById('btn_goto_processing');
+            if (gotoBtn) {
+                gotoBtn.dataset.so_ky_hieu = v.so_ky_hieu;
             }
             
             openVBD('popupView');
@@ -237,15 +241,20 @@ function openHistory(id) {
             tbody.innerHTML = '';
             
             if (data.data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center">Không có lịch sử thay đổi</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">Không có lịch sử thay đổi</td></tr>';
             } else {
-                data.data.forEach(item => {
+                data.data.forEach((item, index) => {
                     const tr = document.createElement('tr');
+                    // Kết hợp Hành động vào Nội dung
+                    const fullContent = `<b>${item.HanhDong}:</b> ${item.NoiDungThayDoi}`;
+                    
                     tr.innerHTML = `
-                        <td class="text-center">${item.ThoiGianCapNhat}</td>
+                        <td>${index + 1}</td>
+                        <td>${item.ThoiGianCapNhat}</td>
                         <td>${item.NguoiThucHien}</td>
-                        <td><span class="status-pill pill-blue">${item.HanhDong}</span></td>
-                        <td>${item.NoiDungThayDoi}</td>
+                        <td>${item.SoKyHieu}</td>
+                        <td>${item.TrichYeu}</td>
+                        <td>${fullContent}</td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -322,4 +331,13 @@ function removeEditSelectedFile() {
     if(document.getElementById('edit_tep_dinh_kem_name') && document.getElementById('edit_tep_dinh_kem_name').getAttribute('href')) {
         document.getElementById('edit_tep_dinh_kem_container').style.display = 'block';
     }
+}
+
+function gotoProcessing(so_ky_hieu) {
+    if (!so_ky_hieu) {
+        alert('Không tìm thấy số ký hiệu văn bản.');
+        return;
+    }
+    // Chuyển hướng sang trang xử lý với tham số tìm kiếm số ký hiệu
+    window.location.href = '/xu-ly-van-ban/?so_ky_hieu=' + encodeURIComponent(so_ky_hieu);
 }
