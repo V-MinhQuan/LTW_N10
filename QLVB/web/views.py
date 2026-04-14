@@ -53,26 +53,44 @@ def logout_view(request):
 
 # --- QUẢN LÝ VĂN BẢN ĐẾN ---
 def van_ban_den_index(request):
-    danh_sach = VanBanDen.objects.select_related('DonViNgoaiID').all().order_by('-VanBanDenID')
+    danh_sach = VanBanDen.objects.select_related('DonViNgoaiID', 'DonViTrongID').all().order_by('-VanBanDenID')
     don_vi_ngoai = DonViBenNgoai.objects.all()
+    don_vi_trong = DonViBenTrong.objects.all()
 
+    # Get filter params
     so_ky_hieu = request.GET.get('so_ky_hieu', '')
     trich_yeu = request.GET.get('trich_yeu', '')
-    don_vi_id = request.GET.get('don_vi', '')
+    loai_vb = request.GET.get('loai_vb', '')
+    don_vi_ngoai_id = request.GET.get('don_vi_ngoai', '')
+    don_vi_trong_id = request.GET.get('don_vi_trong', '')
+    ngay_tu = request.GET.get('ngay_tu', '')
+    ngay_den = request.GET.get('ngay_den', '')
+    trang_thai = request.GET.get('trang_thai', '')
 
+    # Apply filters
     if so_ky_hieu:
         danh_sach = danh_sach.filter(SoKyHieu__icontains=so_ky_hieu)
     if trich_yeu:
         danh_sach = danh_sach.filter(TrichYeu__icontains=trich_yeu)
-    if don_vi_id:
-        danh_sach = danh_sach.filter(DonViNgoaiID_id=don_vi_id)
+    if loai_vb:
+        danh_sach = danh_sach.filter(LoaiVanBan__icontains=loai_vb)
+    if don_vi_ngoai_id:
+        danh_sach = danh_sach.filter(DonViNgoaiID_id=don_vi_ngoai_id)
+    if don_vi_trong_id:
+        danh_sach = danh_sach.filter(DonViTrongID_id=don_vi_trong_id)
+    if ngay_tu:
+        danh_sach = danh_sach.filter(NgayNhan__gte=ngay_tu)
+    if ngay_den:
+        danh_sach = danh_sach.filter(NgayNhan__lte=ngay_den)
+    if trang_thai:
+        danh_sach = danh_sach.filter(TrangThai=trang_thai)
 
     from django.core.paginator import Paginator
-    paginator = Paginator(danh_sach, 4)
+    paginator = Paginator(danh_sach, 8) # Increased limit
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    # Tạo query string cho các filter (loại bỏ tham số page)
+    # Build query string for pagination links
     q = request.GET.copy()
     if 'page' in q:
         del q['page']
@@ -82,6 +100,7 @@ def van_ban_den_index(request):
         'page_obj': page_obj,
         'danh_sach': page_obj.object_list,
         'don_vi_ngoai': don_vi_ngoai,
+        'don_vi_trong': don_vi_trong,
         'tong_so': paginator.count,
         'query_string': query_string
     })
@@ -112,18 +131,17 @@ def van_ban_den_them(request):
 
 def van_ban_den_xem(request, pk):
     from .models import PhanCong, ChuyenTiep, BaoCao
-    vbd = VanBanDen.objects.filter(pk=pk).first()
+    vbd = VanBanDen.objects.select_related('DonViNgoaiID', 'DonViTrongID').filter(pk=pk).first()
     if not vbd:
         return JsonResponse({'status': 'error', 'message': 'Không tìm thấy'})
 
     qua_trinh_xu_ly = []
-
+    # ... (existing logic for qua_trinh_xu_ly remains same)
     # 1. Lấy thông tin Phân công
     phan_congs = PhanCong.objects.filter(VanBanDenID=vbd).select_related('UserID').order_by('NgayPhanCong')
     for pc in phan_congs:
         tag_name = pc.TrangThaiXuLy or "Phân công"
         tag_class = "vbd-process-tag-active" if tag_name == 'Đang xử lý' else "vbd-process-tag-blue"
-
         qua_trinh_xu_ly.append({
             'time': pc.NgayPhanCong,
             'tag': tag_name,
@@ -147,9 +165,8 @@ def van_ban_den_xem(request, pk):
             'action': "Chuyển tiếp văn bản cho đơn vị/cá nhân khác"
         })
 
-    # 3. Lấy thông tin Báo cáo (Chỉ lấy loại Phản hồi - Sai sót/Không phù hợp)
-    bao_caos = BaoCao.objects.filter(VanBanDenID=vbd, LoaiBaoCao='PHAN_HOI').select_related('UserID').order_by(
-        'NgayBaoCao')
+    # 3. Lấy thông tin Báo cáo
+    bao_caos = BaoCao.objects.filter(VanBanDenID=vbd, LoaiBaoCao='PHAN_HOI').select_related('UserID').order_by('NgayBaoCao')
     for bc in bao_caos:
         qua_trinh_xu_ly.append({
             'time': bc.NgayBaoCao,
@@ -161,11 +178,7 @@ def van_ban_den_xem(request, pk):
             'action': bc.GhiChu or "Báo cáo văn bản sai sót/không phù hợp"
         })
 
-    # Sắp xếp theo thời gian
     qua_trinh_xu_ly.sort(key=lambda x: x['time'] if x['time'] else timezone.now(), reverse=False)
-
-    # Xóa field thời gian trước khi trả về JSON để tránh lỗi serialize nếu cần,
-    # nhưng ở đây ta chỉ cần extract thông tin string
     for item in qua_trinh_xu_ly:
         if 'time' in item: del item['time']
 
@@ -178,8 +191,10 @@ def van_ban_den_xem(request, pk):
             'loai_van_ban': vbd.LoaiVanBan,
             'ngay_ban_hanh': vbd.NgayBanHanh.strftime('%Y-%m-%d') if vbd.NgayBanHanh else '',
             'ngay_nhan': vbd.NgayNhan.strftime('%Y-%m-%d') if vbd.NgayNhan else '',
-            'don_vi_ngoai_ten': vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else '',
+            'don_vi_ngoai_ten': vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else 'Chưa xác định',
             'don_vi_ngoai_id': vbd.DonViNgoaiID_id,
+            'don_vi_trong_ten': vbd.DonViTrongID.TenDonVi if vbd.DonViTrongID else 'Chưa xác định',
+            'don_vi_trong_id': vbd.DonViTrongID_id,
             'tep_dinh_kem': vbd.TepDinhKem.url if vbd.TepDinhKem else '',
             'tep_name': vbd.TepDinhKem.name.split('/')[-1] if vbd.TepDinhKem else '',
             'trang_thai': vbd.TrangThai,

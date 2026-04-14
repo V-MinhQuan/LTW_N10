@@ -269,8 +269,7 @@
 
 #historyOverlay .vbd-popup-body,
 #historyView .vbd-popup-body {
-    max-height: 65vh;
-    overflow-y: auto;
+    /* Scroll removed per user request */
 }
 
 .btn-back {

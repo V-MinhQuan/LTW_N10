@@ -424,13 +424,12 @@
   <div class="panel-body">
     <form method="GET" action="{% url 'vbd_index' %}">
       <div class="search-grid">
-        <input type="text" name="so_ky_hieu" class="form-control" placeholder="Nhập Số ký hiệu văn bản" value="{{ request.GET.so_ky_hieu }}" />
-        <input type="text" class="form-control" placeholder="Nhập số văn bản" />
-        <input type="text" name="trich_yeu" class="form-control" placeholder="Nhập Trích yếu" value="{{ request.GET.trich_yeu }}" />
-        <select class="form-control" name="don_vi">
-          <option value="">--- Chọn đơn vị ban hành ---</option>
-          {% for dv in don_vi_ngoai %}
-          <option value="{{ dv.DonViNgoaiID }}" {% if request.GET.don_vi == dv.DonViNgoaiID|stringformat:"s" %}selected{% endif %}>{{ dv.TenDonVi }}</option>
+        <input type="text" name="so_ky_hieu" class="form-control" placeholder="Số ký hiệu văn bản" value="{{ request.GET.so_ky_hieu }}" />
+        <input type="text" name="trich_yeu" class="form-control" placeholder="Trích yếu văn bản" value="{{ request.GET.trich_yeu }}" />
+        <select class="form-control" name="don_vi_trong">
+          <option value="">-- Đơn vị nội bộ nhận --</option>
+          {% for dv in don_vi_trong %}
+          <option value="{{ dv.DonViTrongID }}" {% if request.GET.don_vi_trong == dv.DonViTrongID|stringformat:"s" %}selected{% endif %}>{{ dv.TenDonVi }}</option>
           {% endfor %}
         </select>
       </div>
@@ -602,9 +601,18 @@
           <div class="vbd-field">
             <label>Đơn vị gửi (<span style="color:red">*</span>)</label>
             <select name="don_vi_ngoai_id" class="form-control" style="flex:1;" required>
-              <option value="">- Chọn đơn vị -</option>
+              <option value="">- Chọn đơn vị gửi -</option>
               {% for dv in don_vi_ngoai %}
               <option value="{{ dv.DonViNgoaiID }}">{{ dv.TenDonVi }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="vbd-field">
+            <label>Đơn vị nội bộ nhận</label>
+            <select name="don_vi_trong_id" class="form-control" style="flex:1;">
+              <option value="">- Chọn đơn vị nội bộ -</option>
+              {% for dv in don_vi_trong %}
+              <option value="{{ dv.DonViTrongID }}">{{ dv.TenDonVi }}</option>
               {% endfor %}
             </select>
           </div>
@@ -645,36 +653,66 @@
 
 <!-- Popup Filter -->
 <div id="popupFilter" class="vbd-popup-overlay">
-  <div class="vbd-popup" style="width: 600px;">
-    <div class="vbd-popup-header" style="background: #e9ecef; color: #333;">
+  <div class="vbd-popup" style="width: 800px;">
+    <div class="vbd-popup-header" style="background: #00adef; color: #fff;">
       <span>Bộ lọc tìm kiếm</span>
       <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupFilter')"></i>
     </div>
     <div class="vbd-popup-body">
-      <div class="vbd-grid" style="grid-template-columns: 1fr;">
-        <div class="vbd-field">
-          <label>Loại văn bản</label>
-          <select>
-            <option>--- Tất cả ---</option>
+      <form id="filterFormVBD">
+        <div style="display: grid; grid-template-columns: 130px 1fr 130px 1fr; gap: 15px 25px; align-items: center;">
+          
+          <label style="font-size: 14px; font-weight: 500; color: #333;">Loại văn bản</label>
+          <input type="text" name="loai_vb" list="loai_vb_list" class="form-control" placeholder="VD: Báo cáo..." value="{{ request.GET.loai_vb }}">
+          
+          <label style="font-size: 14px; font-weight: 500; color: #333;">Trạng thái</label>
+          <select name="trang_thai" class="form-control">
+            <option value="">--- Tất cả ---</option>
+            <option value="DANG_XU_LY" {% if request.GET.trang_thai == "DANG_XU_LY" %}selected{% endif %}>Đang xử lý</option>
+            <option value="HOAN_THANH" {% if request.GET.trang_thai == "HOAN_THANH" %}selected{% endif %}>Hoàn thành</option>
           </select>
-        </div>
-        <div class="vbd-field">
-          <label>Trạng thái</label>
-          <select>
-            <option>--- Tất cả ---</option>
+
+          <label style="font-size: 14px; font-weight: 500; color: #333;">Đơn vị gửi</label>
+          <select name="don_vi_ngoai" class="form-control">
+            <option value="">--- Tất cả ---</option>
+            {% for dv in don_vi_ngoai %}
+            <option value="{{ dv.DonViNgoaiID }}" {% if request.GET.don_vi_ngoai == dv.DonViNgoaiID|stringformat:"s" %}selected{% endif %}>{{ dv.TenDonVi }}</option>
+            {% endfor %}
           </select>
-        </div>
-        <div class="vbd-field">
-          <label>Đơn vị</label>
-          <select>
-            <option>--- Tất cả ---</option>
+
+          <label style="font-size: 14px; font-weight: 500; color: #333;">Đơn vị nội bộ</label>
+          <select name="don_vi_trong" class="form-control">
+            <option value="">--- Tất cả ---</option>
+            {% for dv in don_vi_trong %}
+            <option value="{{ dv.DonViTrongID }}" {% if request.GET.don_vi_trong == dv.DonViTrongID|stringformat:"s" %}selected{% endif %}>{{ dv.TenDonVi }}</option>
+            {% endfor %}
           </select>
+
+          <label style="font-size: 14px; font-weight: 500; color: #333;">Ngày nhận</label>
+          <div style="display: grid; grid-template-columns: 1fr 130px 1fr; gap: 25px; align-items: center; grid-column: span 3;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 13px; min-width: 25px;">Từ</span>
+              <input type="date" name="ngay_tu" class="form-control" value="{{ request.GET.ngay_tu }}">
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; grid-column: 2 / span 2;">
+              <span style="font-size: 13px; min-width: 25px;">Đến</span>
+              <input type="date" name="ngay_den" class="form-control" value="{{ request.GET.ngay_den }}">
+            </div>
+          </div>
+
+          <datalist id="loai_vb_list">
+            <option value="Công văn">
+            <option value="Báo cáo">
+            <option value="Thông báo">
+            <option value="Quyết định">
+            <option value="Tờ trình">
+          </datalist>
         </div>
-      </div>
+      </form>
     </div>
     <div class="vbd-popup-footer">
-      <button class="btn btn-secondary" onclick="closeVBD('popupFilter')">Đóng</button>
-      <button class="btn btn-primary" onclick="closeVBD('popupFilter')">Áp dụng</button>
+      <button class="btn btn-secondary" onclick="closeVBD('popupFilter')">Hủy</button>
+      <button class="btn btn-primary" onclick="applyFilterVBD()">Áp dụng</button>
     </div>
   </div>
 </div>
@@ -724,9 +762,15 @@
           </div>
         </div>
       </div>
-      <div class="vbd-row-full">
-        <label>Đơn vị gửi</label>
-        <input type="text" id="view_don_vi_gui" readonly>
+      <div class="vbd-grid">
+        <div class="vbd-field">
+            <label>Đơn vị gửi</label>
+            <input type="text" id="view_don_vi_gui" readonly>
+        </div>
+        <div class="vbd-field">
+            <label>Đơn vị nội bộ nhận</label>
+            <input type="text" id="view_don_vi_trong" readonly>
+        </div>
       </div>
 
       <div class="vbd-attachment-header">
@@ -837,9 +881,18 @@
           <div class="vbd-field">
             <label>Đơn vị gửi</label>
             <select name="don_vi_ngoai_id" id="edit_don_vi_gui" class="form-control" style="flex:1;">
-              <option value="">- Chọn đơn vị -</option>
+              <option value="">- Chọn đơn vị gửi -</option>
               {% for dv in don_vi_ngoai %}
               <option value="{{ dv.DonViNgoaiID }}">{{ dv.TenDonVi }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="vbd-field">
+            <label>Đơn vị nội bộ nhận</label>
+            <select name="don_vi_trong_id" id="edit_don_vi_trong" class="form-control" style="flex:1;">
+              <option value="">- Chọn đơn vị nội bộ -</option>
+              {% for dv in don_vi_trong %}
+              <option value="{{ dv.DonViTrongID }}">{{ dv.TenDonVi }}</option>
               {% endfor %}
             </select>
           </div>

@@ -54,6 +54,9 @@ function xemVBD(id) {
             document.getElementById('view_ngay_ban_hanh').value = v.ngay_ban_hanh;
             document.getElementById('view_ngay_nhan').value = v.ngay_nhan;
             document.getElementById('view_don_vi_gui').value = v.don_vi_ngoai_ten;
+            if (document.getElementById('view_don_vi_trong')) {
+                document.getElementById('view_don_vi_trong').value = v.don_vi_trong_ten;
+            }
             
             const fileContainer = document.getElementById('view_tep_dinh_kem_container');
             const fileLink = document.getElementById('view_tep_dinh_kem_name');
@@ -157,6 +160,9 @@ function suaVBD(id) {
             document.getElementById('edit_ngay_ban_hanh').value = v.ngay_ban_hanh;
             document.getElementById('edit_ngay_nhan').value = v.ngay_nhan;
             document.getElementById('edit_don_vi_gui').value = v.don_vi_ngoai_id;
+            if (document.getElementById('edit_don_vi_trong')) {
+                document.getElementById('edit_don_vi_trong').value = v.don_vi_trong_id || "";
+            }
             document.getElementById('edit_trang_thai').value = v.trang_thai;
             
             const editFileContainer = document.getElementById('edit_tep_dinh_kem_container');
@@ -340,4 +346,29 @@ function gotoProcessing(so_ky_hieu) {
     }
     // Chuyển hướng sang trang xử lý với tham số tìm kiếm số ký hiệu
     window.location.href = '/xu-ly-van-ban/?so_ky_hieu=' + encodeURIComponent(so_ky_hieu);
+}
+
+// Áp dụng bộ lọc nâng cao
+function applyFilterVBD() {
+    const form = document.getElementById('filterFormVBD');
+    if (!form) return;
+    
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
+    
+    // Giữ lại các tham số từ ô tìm kiếm nhanh nếu có
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('so_ky_hieu')) params.set('so_ky_hieu', urlParams.get('so_ky_hieu'));
+    if (urlParams.has('trich_yeu')) params.set('trich_yeu', urlParams.get('trich_yeu'));
+    if (urlParams.has('don_vi_trong')) params.set('don_vi_trong', urlParams.get('don_vi_trong'));
+    
+    // Thêm các tham số từ bộ lọc
+    for (let [key, value] of formData.entries()) {
+        if (value) {
+            params.set(key, value);
+        }
+    }
+    
+    // Chuyển hướng
+    window.location.href = window.location.pathname + '?' + params.toString();
 }

@@ -77,6 +77,7 @@ class VanBanDen(models.Model):
     LoaiVanBan = models.CharField(max_length=50, null=True, blank=True)
     TrichYeu = models.CharField(max_length=255, null=True, blank=True)
     TrangThai = models.CharField(max_length=50, choices=TrangThaiChoices.choices, default=TrangThaiChoices.DANG_XU_LY)
+    DonViTrongID = models.ForeignKey(DonViBenTrong, on_delete=models.SET_NULL, null=True, blank=True)
     TepDinhKem = models.FileField(upload_to='den/%Y/%m/', null=True, blank=True)
 
     def __str__(self):
