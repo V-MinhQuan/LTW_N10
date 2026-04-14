@@ -1,5 +1,6 @@
 from django import forms
 from .models import VanBanDen, DonViBenNgoai
+from django.contrib.auth.forms import AuthenticationForm
 
 class VanBanDenForm(forms.Form):
     so_ky_hieu = forms.CharField(max_length=50, required=True, error_messages={'required': 'Số ký hiệu là bắt buộc.'})
@@ -7,7 +8,7 @@ class VanBanDenForm(forms.Form):
     loai_van_ban = forms.CharField(max_length=50, required=False)
     ngay_ban_hanh = forms.DateField(required=False)
     ngay_nhan = forms.DateField(required=False)
-    don_vi_ngoai_id = forms.CharField(required=False)
+    dont_vi_ngoai_id = forms.CharField(required=False)
     tep_dinh_kem = forms.FileField(required=False)
     xoa_tep_dinh_kem = forms.CharField(required=False)
     trang_thai = forms.CharField(max_length=50, required=False)
@@ -59,10 +60,10 @@ class VanBanDenForm(forms.Form):
                 if instance.TepDinhKem:
                     instance.TepDinhKem.delete(save=False)
                 instance.TepDinhKem = None
-                
+
             if data.get('trang_thai') is not None:
                 instance.TrangThai = data.get('trang_thai')
-                
+
             instance.save()
             return instance
         else:
@@ -80,3 +81,13 @@ class VanBanDenForm(forms.Form):
                 UserID=user
             )
             return vbd
+
+class LoginForm(AuthenticationForm):
+    username = forms.CharField(widget=forms.TextInput(attrs={
+        'class': 'form-control',
+        'placeholder': 'Tên đăng nhập'
+    }))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={
+        'class': 'form-control',
+        'placeholder': 'Mật khẩu'
+    }))

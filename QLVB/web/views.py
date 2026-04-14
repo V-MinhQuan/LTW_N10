@@ -1,5 +1,10 @@
 from django.shortcuts import render
 
+# IMPORT ĐẦY ĐỦ CHO HỆ THỐNG ĐĂNG NHẬP
+from django.contrib.auth import login as auth_login, logout
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.db.models import Q, Max
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
@@ -72,64 +77,11 @@ def van_ban_den_them(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'invalid method'})
+
 def van_ban_den_xem(request, pk):
-    from .models import PhanCong, ChuyenTiep, BaoCao
     vbd = VanBanDen.objects.filter(pk=pk).first()
     if not vbd:
         return JsonResponse({'status': 'error', 'message': 'Không tìm thấy'})
-        
-    qua_trinh_xu_ly = []
-    
-    # 1. Lấy thông tin Phân công
-    phan_congs = PhanCong.objects.filter(VanBanDenID=vbd).select_related('UserID').order_by('NgayPhanCong')
-    for pc in phan_congs:
-        tag_name = pc.TrangThaiXuLy or "Phân công"
-        tag_class = "vbd-process-tag-active" if tag_name == 'Đang xử lý' else "vbd-process-tag-blue"
-        
-        qua_trinh_xu_ly.append({
-            'time': pc.NgayPhanCong,
-            'tag': tag_name,
-            'tag_class': tag_class,
-            'icon': 'fa-user-check',
-            'chuyen_toi': f"{pc.UserID.HoTen} ({pc.UserID.username})" if pc.UserID else "Chưa xác định",
-            'dong_xu_ly': "",
-            'action': pc.GhiChu or f"Giao xử lý cho {pc.UserID.HoTen if pc.UserID else 'cán bộ'}"
-        })
-
-    # 2. Lấy thông tin Chuyển tiếp
-    chuyen_tieps = ChuyenTiep.objects.filter(VanBanDenID=vbd).select_related('UserID').order_by('NgayChuyenTiep')
-    for ct in chuyen_tieps:
-        qua_trinh_xu_ly.append({
-            'time': ct.NgayChuyenTiep,
-            'tag': "Chuyển tiếp",
-            'tag_class': "vbd-process-tag-blue",
-            'icon': 'fa-share-square',
-            'chuyen_toi': f"{ct.UserID.HoTen} ({ct.UserID.username})" if ct.UserID else "Chưa xác định",
-            'dong_xu_ly': "",
-            'action': "Chuyển tiếp văn bản cho đơn vị/cá nhân khác"
-        })
-
-    # 3. Lấy thông tin Báo cáo (Chỉ lấy loại Phản hồi - Sai sót/Không phù hợp)
-    bao_caos = BaoCao.objects.filter(VanBanDenID=vbd, LoaiBaoCao='PHAN_HOI').select_related('UserID').order_by('NgayBaoCao')
-    for bc in bao_caos:
-        qua_trinh_xu_ly.append({
-            'time': bc.NgayBaoCao,
-            'tag': "Phản hồi",
-            'tag_class': "vbd-process-tag-gray",
-            'icon': 'fa-exclamation-triangle',
-            'chuyen_toi': f"{bc.UserID.HoTen} ({bc.UserID.username})" if bc.UserID else "Nguời báo cáo",
-            'dong_xu_ly': "",
-            'action': bc.GhiChu or "Báo cáo văn bản sai sót/không phù hợp"
-        })
-
-    # Sắp xếp theo thời gian
-    qua_trinh_xu_ly.sort(key=lambda x: x['time'] if x['time'] else timezone.now(), reverse=False)
-    
-    # Xóa field thời gian trước khi trả về JSON để tránh lỗi serialize nếu cần, 
-    # nhưng ở đây ta chỉ cần extract thông tin string
-    for item in qua_trinh_xu_ly:
-        if 'time' in item: del item['time']
-
     return JsonResponse({
         'status': 'success',
         'data': {
@@ -143,8 +95,7 @@ def van_ban_den_xem(request, pk):
             'don_vi_ngoai_id': vbd.DonViNgoaiID_id,
             'tep_dinh_kem': vbd.TepDinhKem.url if vbd.TepDinhKem else '',
             'tep_name': vbd.TepDinhKem.name.split('/')[-1] if vbd.TepDinhKem else '',
-            'trang_thai': vbd.TrangThai,
-            'qua_trinh_xu_ly': qua_trinh_xu_ly
+            'trang_thai': vbd.TrangThai
         }
     })
 
@@ -155,50 +106,19 @@ def van_ban_den_sua(request, pk):
         if not vbd:
             return JsonResponse({'status': 'error', 'message': 'Không tìm thấy'})
             
-        # Lưu lại giá trị cũ để so sánh
-        old_data = {
-            'Số ký hiệu': vbd.SoKyHieu,
-            'Trích yếu': vbd.TrichYeu,
-            'Loại văn bản': vbd.LoaiVanBan,
-            'Ngày ban hành': vbd.NgayBanHanh.strftime('%d/%m/%Y') if vbd.NgayBanHanh else 'Trống',
-            'Ngày nhận': vbd.NgayNhan.strftime('%d/%m/%Y') if vbd.NgayNhan else 'Trống',
-            'Đơn vị gửi': vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else 'Trống',
-            'Trạng thái': 'Đang xử lý' if vbd.TrangThai != 'HOAN_THANH' else 'Hoàn thành'
-        }
+        old_val = f"{vbd.SoKyHieu} - {vbd.TrichYeu}"
         
         form = VanBanDenForm(request.POST, request.FILES)
         if form.is_valid():
             vbd = form.save(user=request.user if request.user.is_authenticated else None, instance=vbd)
             
-            # So sánh dữ liệu mới
-            new_data = {
-                'Số ký hiệu': vbd.SoKyHieu,
-                'Trích yếu': vbd.TrichYeu,
-                'Loại văn bản': vbd.LoaiVanBan,
-                'Ngày ban hành': vbd.NgayBanHanh.strftime('%d/%m/%Y') if vbd.NgayBanHanh else 'Trống',
-                'Ngày nhận': vbd.NgayNhan.strftime('%d/%m/%Y') if vbd.NgayNhan else 'Trống',
-                'Đơn vị gửi': vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else 'Trống',
-                'Trạng thái': 'Đang xử lý' if vbd.TrangThai != 'HOAN_THANH' else 'Hoàn thành'
-            }
-            
-            changes = []
-            for field, old_val in old_data.items():
-                new_val = new_data.get(field)
-                if old_val != new_val:
-                    changes.append(f"{field}: {old_val} -> {new_val}")
-            
-            if changes:
-                try:
-                    LichSuHoatDong.objects.create(
-                        UserID=request.user if request.user.is_authenticated else None,
-                        LoaiDoiTuong='VanBanDen',
-                        DoiTuongID=vbd.VanBanDenID,
-                        HanhDong='Cập nhật',
-                        NoiDungThayDoi='Thay đổi: ' + ', '.join(changes)
-                    )
-                except Exception as e:
-                    print(f"Lỗi lưu lịch sử: {e}")
-            
+            LichSuHoatDong.objects.create(
+                UserID=request.user if request.user.is_authenticated else None,
+                LoaiDoiTuong='VanBanDen',
+                DoiTuongID=vbd.VanBanDenID,
+                HanhDong='Cập nhật',
+                NoiDungThayDoi=f'Cập nhật từ {old_val} thành {vbd.SoKyHieu} - {vbd.TrichYeu}'
+            )
             return JsonResponse({'status': 'success'})
         else:
             return JsonResponse({'status': 'error', 'message': str(form.errors)})
@@ -225,11 +145,7 @@ def van_ban_den_lich_su(request):
     pk = request.GET.get('id')
     lich_su = LichSuHoatDong.objects.filter(LoaiDoiTuong='VanBanDen')
     if pk:
-        try:
-            lich_su = lich_su.filter(DoiTuongID=int(pk))
-        except (ValueError, TypeError):
-            lich_su = lich_su.none()
-    
+        lich_su = lich_su.filter(DoiTuongID=pk)
     lich_su = lich_su.order_by('-ThoiGianCapNhat')
     
     data = []
@@ -253,6 +169,127 @@ def quan_ly_nguoi_dung_index(request):
 def thong_tin_nguoi_dung(request):
     return render(request, 'quan_ly_nguoi_dung/thong_tin.html')
 
+def thong_tin_view(request):
+    return render(request, 'thong_tin.html')
+
+# --- API NGƯỜI DÙNG ---
+def api_nguoi_dung_list(request):
+    query_username = request.GET.get('username', '')
+    query_fullname = request.GET.get('fullname', '')
+    query_dept = request.GET.get('dept', '')
+    query_status = request.GET.get('status', '')
+    user_id = request.GET.get('id')
+    page_number = request.GET.get('page', 1)
+    page_size = 5
+
+    users = UserAccount.objects.all().order_by('SoThuTu', '-pk')
+
+    if user_id:
+        users = users.filter(UserID=user_id)
+    if query_username:
+        users = users.filter(username__icontains=query_username)
+    if query_fullname:
+        users = users.filter(HoTen__icontains=query_fullname)
+    if query_dept:
+        users = users.filter(PhongBan__icontains=query_dept)
+    if query_status:
+        status_val = True if query_status == 'Đang hoạt động' else False
+        users = users.filter(TrangThai=status_val)
+
+    paginator = Paginator(users, page_size)
+    page_obj = paginator.get_page(page_number)
+
+    user_list = []
+    for u in page_obj:
+        user_list.append({
+            'id': u.UserID,
+            'username': u.username,
+            'fullname': u.HoTen,
+            'email': u.email,
+            'phone': u.SoDienThoai,
+            'dept': u.PhongBan,
+            'role_id': u.VaiTroID.VaiTroID if u.VaiTroID else None,
+            'role_name': u.VaiTroID.ChucVu if u.VaiTroID else '',
+            'status': 'Đang hoạt động' if u.TrangThai else 'Vô hiệu hóa',
+            'stt': u.SoThuTu
+        })
+
+    return JsonResponse({
+        'status': 'success',
+        'data': user_list,
+        'pagination': {
+            'total_count': paginator.count,
+            'total_pages': paginator.num_pages,
+            'current_page': page_obj.number,
+            'has_next': page_obj.has_next(),
+            'has_previous': page_obj.has_previous(),
+        }
+    })
+
+
+def api_upsert_user(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_id = data.get('id')
+
+            if user_id:
+                user = get_object_or_404(UserAccount, UserID=user_id)
+            else:
+                user = UserAccount()
+                # Tự động gán STT
+                max_stt = UserAccount.objects.aggregate(Max('SoThuTu'))['SoThuTu__max'] or 0
+                user.SoThuTu = max_stt + 1
+
+            user.username = data.get('username')
+            user.HoTen = data.get('fullname')
+            user.email = data.get('email')
+            user.SoDienThoai = data.get('phone')
+            user.PhongBan = data.get('dept')
+
+            # Vai trò
+            role_id = data.get('role_id')
+            if role_id:
+                user.VaiTroID = get_object_or_404(VaiTro, VaiTroID=role_id)
+
+            # Trạng thái
+            status_text = data.get('status')
+            user.TrangThai = True if status_text == 'Đang hoạt động' else False
+
+            # Mật khẩu (chỉ set nếu là tạo mới hoặc có nhập pass mới)
+            password = data.get('password')
+            if password:
+                user.set_password(password)
+            elif not user_id:
+                # Nếu tạo mới mà ko nhập pass (mặc định cho demo)
+                user.set_password('123456')
+
+            user.save()
+            return JsonResponse({'status': 'success', 'message': 'Lưu người dùng thành công!'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+
+
+def api_delete_user(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_id = data.get('id')
+            user = get_object_or_404(UserAccount, UserID=user_id)
+            user.delete()
+            return JsonResponse({'status': 'success', 'message': 'Xóa người dùng thành công!'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+
+
+def api_vai_tro_list(request):
+    roles = VaiTro.objects.all().order_by('ChucVu')
+    role_list = [{'id': r.VaiTroID, 'name': r.ChucVu} for r in roles]
+    return JsonResponse({'status': 'success', 'data': role_list})
+
+
 # --- QUẢN LÝ ĐƠN VỊ ---
 def quan_ly_don_vi_ben_ngoai(request):
     return render(request, 'quan_ly_don_vi/ben_ngoai.html')
@@ -260,6 +297,16 @@ def quan_ly_don_vi_ben_ngoai(request):
 def quan_ly_don_vi_ben_trong(request):
     return render(request, 'quan_ly_don_vi/ben_trong.html')
 
+            if unit_type == 'trong':
+                unit = get_object_or_404(DonViBenTrong, DonViTrongID=unit_id)
+            else:
+                unit = get_object_or_404(DonViBenNgoai, DonViNgoaiID=unit_id)
+
+            unit.delete()
+            return JsonResponse({'status': 'success', 'message': 'Xóa thành công!'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 # --- XỬ LÝ VĂN BẢN ĐIỀU HÀNH ---
 def xu_ly_van_ban_index(request):
     return render(request, 'xu_ly_van_ban/index.html')

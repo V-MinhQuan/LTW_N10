@@ -1,17 +1,43 @@
 function openVBD(id) {
-    document.getElementById(id).style.display = 'flex';
+    const overlay = document.getElementById('modalOverlay');
+    if (overlay) overlay.style.display = 'block';
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.style.display = 'flex';
+        // Reset form if it's the Add popup to prevent pre-filled data artifacts
+        if (id === 'popupAdd') {
+            const form = modal.querySelector('form');
+            if (form) form.reset();
+            const uploadArea = document.getElementById('add_upload_area');
+            const fileContainer = document.getElementById('add_tep_dinh_kem_container');
+            if (uploadArea) uploadArea.style.setProperty('display', 'flex', 'important');
+            if (fileContainer) fileContainer.style.display = 'none';
+        }
+    }
 }
+
 function closeVBD(id) {
-    document.getElementById(id).style.display = 'none';
+    const modal = document.getElementById(id);
+    if (modal) modal.style.display = 'none';
+    const overlay = document.getElementById('modalOverlay');
+    if (overlay) {
+        // Only close overlay if no other modals are visible
+        const visibleModals = document.querySelectorAll('.vbd-popup-overlay[style*="display: flex"], .vbd-popup-overlay[style*="display: block"]');
+        if (visibleModals.length === 0) {
+            overlay.style.display = 'none';
+        }
+    }
 }
 
 window.onclick = function(event) {
     if (event.target.classList.contains('vbd-popup-overlay')) {
-        const id = event.target.id;
-        event.target.style.display = "none";
-        if (id === 'historyOverlay') {
+        closeVBD(event.target.id);
+        if (event.target.id === 'historyOverlay') {
             openVBD('popupView');
         }
+    }
+    if (event.target.id === 'modalOverlay') {
+        closeAllModals();
     }
 }
 
@@ -104,8 +130,9 @@ function submitAddVBD() {
     .then(res => res.json())
     .then(data => {
         if (data.status === 'success') {
-            alert('Thêm thành công');
-            window.location.reload();
+            App.showSuccess('Thêm thành công', () => {
+                window.location.reload();
+            });
         } else {
             alert('Lỗi: ' + data.message);
         }
@@ -160,8 +187,9 @@ function submitEditVBD() {
     .then(res => res.json())
     .then(data => {
         if (data.status === 'success') {
-            alert('Sửa thành công');
-            window.location.reload();
+            App.showSuccess('Sửa thành công', () => {
+                window.location.reload();
+            });
         } else {
             alert('Lỗi: ' + data.message);
         }
@@ -170,21 +198,26 @@ function submitEditVBD() {
 
 // Xóa
 function xoaVBD(id) {
-    document.getElementById('popupRemove').dataset.id = id;
-    openVBD('popupRemove');
+    App.confirmDelete("Bạn có chắc chắn muốn xóa văn bản này không?", function() {
+        submitXoaVBD(id);
+    });
 }
 
-function submitXoaVBD() {
-    const id = document.getElementById('popupRemove').dataset.id;
+function submitXoaVBD(id) {
     fetch(`/van-ban-den/${id}/xoa/`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
     })
     .then(res => res.json())
     .then(data => {
         if (data.status === 'success') {
-            window.location.reload();
+            App.showSuccess('Xóa thành công', () => {
+                window.location.reload();
+            });
         } else {
-            alert('Lỗi khi xóa');
+            alert('Lỗi khi xóa: ' + data.message);
         }
     });
 }
