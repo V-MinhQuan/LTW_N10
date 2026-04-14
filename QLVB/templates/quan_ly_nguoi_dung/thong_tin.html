@@ -316,6 +316,15 @@
         }
     }
 
+    // NẾU CÓ THÀNH CÔNG TỪ DJANGO -> HIỆN POPUP CHUẨN
+    {% if messages %}
+        {% for message in messages %}
+            {% if message.tags == 'success' %}
+                App.showSuccess("{{ message }}");
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
     // NẾU CÓ LỖI TỪ DJANGO TRẢ VỀ -> TỰ ĐỘNG MỞ LẠI POPUP CHO USER NHÌN
     {% if open_modal %}
         modal.style.display = "flex";

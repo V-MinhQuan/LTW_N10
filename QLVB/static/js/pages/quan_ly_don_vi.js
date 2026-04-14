@@ -175,14 +175,36 @@ window.editUnitById = function(id) {
 };
 
 window.confirmDeleteById = function(id) {
-    currentId = id;
-    const overlay = document.getElementById('modalOverlay');
-    const modal = document.getElementById('modalDelete');
-    if (overlay && modal) {
-        overlay.style.display = 'block';
-        modal.style.display = 'block';
-    }
+    App.confirmDelete("Bạn có chắc chắn muốn xóa đơn vị này không?", function() {
+        deleteConfirmById(id);
+    });
 };
+
+function deleteConfirmById(id) {
+    if (!id) return;
+    fetch('/api/don-vi/delete/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ id: id, type: currentType })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            App.showSuccess(data.message, () => {
+                loadUnits(currentPage);
+            });
+        } else {
+            alert('Lỗi: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Đã xảy ra lỗi khi xóa.');
+    });
+}
 
 // Compatible with SSR rows
 window.viewUnit = function(btn) {
@@ -217,13 +239,10 @@ window.editUnit = function(btn) {
 };
 
 window.confirmDelete = function(btn) {
-    currentId = btn.dataset.id;
-    const overlay = document.getElementById('modalOverlay');
-    const modal = document.getElementById('modalDelete');
-    if (overlay && modal) {
-        overlay.style.display = 'block';
-        modal.style.display = 'block';
-    }
+    const id = btn.dataset.id;
+    App.confirmDelete("Bạn có chắc chắn muốn xóa đơn vị này không?", function() {
+        deleteConfirmById(id);
+    });
 };
 
 function fetchSingleUnit(id, callback) {
@@ -285,9 +304,10 @@ window.saveUnit = function() {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            alert(data.message);
-            closeUnitModal();
-            loadUnits(currentPage);
+            App.showSuccess(data.message, () => {
+                closeUnitModal();
+                loadUnits(currentPage);
+            });
         } else {
             alert('Lỗi: ' + data.message);
         }
@@ -298,41 +318,8 @@ window.saveUnit = function() {
     });
 }
 
-window.deleteConfirm = function() {
-    if (!currentId) return;
-
-    fetch('/api/don-vi/delete/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({ id: currentId, type: currentType })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            alert(data.message);
-            closeDeleteModal();
-            loadUnits(currentPage);
-        } else {
-            alert('Lỗi: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Đã xảy ra lỗi khi xóa.');
-    });
-}
-
 window.closeDeleteModal = function() {
-    const overlay = document.getElementById('modalOverlay');
-    const modal = document.getElementById('modalDelete');
-    if (overlay && modal) {
-        overlay.style.display = 'none';
-        modal.style.display = 'none';
-    }
-    currentId = null;
+    App.closePopup();
 }
 
 document.addEventListener('DOMContentLoaded', function () {

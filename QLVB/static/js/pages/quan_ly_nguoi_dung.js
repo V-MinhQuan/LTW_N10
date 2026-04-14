@@ -206,9 +206,9 @@ function populateModal(user) {
 }
 
 window.confirmDeleteUser = function(id) {
-    currentId = id;
-    overlay.style.display = "block";
-    deleteModal.style.display = "block";
+    App.confirmDelete("Bạn có chắc chắn muốn xóa người dùng này không?", function() {
+        deleteUserConfirm(id);
+    });
 }
 
 window.closeDeleteUserModal = function() {
@@ -217,22 +217,21 @@ window.closeDeleteUserModal = function() {
     currentId = null;
 }
 
-window.deleteUserConfirm = function() {
-    if (!currentId) return;
+window.deleteUserConfirm = function(id) {
     fetch('/api/nguoi-dung/delete/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCookie('csrftoken')
         },
-        body: JSON.stringify({ id: currentId })
+        body: JSON.stringify({ id: id })
     })
     .then(res => res.json())
     .then(res => {
         if (res.status === 'success') {
-            alert(res.message);
-            closeDeleteUserModal();
-            loadUsers(currentPage);
+            App.showSuccess(res.message, () => {
+                loadUsers(currentPage);
+            });
         } else {
             alert('Lỗi: ' + res.message);
         }
@@ -268,9 +267,10 @@ window.saveData = function() {
     .then(res => res.json())
     .then(res => {
         if (res.status === 'success') {
-            alert(res.message);
-            closeModal();
-            loadUsers(currentPage);
+            App.showSuccess(res.message, () => {
+                closeModal();
+                loadUsers(currentPage);
+            });
         } else {
             alert('Lỗi: ' + res.message);
         }

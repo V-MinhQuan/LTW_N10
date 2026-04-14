@@ -1,48 +1,43 @@
 function openModal(modalId) {
-    document.getElementById('modalOverlay').style.display = 'block';
-    document.getElementById(modalId).style.display = 'block';
+    const overlay = document.getElementById('modalOverlay');
+    if (overlay) overlay.style.display = 'block';
+    const modal = document.getElementById(modalId);
+    if (modal) modal.style.display = 'block';
 }
 
 function closeModal(modalId) {
-    document.getElementById('modalOverlay').style.display = 'none';
-    document.getElementById(modalId).style.display = 'none';
+    const modal = document.getElementById(modalId);
+    if (modal) modal.style.display = 'none';
+    const overlay = document.getElementById('modalOverlay');
+    if (overlay) overlay.style.display = 'none';
 }
 
 function openModalC(modalId, soKyHieu, nguoiXuLy) {
-    document.getElementById('upd-soKyHieu').value = soKyHieu;
-    document.getElementById('upd-nguoiXuLy').value = nguoiXuLy;
+    const elSo = document.getElementById('upd-soKyHieu');
+    const elNguoi = document.getElementById('upd-nguoiXuLy');
+    if (elSo) elSo.value = soKyHieu;
+    if (elNguoi) elNguoi.value = nguoiXuLy;
     openModal(modalId);
 }
 
 function openModalT(modalId, soKyHieu) {
-    document.getElementById('fwd-soKyHieu').value = soKyHieu;
+    const el = document.getElementById('fwd-soKyHieu');
+    if (el) el.value = soKyHieu;
     openModal(modalId);
 }
 
 function openModalB(modalId, soKyHieu) {
-    document.getElementById('rep-soKyHieu').value = soKyHieu;
+    const el = document.getElementById('rep-soKyHieu');
+    if (el) el.value = soKyHieu;
     openModal(modalId);
 }
 
 function openModalP(modalId, soKyHieu, trichYeu) {
-    document.getElementById('asn-soKyHieu').value = soKyHieu;
-    document.getElementById('asn-trichYeu').value = trichYeu;
+    const elSo = document.getElementById('asn-soKyHieu');
+    const elTrich = document.getElementById('asn-trichYeu');
+    if (elSo) elSo.value = soKyHieu;
+    if (elTrich) elTrich.value = trichYeu;
     openModal(modalId);
-}
-
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
 }
 
 async function saveAndClose(modalId) {
@@ -109,9 +104,10 @@ async function saveAndClose(modalId) {
 
         const result = await response.json();
         if (result.status === 'success') {
-            alert(result.message);
             closeModal(modalId);
-            location.reload(); // Tải lại trang để cập nhật dữ liệu
+            App.showSuccess(result.message || 'Thao tác thành công', () => {
+                location.reload();
+            });
         } else {
             alert('Lỗi: ' + result.message);
         }

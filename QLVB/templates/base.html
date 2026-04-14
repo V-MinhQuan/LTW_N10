@@ -219,6 +219,39 @@
             border-color: #3498DB !important; 
         }
         .page-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+        /* === APP STANDARDIZED POPUPS === */
+        #appPopupOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 99999; backdrop-filter: blur(2px);
+            align-items: center; justify-content: center;
+        }
+        .app-popup {
+            background: white; border-radius: 12px; width: 440px; max-width: 95%;
+            padding: 40px 30px; text-align: center; box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            animation: appPopupSlideIn 0.3s ease-out;
+        }
+        @keyframes appPopupSlideIn {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .app-popup-icon { font-size: 60px; margin-bottom: 25px; display: block; }
+        .app-popup-icon.danger { color: #E74C3C; }
+        .app-popup-icon.success { color: #24BC5C; }
+        .app-popup-title { font-size: 24px; font-weight: 700; color: #1e293b; margin-bottom: 12px; }
+        .app-popup-message { font-size: 15px; color: #64748b; line-height: 1.6; margin-bottom: 30px; }
+        .app-popup-buttons { display: flex; gap: 12px; justify-content: center; }
+        
+        .app-btn {
+            height: 44px; padding: 0 30px; border-radius: 8px; font-size: 15px; font-weight: 600;
+            cursor: pointer; border: none; transition: 0.2s; min-width: 120px;
+        }
+        .app-btn-gray { background: #e2e8f0; color: #475569; }
+        .app-btn-gray:hover { background: #cbd5e1; }
+        .app-btn-red { background: #E74C3C; color: white; }
+        .app-btn-red:hover { background: #C0392B; }
+        .app-btn-blue { background: #00ADEF; color: white; width: 100%; }
+        .app-btn-blue:hover { background: #008ec4; }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -232,8 +265,8 @@
         </div>
         <div class="user-info">
             <div class="admin-box" id="adminBox">
-                <div class="username"><i class="fas fa-user"></i> Admin</div>
-                <div class="role">Quản trị viên</div>
+                <div class="username"><i class="fas fa-user" style="margin-right: 8px;"></i> {{ user.HoTen|default:user.username }}</div>
+                <div class="role">{{ user.VaiTroID.ChucVu|default:"Người dùng" }}</div>
             </div>
             <div class="user-dropdown" id="userMenu">
                 <div class="dropdown-item">
@@ -263,13 +296,76 @@
     </main>
 
     <div id="modalOverlay" class="modal-overlay" onclick="closeAllModals()"></div>
+    <div id="appPopupOverlay">
+        <!-- Will be populated by JS -->
+    </div>
 
     <script>
+        const App = {
+            confirmDelete: function(message, onConfirm) {
+                const overlay = document.getElementById('appPopupOverlay');
+                overlay.style.display = 'flex';
+                overlay.innerHTML = `
+                    <div class="app-popup">
+                        <i class="fas fa-trash-alt app-popup-icon danger"></i>
+                        <div class="app-popup-title">Xác nhận xóa?</div>
+                        <div class="app-popup-message">${message}</div>
+                        <div class="app-popup-buttons">
+                            <button class="app-btn app-btn-gray" id="appCancelBtn">Hủy</button>
+                            <button class="app-btn app-btn-red" id="appConfirmBtn">Xác nhận</button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('appCancelBtn').onclick = () => App.closePopup();
+                document.getElementById('appConfirmBtn').onclick = () => {
+                    App.closePopup();
+                    if (onConfirm) onConfirm();
+                };
+            },
+            showSuccess: function(message, onDone) {
+                const overlay = document.getElementById('appPopupOverlay');
+                overlay.style.display = 'flex';
+                overlay.innerHTML = `
+                    <div class="app-popup">
+                        <i class="fas fa-check-circle app-popup-icon success"></i>
+                        <div class="app-popup-title" style="display:none;">Thành công</div>
+                        <div class="app-popup-message" style="font-size: 20px; font-weight: 700; color: #1e293b;">${message}</div>
+                        <div class="app-popup-buttons" style="margin-top: 20px;">
+                            <button class="app-btn app-btn-blue" id="appSuccessBtn">Xong</button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('appSuccessBtn').onclick = () => {
+                    App.closePopup();
+                    if (onDone) onDone();
+                };
+            },
+            closePopup: function() {
+                document.getElementById('appPopupOverlay').style.display = 'none';
+            }
+        };
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
         function closeAllModals() {
             const overlay = document.getElementById('modalOverlay');
             if (overlay) overlay.style.display = 'none';
-            const modals = document.querySelectorAll('.modal-container, .modal-box');
+            const modals = document.querySelectorAll('.modal-container, .modal-box, .vbd-popup-overlay');
             modals.forEach(m => m.style.display = 'none');
+            App.closePopup();
         }
 
         // Toggle User Dropdown

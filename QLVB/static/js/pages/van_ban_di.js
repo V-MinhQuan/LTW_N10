@@ -1,13 +1,22 @@
-function getCookie(name) {
-    let v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
-    return v ? v[2] : null;
-}
-
 function apiPost(url, data, onSuccess) {
     fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.status === 'success') onSuccess(res);
+        else alert('Lỗi: ' + res.message);
+    })
+    .catch(() => alert('Có lỗi xảy ra, vui lòng thử lại.'));
+}
+
+function apiPostForm(url, formData, onSuccess) {
+    fetch(url, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        body: formData
     })
     .then(r => r.json())
     .then(res => {
@@ -24,33 +33,37 @@ function goPage(page) {
 }
 
 function openVBD(id) {
-    let el = document.getElementById(id);
-    if (el) {
-        if (el.parentElement !== document.body) document.body.appendChild(el);
-        if (el.classList.contains('vbd-popup-overlay')) {
-            el.style.display = 'flex';
-        } else {
-            let overlay = document.getElementById('modalOverlay');
-            if (overlay) overlay.style.display = 'block';
-            el.style.display = 'flex';
+    const overlay = document.getElementById('modalOverlay');
+    if (overlay) overlay.style.display = 'block';
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.style.display = 'flex';
+        // Cleanup add form if needed
+        if (id === 'modalAdd') {
+            const form = modal.querySelector('form');
+            if (form) form.reset();
         }
     }
 }
 
 function closeVBD(id) {
-    let el = document.getElementById(id);
-    if (el) {
-        el.style.display = 'none';
-        if (!el.classList.contains('vbd-popup-overlay')) {
-            let overlay = document.getElementById('modalOverlay');
-            if (overlay) overlay.style.display = 'none';
+    const modal = document.getElementById(id);
+    if (modal) modal.style.display = 'none';
+    const overlay = document.getElementById('modalOverlay');
+    if (overlay) {
+        const visibleModals = document.querySelectorAll('.vbd-popup-overlay[style*="display: flex"], .vbd-popup-overlay[style*="display: block"], .modal-container[style*="display: flex"], .modal-container[style*="display: block"]');
+        if (visibleModals.length === 0) {
+            overlay.style.display = 'none';
         }
     }
 }
 
 window.onclick = function(event) {
-    if (event.target.classList.contains('vbd-popup-overlay')) {
-        event.target.style.display = "none";
+    if (event.target.classList.contains('vbd-popup-overlay') || event.target.classList.contains('modal-container')) {
+        closeVBD(event.target.id);
+    }
+    if (event.target.id === 'modalOverlay') {
+        closeAllModals();
     }
 }
 
@@ -149,15 +162,17 @@ function _getFormData(trangThai) {
 
 function luuDuThao() {
     apiPostForm('/api/van-ban-di/them-moi/', _getFormData('DU_THAO'), () => {
-        closeVBD('modalForm');
-        window.location.reload();
+        App.showSuccess('Lưu dự thảo thành công', () => {
+            window.location.reload();
+        });
     });
 }
 
 function guiPheDuyet() {
     apiPostForm('/api/van-ban-di/them-moi/', _getFormData('CHO_PHE_DUYET'), () => {
-        closeVBD('modalForm');
-        window.location.reload();
+        App.showSuccess('Gửi phê duyệt thành công', () => {
+            window.location.reload();
+        });
     });
 }
 
@@ -229,8 +244,9 @@ function luuCapNhat() {
     let fileInput = document.getElementById('edit_file_input');
     if (fileInput && fileInput.files[0]) fd.append('tep_dinh_kem', fileInput.files[0]);
     apiPostForm('/api/van-ban-di/' + _editId + '/cap-nhat/', fd, () => {
-        closeVBD('modalEdit');
-        window.location.reload();
+        App.showSuccess('Cập nhật thành công', () => {
+            window.location.reload();
+        });
     });
 }
 
@@ -238,8 +254,18 @@ function luuCapNhat() {
 let _xoaId = null;
 
 function xoaVanBan(btn) {
-    _xoaId = btn.closest("tr").dataset.id;
-    openVBD('popupRemoveFile');
+    const id = btn.closest("tr").dataset.id;
+    App.confirmDelete("Bạn có chắc chắn muốn xóa văn bản này không?", function() {
+        submitXoaVanBan(id);
+    });
+}
+
+function submitXoaVanBan(id) {
+    apiPost('/api/van-ban-di/' + id + '/xoa/', {}, () => {
+        App.showSuccess('Xóa thành công', () => {
+            window.location.reload();
+        });
+    });
 }
 
 function xacNhanXoaFile() {
@@ -265,8 +291,9 @@ function xacNhanPheDuyet(chap_nhan) {
         ghi_chu: document.getElementById('pd_ghichu') ? document.getElementById('pd_ghichu').value : '',
     };
     apiPost('/api/van-ban-di/' + _pheDuyetId + '/phe-duyet/', data, () => {
-        closeVBD('popupPheDuyet');
-        window.location.reload();
+        App.showSuccess('Xử lý phê duyệt thành công', () => {
+            window.location.reload();
+        });
     });
 }
 
@@ -294,8 +321,9 @@ function xacNhanPhatHanh() {
         ngay_ban_hanh: document.getElementById('ph_ngay').value || null,
     };
     apiPost('/api/van-ban-di/' + _phatHanhId + '/phat-hanh/', data, () => {
-        closeVBD('popupPhatHanh');
-        window.location.reload();
+        App.showSuccess('Phát hành thành công', () => {
+            window.location.reload();
+        });
     });
 }
 

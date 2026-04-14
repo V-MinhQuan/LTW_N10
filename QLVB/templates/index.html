@@ -262,25 +262,25 @@
 <div class="stats-grid">
     <div class="stat-card blue">
         <div class="stat-label">Văn bản mới</div>
-        <div class="stat-value">12</div>
-        <div class="stat-change blue">+4 so với hôm qua</div>
+        <div class="stat-value">{{ count_new }}</div>
+        <div class="stat-change blue">Hôm nay</div>
     </div>
     <div class="stat-card orange">
         <div class="stat-label">Đang xử lý</div>
-        <div class="stat-value">25</div>
+        <div class="stat-value">{{ count_processing }}</div>
         <div class="progress-bar">
-            <div class="progress-fill"></div>
+            <div class="progress-fill" style="width: {% if count_processing > 0 %}{{ count_processing|add:count_completed|add:count_overdue }}%{% else %}0%{% endif %}"></div>
         </div>
     </div>
     <div class="stat-card red">
         <div class="stat-label">Quá hạn</div>
-        <div class="stat-value">03</div>
-        <a href="#" class="stat-link">Xem chi tiết</a>
+        <div class="stat-value">{{ count_overdue|stringformat:"02d" }}</div>
+        <a href="{% url 'xlvb_index' %}" class="stat-link">Xem chi tiết</a>
     </div>
     <div class="stat-card green">
         <div class="stat-label">Hoàn thành</div>
-        <div class="stat-value">142</div>
-        <div class="stat-change up">Tăng 12% tháng này</div>
+        <div class="stat-value">{{ count_completed }}</div>
+        <div class="stat-change up">(Trong 7 ngày qua)</div>
     </div>
 </div>
 
@@ -303,30 +303,26 @@
                     </tr>
                 </thead>
                 <tbody>
+                    {% for doc in recent_documents %}
                     <tr>
-                        <td>25/10/2023</td>
-                        <td><a href="#" style="color: #2563eb; text-decoration: none;">Thông báo về việc nghỉ lễ...</a></td>
-                        <td>Sở Du Lịch TP.HCM</td>
-                        <td style="text-align: center;"><span class="status-pill pill-yellow">Mới</span></td>
+                        <td>{{ doc.NgayNhan|date:"d/m/Y" }}</td>
+                        <td><a href="{% url 'vbd_index' %}?so_ky_hieu={{ doc.SoKyHieu }}" style="color: #2563eb; text-decoration: none;">{{ doc.TrichYeu }}</a></td>
+                        <td>{{ doc.DonViNgoaiID.TenDonVi }}</td>
+                        <td style="text-align: center;">
+                            {% if doc.TrangThai == 'HOAN_THANH' %}
+                            <span class="status-pill pill-green">Hoàn thành</span>
+                            {% elif doc.TrangThai == 'DANG_XU_LY' %}
+                            <span class="status-pill pill-orange">Đang xử lý</span>
+                            {% else %}
+                            <span class="status-pill pill-yellow">Mới</span>
+                            {% endif %}
+                        </td>
                     </tr>
+                    {% empty %}
                     <tr>
-                        <td>24/10/2023</td>
-                        <td><a href="#" style="color: #2563eb; text-decoration: none;">Công văn triển khai tour...</a></td>
-                        <td>Phòng Kinh Doanh</td>
-                        <td style="text-align: center;"><span class="status-pill pill-orange">Đang xử lý</span></td>
+                        <td colspan="4" style="text-align: center; color: #999; padding: 30px;">Không có văn bản mới nào.</td>
                     </tr>
-                    <tr>
-                        <td>24/10/2023</td>
-                        <td><a href="#" style="color: #2563eb; text-decoration: none;">Quyết định bổ nhiệm...</a></td>
-                        <td>Hội đồng quản trị</td>
-                        <td style="text-align: center;"><span class="status-pill pill-blue">Đã phê duyệt</span></td>
-                    </tr>
-                    <tr>
-                        <td>23/10/2023</td>
-                        <td><a href="#" style="color: #2563eb; text-decoration: none;">Báo cáo tài chính...</a></td>
-                        <td>Phòng Kế hoạch</td>
-                        <td style="text-align: center;"><span class="status-pill pill-green">Hoàn thành</span></td>
-                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
@@ -351,33 +347,19 @@
             </div>
             
             <div class="todo-list">
-                <div class="todo-item red">
-                    <div class="todo-checkbox">
-                        <i class="fas fa-check" style="color: #e11d48; font-size: 10px;"></i>
-                    </div>
-                    <div class="todo-content">
-                        <h4>Xử lý văn bản quá hạn #102</h4>
-                        <p>Hạn chót: <span class="highlight-red">20/10/2023</span></p>
-                    </div>
-                </div>
-
-                <div class="todo-item blue">
-                    <div class="todo-checkbox">
-                        <i class="fas fa-check" style="color: #2563eb; font-size: 10px;"></i>
-                    </div>
-                    <div class="todo-content">
-                        <h4>Phê duyệt kế hoạch tour Đà Lạt</h4>
-                        <p>Người gửi: Trịnh Công Minh</p>
-                    </div>
-                </div>
-
-                <div class="todo-item gray">
+                {% for todo in todo_list %}
+                <div class="todo-item {% if todo.HanXuLy < now %}red{% else %}blue{% endif %}">
                     <div class="todo-checkbox"></div>
                     <div class="todo-content">
-                        <h4>Họp giao ban tuần 44</h4>
-                        <p>09:00 AM Thứ Hai</p>
+                        <h4>{{ todo.VanBanDenID.TrichYeu|default:todo.VanBanDiID.TrichYeu }}</h4>
+                        <p>Hạn chót: <span class="{% if todo.HanXuLy < now %}highlight-red{% endif %}">{{ todo.HanXuLy|date:"d/m/Y" }}</span></p>
                     </div>
                 </div>
+                {% empty %}
+                <div style="padding: 20px; text-align: center; color: #999; font-size: 13px;">
+                    Không có công việc nào cần xử lý.
+                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
