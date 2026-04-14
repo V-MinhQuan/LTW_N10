@@ -1,42 +1,56 @@
 .btn-assign { background-color: #00adef; }
 
+/* FIX FOR SEARCH BAR INPUTS */
+.search-grid .form-control {
+    height: 38px !important;
+    padding: 0 12px !important;
+    line-height: 36px !important; /* Ensure vertical centering */
+    color: #333 !important;
+    border: 1px solid #ccc !important;
+    background-color: #ffffff;
+    border-radius: 4px;
+    display: inline-block;
+}
 
-
-
+.search-grid select.form-control,
+.search-grid input[readonly].form-control {
+    background-color: #f5f5f5 !important;
+    appearance: auto !important;
+}
 
 .alert-box {
-    background-color: #ffecd1;
-    border: 1px solid #ffd494;
-    color: #333;
+    background-color: #ffe0b2;
+    border: none;
+    color: #5d4037;
     padding: 8px 15px;
     border-radius: 4px;
     margin-bottom: 20px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 15px;
     overflow: hidden;
-    height: 48px;
+    height: 44px;
     box-sizing: border-box;
 }
 
 .alert-title {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     white-space: nowrap;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 14px;
-    color: #d32f2f;
+    color: #6d4c41;
 }
 
 .alert-title i {
-    color: #d32f2f;
-    font-size: 18px;
+    color: #795548;
+    font-size: 16px;
 }
 
 .alert-separator {
     width: 1px;
-    height: 24px;
+    height: 20px;
     background-color: rgba(0, 0, 0, 0.1);
 }
 
@@ -65,48 +79,43 @@
 }
 
 .alert-tag {
-    background-color: #ffffff;
-    border-radius: 25px;
-    padding: 5px 14px;
+    background-color: #fff9f0;
+    border-radius: 20px;
+    padding: 4px 12px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     white-space: nowrap;
-    border: none;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    height: 32px;
+    border: 1px solid #ffecb3;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    height: 28px;
 }
 
 .tag-symbol {
     font-weight: 700;
-    color: #2c5f9e;
+    color: #546e7a;
     font-size: 13px;
 }
 
 .tag-status {
-    color: #666666;
+    color: #8d6e63;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .alert-nav {
     display: flex;
-    gap: 10px;
-    padding-left: 10px;
-    padding-right: 5px;
+    gap: 8px;
 }
 
 .nav-btn {
     background: none;
     border: none;
-    color: #856134;
+    color: #8d6e63;
     cursor: pointer;
-    font-size: 16px;
-    padding: 4px;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    font-size: 14px;
+    padding: 2px 5px;
+    transition: color 0.2s;
 }
 
 .nav-btn:hover {
@@ -182,6 +191,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    margin-right: 8px;
     transition: transform 0.1s;
     font-size: 15px;
 }
@@ -189,21 +199,32 @@
     transform: scale(1.08);
     opacity: 0.9;
 }
-.btn-assign { background-color: #00adef !important; }
-.btn-update { background-color: #2fb370 !important; }
-.btn-forward { background-color: #bf24d6 !important; }
-.btn-report { background-color: #f7941d !important; }
+.btn-update { background-color: #2fb370; }
+.btn-forward { background-color: #bf24d6; }
+.btn-report { background-color: #f7941d; }
 
-.btn-assign-wide:hover {
-    background-color: #008ec0 !important;
+/* Force Phân công button to be compact, blue and modern */
+.table-responsive table tbody tr td.col-actions .btn-assign-wide,
+button.btn-assign-wide {
+    background-color: #00adef !important;
+    color: white !important;
+    border: none !important;
+    padding: 8px 18px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    appearance: auto !important;
 }
 
-/* Upload Area for Modal Phân công */
+/* Upload Area for Modal */
 .upload-file-area {
     border: 1px dashed #b3d4fc;
     background-color: #f8fbff;
     border-radius: 8px;
-    padding: 30px;
+    padding: 15px;
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -212,26 +233,26 @@
 }
 
 .upload-icon-circle {
-    width: 60px;
-    height: 60px;
+    width: 40px;
+    height: 40px;
     background-color: #e6f3ff;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
 }
 
 .upload-icon-circle i {
-    font-size: 24px;
+    font-size: 18px;
     color: #00adef;
 }
 
 .upload-text {
     color: #666;
-    margin-bottom: 20px;
-    font-size: 14px;
-    line-height: 1.5;
+    margin-bottom: 10px;
+    font-size: 13px;
+    line-height: 1.4;
 }
 
 .btn-attach {
@@ -250,4 +271,10 @@
 
 .btn-attach:hover {
     background-color: #008ec0;
+}
+
+/* Override Choices.js selected item color to dark blue */
+.choices__list--multiple .choices__item {
+    background-color: #004085 !important;
+    border: 1px solid #003366 !important;
 }

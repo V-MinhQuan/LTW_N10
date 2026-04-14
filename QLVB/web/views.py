@@ -950,9 +950,9 @@ def api_upsert_don_vi(request):
             data = json.loads(request.body)
             unit_type = data.get('type')  # 'trong' or 'ngoai'
             unit_id = data.get('id')
-
+            
             model = DonViBenTrong if unit_type == 'trong' else DonViBenNgoai
-
+            
             if unit_id:
                 # Update
                 if unit_type == 'trong':
@@ -981,24 +981,24 @@ def api_upsert_don_vi(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
-
 def api_delete_don_vi(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             unit_type = data.get('type')
             unit_id = data.get('id')
-
+            
             if unit_type == 'trong':
                 unit = get_object_or_404(DonViBenTrong, DonViTrongID=unit_id)
             else:
                 unit = get_object_or_404(DonViBenNgoai, DonViNgoaiID=unit_id)
-
+            
             unit.delete()
             return JsonResponse({'status': 'success', 'message': 'Xóa thành công!'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+
 # --- XỬ LÝ VĂN BẢN ĐIỀU HÀNH ---
 @login_required
 def xu_ly_van_ban_index(request):
@@ -1057,7 +1057,7 @@ def xu_ly_van_ban_index(request):
     overdue_qs_all = PhanCong.objects.filter(
         HanXuLy__date__lt=today
     ).exclude(TrangThaiXuLy='Hoàn thành')
-    
+
     overdue_count = overdue_qs_all.count()
     overdue_qs = overdue_qs_all.select_related('VanBanDenID', 'VanBanDiID').order_by('-HanXuLy')[:5]
 
@@ -1126,8 +1126,28 @@ def api_phan_cong_xlvb(request):
             doc_type = data.get('doc_type', 'den')
 
             vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
-            user = get_object_or_404(UserAccount, pk=user_id)
             
+            # Xử lý trường hợp user_id rỗng
+            if not user_id:
+                return JsonResponse({'status': 'error', 'message': 'Vui lòng chọn ít nhất một người xử lý!'}, status=400)
+
+            # user_id có thể là list hoặc 1 string
+            user_ids = user_id if isinstance(user_id, list) else [user_id]
+
+            for uid in user_ids:
+                user = get_object_or_404(UserAccount, pk=uid)
+
+                # Cập nhật hoặc tạo mới phân công cho từng người nhận
+                phan_cong, created = PhanCong.objects.get_or_create(
+                    VanBanDenID=vb,
+                    UserID=user,
+                    defaults={'NgayPhanCong': timezone.now(), 'HanXuLy': han_xu_ly, 'GhiChu': ghi_chu, 'TrangThaiXuLy': 'Đang xử lý'}
+                )
+
+                if not created:
+                    phan_cong.HanXuLy = han_xu_ly
+                    phan_cong.GhiChu = ghi_chu
+                    phan_cong.save()
             if doc_type == 'di':
                 vb = get_object_or_404(VanBanDi, SoKyHieu=so_ky_hieu)
                 phan_cong, created = PhanCong.objects.get_or_create(
@@ -1152,7 +1172,7 @@ def api_phan_cong_xlvb(request):
                 phan_cong.HanXuLy = han_xu_ly
                 phan_cong.GhiChu = ghi_chu
                 phan_cong.save()
-            
+
             # Cập nhật trạng thái văn bản
             vb.TrangThai = VanBanDen.TrangThaiChoices.DANG_XU_LY
             vb.save()
