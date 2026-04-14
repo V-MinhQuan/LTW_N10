@@ -29,7 +29,7 @@
                 </div>
                 <div class="btn-group">
                     <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Tìm kiếm</button>
-                    <button type="button" class="btn btn-secondary" onclick="window.location.href='{% url 'xlvb_index' %}'"><i class="fas fa-sync-alt"></i> Làm mới</button>
+                    <a href="{% url 'xlvb_index' %}" class="btn btn-secondary"><i class="fas fa-sync-alt"></i> Làm mới</a>
                 </div>
             </form>
         </div>
@@ -73,9 +73,9 @@
     </div>
 
     <div class="panel">
-        <div class="panel-header header-gray">
-            <div>Danh sách văn bản</div>
-            <div style="font-weight: normal; font-size: 13px;">Tổng số: {{ page_obj.paginator.count }} văn bản</div>
+        <div class="table-panel-header panel-header header-gray" style="display: flex; justify-content: space-between;">
+            <span>Danh sách văn bản</span>
+            <span>Tổng số: {{ page_obj.paginator.count }} văn bản</span>
         </div>
     <div class="panel-body">
         <div class="table-responsive">
@@ -137,13 +137,16 @@
                             {% endwith %}
                         </td>
                         <td class="col-actions">
-                            {% with phan_cong=doc.phancong_set.first %}
-                            <div style="display: flex; gap: 8px; justify-content: center;">
-                                <button onclick="openModalP('modalPhanCong', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu }}')" class="action-btn btn-assign" title="Phân công"><i class="fas fa-user-plus"></i></button>
+                            {% with phan_cong=doc.phancong_set.first %
+                            <div style="display: flex; gap: 5px;">
+                                <button onclick="openModalP('modalPhanCong', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu|escapejs }}', '{{ doc.doc_type }}')" class="action-btn" style="background-color: #00adef;" title="Phân công"><i class="fas fa-user-plus"></i></button>
                                 {% if phan_cong %}
                                 <button onclick="openModalC('modalCapNhat', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
                                 <button onclick="openModalT('modalChuyenTiep', '{{ doc.SoKyHieu }}')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-share"></i></button>
                                 <button onclick="openModalB('modalBaoCao', '{{ doc.SoKyHieu }}')" class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
+                                <button onclick="openModalC('modalCapNhat', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}', '{{ doc.doc_type }}')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
+                                <button onclick="openModalT('modalChuyenTiep', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
+                                <button onclick="openModalB('modalBaoCao', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')" class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
                                 {% endif %}
                             </div>
                             {% endwith %}
@@ -211,18 +214,11 @@
                 <textarea class="form-control" id="upd-noiDung" placeholder="Nội dung đã xử lý"
                     style="width: 100%; height: 80px;"></textarea>
             </div>
-            <div class="form-group full-width" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; flex-direction: column;">
-                <label style="margin-bottom: 10px; font-weight: bold; color: #333;">Tài liệu đính kèm (<span class="required" style="color: red;">*</span>)</label>
-                <div class="upload-file-area" id="uploadFileArea_upd">
-                    <input type="file" id="upd-file" style="display: none;">
-                    <div class="upload-icon-circle">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                    </div>
-                    <p class="upload-text">Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính</p>
-                    <button type="button" class="btn btn-attach" onclick="document.getElementById('upd-file').click();">
-                        <i class="fas fa-paperclip"></i> Đính kèm tập tin
-                    </button>
-                    <div id="upd-fileName" style="margin-top: 10px; font-weight: 500; color: #333; text-align: center;"></div>
+            <div class="form-group full-width"
+                style="align-items: center; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+                <label style="font-weight: bold; width: auto; margin-right: 15px;">File đính kèm</label>
+                <div style="flex: 1; border: 1px solid #ccc; padding: 5px; border-radius: 2px;">
+                    <input type="file" style="width: 100%;">
                 </div>
             </div>
         </div>
@@ -349,20 +345,6 @@
                 <textarea class="form-control" id="asn-ghiChu" placeholder="Nhập ghi chú nếu có"
                     style="width: 100%; height: 80px;"></textarea>
             </div>
-            <div class="form-group full-width" style="margin-top: 20px; flex-direction: column;">
-                <label style="margin-bottom: 10px; font-weight: bold; color: #333;">Tài liệu đính kèm (<span class="required" style="color: red;">*</span>)</label>
-                <div class="upload-file-area" id="uploadFileArea">
-                    <input type="file" id="asn-file" style="display: none;">
-                    <div class="upload-icon-circle">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                    </div>
-                    <p class="upload-text">Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính</p>
-                    <button type="button" class="btn btn-attach" onclick="document.getElementById('asn-file').click();">
-                        <i class="fas fa-paperclip"></i> Đính kèm tập tin
-                    </button>
-                    <div id="asn-fileName" style="margin-top: 10px; font-weight: 500; color: #333;"></div>
-                </div>
-            </div>
         </div>
         <div class="modal-footer">
             <button onclick="closeModal('modalPhanCong')" class="btn btn-secondary">Hủy</button>
@@ -372,5 +354,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/pages/xu_ly_van_ban.js' %}?v=2"></script>
+<script src="{% static 'js/pages/xu_ly_van_ban.js' %}"></script>
 {% endblock %}

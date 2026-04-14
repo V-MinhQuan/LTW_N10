@@ -97,8 +97,8 @@ class VanBanDi(models.Model):
         DA_PHAT_HANH = 'DA_PHAT_HANH', 'Đã phát hành'
 
     VanBanDiID = models.AutoField(primary_key=True)
-    DonViTrongID = models.ForeignKey(DonViBenTrong, on_delete=models.CASCADE)
-    DonViNgoaiID = models.ForeignKey(DonViBenNgoai, on_delete=models.CASCADE)
+    DonViTrongID = models.ForeignKey(DonViBenTrong, on_delete=models.CASCADE, null=True, blank=True)
+    DonViNgoaiID = models.ForeignKey(DonViBenNgoai, on_delete=models.CASCADE, null=True, blank=True)
     UserID = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, null=True, blank=True)
     SoKyHieu = models.CharField(max_length=50, db_index=True)
     NgayBanHanh = models.DateTimeField(null=True, blank=True, db_index=True)

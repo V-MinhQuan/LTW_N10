@@ -17,15 +17,25 @@ function openModalC(modalId, soKyHieu, nguoiXuLy) {
     const elNguoi = document.getElementById('upd-nguoiXuLy');
     if (elSo) elSo.value = soKyHieu;
     if (elNguoi) elNguoi.value = nguoiXuLy;
+function openModalC(modalId, soKyHieu, nguoiXuLy, docType) {
+    document.getElementById('upd-soKyHieu').value = soKyHieu;
+    document.getElementById('upd-nguoiXuLy').value = nguoiXuLy;
+    document.getElementById('upd-docType').value = docType;
     openModal(modalId);
 }
 
+function openModalT(modalId, soKyHieu, docType) {
+    document.getElementById('fwd-soKyHieu').value = soKyHieu;
+    document.getElementById('fwd-docType').value = docType;
 function openModalT(modalId, soKyHieu) {
     const el = document.getElementById('fwd-soKyHieu');
     if (el) el.value = soKyHieu;
     openModal(modalId);
 }
 
+function openModalB(modalId, soKyHieu, docType) {
+    document.getElementById('rep-soKyHieu').value = soKyHieu;
+    document.getElementById('rep-docType').value = docType;
 function openModalB(modalId, soKyHieu) {
     const el = document.getElementById('rep-soKyHieu');
     if (el) el.value = soKyHieu;
@@ -37,7 +47,26 @@ function openModalP(modalId, soKyHieu, trichYeu) {
     const elTrich = document.getElementById('asn-trichYeu');
     if (elSo) elSo.value = soKyHieu;
     if (elTrich) elTrich.value = trichYeu;
+function openModalP(modalId, soKyHieu, trichYeu, docType) {
+    document.getElementById('asn-soKyHieu').value = soKyHieu;
+    document.getElementById('asn-trichYeu').value = trichYeu;
+    document.getElementById('asn-docType').value = docType;
     openModal(modalId);
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 
 async function saveAndClose(modalId) {
@@ -50,7 +79,8 @@ async function saveAndClose(modalId) {
         data = {
             so_ky_hieu: document.getElementById('upd-soKyHieu').value,
             trang_thai: document.getElementById('upd-trangThai').value,
-            noi_dung: document.getElementById('upd-noiDung').value
+            noi_dung: document.getElementById('upd-noiDung').value,
+            doc_type: document.getElementById('upd-docType').value
         };
         if (!data.trang_thai || !data.noi_dung) {
             alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
@@ -61,7 +91,8 @@ async function saveAndClose(modalId) {
         data = {
             so_ky_hieu: document.getElementById('fwd-soKyHieu').value,
             don_vi_id: document.getElementById('fwd-nguoiNhan').value,
-            noi_dung: document.getElementById('fwd-noiDung').value
+            noi_dung: document.getElementById('fwd-noiDung').value,
+            doc_type: document.getElementById('fwd-docType').value
         };
         if (!data.don_vi_id || !data.noi_dung) {
             alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
@@ -72,7 +103,8 @@ async function saveAndClose(modalId) {
         data = {
             so_ky_hieu: document.getElementById('rep-soKyHieu').value,
             loai_van_de: document.getElementById('rep-loaiVanDe').value,
-            mo_ta: document.getElementById('rep-moTa').value
+            mo_ta: document.getElementById('rep-moTa').value,
+            doc_type: document.getElementById('rep-docType').value
         };
         if (!data.loai_van_de || !data.mo_ta) {
             alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
@@ -84,7 +116,8 @@ async function saveAndClose(modalId) {
             so_ky_hieu: document.getElementById('asn-soKyHieu').value,
             user_id: document.getElementById('asn-nguoiXuLy').value,
             han_xu_ly: document.getElementById('asn-thoiHan').value,
-            ghi_chu: document.getElementById('asn-ghiChu').value
+            ghi_chu: document.getElementById('asn-ghiChu').value,
+            doc_type: document.getElementById('asn-docType').value
         };
         if (!data.user_id || !data.han_xu_ly) {
             alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');

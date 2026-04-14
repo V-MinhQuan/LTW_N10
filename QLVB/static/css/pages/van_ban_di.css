@@ -202,6 +202,9 @@
     font-weight: 600 !important;
     font-size: 14px !important;
     color: #333 !important;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 .history-table-full td {
     padding: 12px 10px !important;
@@ -211,6 +214,30 @@
 }
 .history-table-full tr:hover {
     background-color: #fcfcfc !important;
+}
+
+.text-left { text-align: left !important; }
+.text-center { text-align: center !important; }
+
+/* Custom Scrollbar cho bảng lịch sử */
+.history-table-wrapper {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+.history-table-wrapper::-webkit-scrollbar {
+    width: 6px;
+}
+.history-table-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+.history-table-wrapper::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}
+.history-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #999;
 }
 
 /* FILE ĐÍNH KÈM (Bê từ Văn Bản Đến sang) */
@@ -257,4 +284,78 @@
 .vbd-file-size {
     font-size: 12px;
     color: #999;
+}
+
+/* UPLOAD AREA NEW (Sang từ Văn Bản Đến) */
+.vbd-attachment-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-top: 15px !important;
+    margin-bottom: 8px !important;
+}
+
+.btn-attach {
+    background-color: #00adef !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px 20px !important;
+    border-radius: 6px !important;
+    font-size: 15px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    font-weight: 500 !important;
+}
+
+.vbd-upload-area-new {
+    border: 2px dashed #cce4f0 !important;
+    border-radius: 8px !important;
+    background: #f7fbfe !important;
+    padding: 30px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-top: 4px !important;
+}
+
+.vbd-upload-area-new .upload-icon {
+    width: 48px !important;
+    height: 48px !important;
+    background: #e0f3fc !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 20px !important;
+    color: #00adef !important;
+}
+
+.vbd-upload-area-new p {
+    color: #777 !important;
+    font-size: 13px !important;
+    text-align: center !important;
+    margin: 0 !important;
+    line-height: 1.5 !important;
+}
+
+.btn-attach-new {
+    background-color: #00adef !important;
+    color: white !important;
+    border: none !important;
+    padding: 8px 20px !important;
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    font-weight: 500 !important;
+    margin-top: 4px !important;
+}
+
+.btn-attach-new:hover {
+    background-color: #0099d6 !important;
 }
