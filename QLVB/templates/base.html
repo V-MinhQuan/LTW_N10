@@ -196,9 +196,29 @@
         /* Pagination & Footer */
         .table-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 13px; }
         .pagination { display: flex; gap: 4px; }
-        .page-btn { padding: 5px 10px; border: 1px solid #ccc; background: #f6f6f6; cursor: pointer; border-radius: 2px; transition: 0.2s; line-height: 1; }
-        .page-btn:hover { background: #e9e9e9; }
-        .page-btn.active { background-color: #1a73e8; color: white; border-color: #1a73e8; }
+        .page-btn { 
+            padding: 6px 12px; 
+            border: 1px solid #ccc; 
+            background: #fdfdfd; 
+            cursor: pointer; 
+            border-radius: 4px; 
+            transition: 0.2s; 
+            line-height: 1.2; 
+            font-size: 13px;
+            color: #333 !important;
+            text-decoration: none !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+        }
+        .page-btn:hover { background: #f0f0f0; border-color: #bbb; text-decoration: none !important; color: #333 !important; }
+        .page-btn.active { 
+            background: #3498DB !important; 
+            color: white !important; 
+            border-color: #3498DB !important; 
+        }
+        .page-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
