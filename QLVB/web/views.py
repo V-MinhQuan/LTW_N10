@@ -199,6 +199,7 @@ def van_ban_di_index(request):
     trich_yeu   = request.GET.get('trich_yeu', '')
     loai_vb     = request.GET.get('loai_vb', '')
     don_vi      = request.GET.get('don_vi', '')
+    trang_thai  = request.GET.get('trang_thai', '')
     page_number = request.GET.get('page', 1)
     page_size   = 8
 
@@ -209,6 +210,8 @@ def van_ban_di_index(request):
         vbs = vbs.filter(TrichYeu__icontains=trich_yeu)
     if loai_vb:
         vbs = vbs.filter(LoaiVanBan__icontains=loai_vb)
+    if trang_thai:
+        vbs = vbs.filter(TrangThai=trang_thai)
     if don_vi:
         vbs = vbs.filter(
             Q(DonViNgoaiID__TenDonVi__icontains=don_vi) |
@@ -238,6 +241,7 @@ def van_ban_di_index(request):
         'trich_yeu': trich_yeu,
         'loai_vb': loai_vb,
         'don_vi': don_vi,
+        'trang_thai': trang_thai,
     })
 
 def api_vbdi_chi_tiet(request, pk):
@@ -278,7 +282,8 @@ def api_vbdi_them_moi(request):
             vb.TepDinhKem = request.FILES['tep_dinh_kem']
         vb.TrangThai = request.POST.get('trang_thai', VanBanDi.TrangThaiChoices.DU_THAO)
         vb.save()
-        _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'THEM_MOI', 'Thêm mới văn bản', None, vb.TrangThai)
+        _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'THEM_MOI',
+                     f'Thêm mới văn bản: "{vb.TrichYeu or vb.SoKyHieu}"', None, vb.TrangThai)
         return JsonResponse({'status': 'success', 'id': vb.VanBanDiID})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
@@ -289,9 +294,29 @@ def api_vbdi_cap_nhat(request, pk):
     try:
         vb  = get_object_or_404(VanBanDi, pk=pk)
         cu  = vb.TrangThai
-        vb.SoKyHieu   = request.POST.get('so_ky_hieu', vb.SoKyHieu)
-        vb.TrichYeu   = request.POST.get('trich_yeu', vb.TrichYeu)
-        vb.LoaiVanBan = request.POST.get('loai_vb', vb.LoaiVanBan)
+        tt_map = {
+            'DU_THAO': 'Dự thảo', 'CHO_PHE_DUYET': 'Chờ phê duyệt',
+            'DA_PHE_DUYET': 'Đã phê duyệt', 'DA_PHAT_HANH': 'Đã phát hành',
+        }
+        # So sánh nội dung trước và sau
+        changes = []
+        new_so_ky_hieu = request.POST.get('so_ky_hieu', vb.SoKyHieu)
+        new_trich_yeu  = request.POST.get('trich_yeu', vb.TrichYeu)
+        new_loai_vb    = request.POST.get('loai_vb', vb.LoaiVanBan)
+        new_trang_thai = request.POST.get('trang_thai')
+
+        if new_so_ky_hieu != (vb.SoKyHieu or ''):
+            changes.append(f'Số ký hiệu: "{vb.SoKyHieu}" → "{new_so_ky_hieu}"')
+        if new_trich_yeu != (vb.TrichYeu or ''):
+            changes.append('Trích yếu đã thay đổi')
+        if new_loai_vb != (vb.LoaiVanBan or ''):
+            changes.append(f'Loại văn bản: "{vb.LoaiVanBan}" → "{new_loai_vb}"')
+        if new_trang_thai and new_trang_thai != cu:
+            changes.append(f'Trạng thái: "{tt_map.get(cu, cu)}" → "{tt_map.get(new_trang_thai, new_trang_thai)}"')
+
+        vb.SoKyHieu   = new_so_ky_hieu
+        vb.TrichYeu   = new_trich_yeu
+        vb.LoaiVanBan = new_loai_vb
         ngay = request.POST.get('ngay_ban_hanh')
         if ngay: vb.NgayBanHanh = ngay
         don_vi_ngoai_id = request.POST.get('don_vi_ngoai_id')
@@ -300,14 +325,16 @@ def api_vbdi_cap_nhat(request, pk):
             vb.DonViNgoaiID = get_object_or_404(DonViBenNgoai, pk=don_vi_ngoai_id)
         if don_vi_trong_id:
             vb.DonViTrongID = get_object_or_404(DonViBenTrong, pk=don_vi_trong_id)
-        trang_thai = request.POST.get('trang_thai')
-        if trang_thai: vb.TrangThai = trang_thai
+        if new_trang_thai: vb.TrangThai = new_trang_thai
         if request.FILES.get('tep_dinh_kem'):
             vb.TepDinhKem = request.FILES['tep_dinh_kem']
+            changes.append('Đã cập nhật tài liệu đính kèm')
         elif request.POST.get('xoa_file') == '1':
             vb.TepDinhKem = None
+            changes.append('Đã xóa tài liệu đính kèm')
         vb.save()
-        _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'CAP_NHAT', 'Cập nhật văn bản', cu, vb.TrangThai)
+        noi_dung = 'Cập nhật: ' + '; '.join(changes) if changes else 'Lưu văn bản (không có thay đổi)'
+        _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'CAP_NHAT', noi_dung, cu, vb.TrangThai)
         return JsonResponse({'status': 'success'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
@@ -339,7 +366,10 @@ def api_vbdi_phe_duyet(request, pk):
         pd.save()
         vb.TrangThai = VanBanDi.TrangThaiChoices.DA_PHE_DUYET if chap_nhan else VanBanDi.TrangThaiChoices.DU_THAO
         vb.save()
-        _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'PHE_DUYET', 'Phê duyệt văn bản', cu, vb.TrangThai)
+        ghi_chu_str = pd.GhiChu.strip() if pd.GhiChu else ''
+        noi_dung = ('Phê duyệt văn bản' if chap_nhan
+                    else 'Từ chối phê duyệt' + (f': {ghi_chu_str}' if ghi_chu_str else ''))
+        _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'PHE_DUYET', noi_dung, cu, vb.TrangThai)
         return JsonResponse({'status': 'success'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
@@ -368,16 +398,22 @@ def api_vbdi_phat_hanh(request, pk):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 def api_vbdi_lich_su(request, pk):
+    vb = get_object_or_404(VanBanDi, pk=pk)
     lich_su = LichSuHoatDong.objects.filter(
         LoaiDoiTuong='VanBanDi', DoiTuongID=pk
     ).select_related('UserID').order_by('-ThoiGianCapNhat')
+    tt_map = {
+        'DU_THAO': 'Dự thảo', 'CHO_PHE_DUYET': 'Chờ phê duyệt',
+        'DA_PHE_DUYET': 'Đã phê duyệt', 'DA_PHAT_HANH': 'Đã phát hành',
+    }
     data = [{
         'thoi_gian': ls.ThoiGianCapNhat.strftime('%d/%m/%Y %H:%M'),
-        'nguoi_thuc_hien': ls.UserID.HoTen if ls.UserID else '',
-        'ma_van_ban': str(pk),
+        'nguoi_thuc_hien': ls.UserID.HoTen if ls.UserID else 'Hệ thống',
+        'ma_van_ban': vb.SoKyHieu,
+        'trich_yeu': vb.TrichYeu or '',
         'noi_dung': ls.NoiDungThayDoi or '',
-        'trang_thai_cu': ls.TrangThaiCu or '',
-        'trang_thai_moi': ls.TrangThaiMoi or '',
+        'trang_thai_cu': tt_map.get(ls.TrangThaiCu or '', ls.TrangThaiCu or ''),
+        'trang_thai_moi': tt_map.get(ls.TrangThaiMoi or '', ls.TrangThaiMoi or ''),
     } for ls in lich_su]
     return JsonResponse({'status': 'success', 'data': data})
 
@@ -691,22 +727,38 @@ def xu_ly_van_ban_index(request):
     query_ngay_nhan = request.GET.get('ngay_nhan', '')
     page_number = request.GET.get('page', 1)
     
-    # Lấy danh sách văn bản và phân công liên quan
-    # Ở đây chúng ta ưu tiên VanBanDen (Văn bản đến)
-    documents = VanBanDen.objects.select_related('DonViNgoaiID', 'UserID').all().order_by('-NgayNhan')
+    # Lấy truy vấn cơ sở
+    den_qs = VanBanDen.objects.select_related('DonViNgoaiID', 'UserID').all()
+    di_qs = VanBanDi.objects.select_related('DonViNgoaiID', 'DonViTrongID', 'UserID').all()
     
     if query_so_ky_hieu:
-        documents = documents.filter(SoKyHieu__icontains=query_so_ky_hieu)
+        den_qs = den_qs.filter(SoKyHieu__icontains=query_so_ky_hieu)
+        di_qs = di_qs.filter(SoKyHieu__icontains=query_so_ky_hieu)
     
     if query_nguoi_xu_ly and query_nguoi_xu_ly != '--- Chọn người xử lý ---':
-        documents = documents.filter(phancong__UserID__HoTen__icontains=query_nguoi_xu_ly)
+        den_qs = den_qs.filter(phancong__UserID__HoTen__icontains=query_nguoi_xu_ly)
+        di_qs = di_qs.filter(phancong__UserID__HoTen__icontains=query_nguoi_xu_ly)
 
     if query_ngay_nhan:
         try:
             day, month, year = query_ngay_nhan.split('/')
-            documents = documents.filter(NgayNhan__date=f"{year}-{month}-{day}")
+            den_qs = den_qs.filter(NgayNhan__date=f"{year}-{month}-{day}")
+            di_qs = di_qs.filter(NgayBanHanh__date=f"{year}-{month}-{day}")
         except:
             pass
+
+    # Phân loại để dùng trong template
+    doc_list = []
+    for doc in den_qs:
+        doc.doc_type = 'den'
+        doc.ngay_sort = doc.NgayNhan or timezone.now()
+        doc_list.append(doc)
+    for doc in di_qs:
+        doc.doc_type = 'di'
+        doc.ngay_sort = doc.NgayBanHanh or timezone.now()
+        doc_list.append(doc)
+        
+    documents = sorted(doc_list, key=lambda x: x.ngay_sort, reverse=True)
 
     # Phân trang
     paginator = Paginator(documents, 10)
@@ -720,35 +772,36 @@ def xu_ly_van_ban_index(request):
     today = timezone.now().date()
     coming_soon_qs = PhanCong.objects.filter(
         HanXuLy__date__range=[today, today + timedelta(days=5)]
-    ).exclude(TrangThaiXuLy='Hoàn thành').select_related('VanBanDenID')
+    ).exclude(TrangThaiXuLy='Hoàn thành').select_related('VanBanDenID', 'VanBanDiID')
     
     overdue_qs_all = PhanCong.objects.filter(
         HanXuLy__date__lt=today
     ).exclude(TrangThaiXuLy='Hoàn thành')
     
     overdue_count = overdue_qs_all.count()
-    overdue_qs = overdue_qs_all.select_related('VanBanDenID').order_by('-HanXuLy')[:5]
+    overdue_qs = overdue_qs_all.select_related('VanBanDenID', 'VanBanDiID').order_by('-HanXuLy')[:5]
 
     # Nhóm theo số ngày
     coming_soon_groups = {}
     for pc in coming_soon_qs:
-        if pc.VanBanDenID:
+        doc_skh = pc.VanBanDenID.SoKyHieu if pc.VanBanDenID else (pc.VanBanDiID.SoKyHieu if pc.VanBanDiID else '')
+        if doc_skh:
             days = (pc.HanXuLy.date() - today).days
             days_str = "Hôm nay" if days == 0 else f"còn {days} ngày"
             if days_str not in coming_soon_groups:
                 coming_soon_groups[days_str] = []
-            coming_soon_groups[days_str].append(pc.VanBanDenID.SoKyHieu)
+            coming_soon_groups[days_str].append(doc_skh)
 
     overdue_groups = {}
     for pc in overdue_qs:
-        if pc.VanBanDenID:
+        doc_skh = pc.VanBanDenID.SoKyHieu if pc.VanBanDenID else (pc.VanBanDiID.SoKyHieu if pc.VanBanDiID else '')
+        if doc_skh:
             days = (today - pc.HanXuLy.date()).days
             days_str = f"quá hạn {days} ngày"
             if days_str not in overdue_groups:
                 overdue_groups[days_str] = []
-            overdue_groups[days_str].append(pc.VanBanDenID.SoKyHieu)
+            overdue_groups[days_str].append(doc_skh)
 
-    # Pagination context
     context = {
         'page_obj': page_obj,
         'users': users,
@@ -772,25 +825,34 @@ def api_phan_cong_xlvb(request):
             user_id = data.get('user_id')
             han_xu_ly = data.get('han_xu_ly')
             ghi_chu = data.get('ghi_chu')
+            doc_type = data.get('doc_type', 'den')
             
-            vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
             user = get_object_or_404(UserAccount, pk=user_id)
             
-            # Cập nhật hoặc tạo mới phân công
-            phan_cong, created = PhanCong.objects.get_or_create(
-                VanBanDenID=vb,
-                defaults={'UserID': user, 'NgayPhanCong': timezone.now(), 'HanXuLy': han_xu_ly, 'GhiChu': ghi_chu, 'TrangThaiXuLy': 'Đang xử lý'}
-            )
-            
+            if doc_type == 'di':
+                vb = get_object_or_404(VanBanDi, SoKyHieu=so_ky_hieu)
+                phan_cong, created = PhanCong.objects.get_or_create(
+                    VanBanDiID=vb,
+                    defaults={'UserID': user, 'NgayPhanCong': timezone.now(), 'HanXuLy': han_xu_ly, 'GhiChu': ghi_chu, 'TrangThaiXuLy': 'Đang xử lý'}
+                )
+                # Gán luôn người soạn thảo
+                vb.UserID = user
+                vb.TrangThai = VanBanDi.TrangThaiChoices.CHO_PHE_DUYET
+                vb.save()
+            else:
+                vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
+                phan_cong, created = PhanCong.objects.get_or_create(
+                    VanBanDenID=vb,
+                    defaults={'UserID': user, 'NgayPhanCong': timezone.now(), 'HanXuLy': han_xu_ly, 'GhiChu': ghi_chu, 'TrangThaiXuLy': 'Đang xử lý'}
+                )
+                vb.TrangThai = VanBanDen.TrangThaiChoices.DANG_XU_LY
+                vb.save()
+
             if not created:
                 phan_cong.UserID = user
                 phan_cong.HanXuLy = han_xu_ly
                 phan_cong.GhiChu = ghi_chu
                 phan_cong.save()
-            
-            # Cập nhật trạng thái văn bản
-            vb.TrangThai = VanBanDen.TrangThaiChoices.DANG_XU_LY
-            vb.save()
             
             return JsonResponse({'status': 'success', 'message': 'Phân công thành công!'})
         except Exception as e:
@@ -804,9 +866,18 @@ def api_cap_nhat_xlvb(request):
             so_ky_hieu = data.get('so_ky_hieu')
             trang_thai_id = data.get('trang_thai') # '1' hoặc '2'
             noi_dung = data.get('noi_dung')
+            doc_type = data.get('doc_type', 'den')
             
-            vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
-            phan_cong = PhanCong.objects.filter(VanBanDenID=vb).first()
+            if doc_type == 'di':
+                vb = get_object_or_404(VanBanDi, SoKyHieu=so_ky_hieu)
+                phan_cong = PhanCong.objects.filter(VanBanDiID=vb).first()
+                loai_doi_tuong = 'VanBanDi'
+                id_doituong = vb.VanBanDiID
+            else:
+                vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
+                phan_cong = PhanCong.objects.filter(VanBanDenID=vb).first()
+                loai_doi_tuong = 'VanBanDen'
+                id_doituong = vb.VanBanDenID
             
             if not phan_cong:
                 return JsonResponse({'status': 'error', 'message': 'Văn bản chưa được phân công!'}, status=400)
@@ -818,14 +889,17 @@ def api_cap_nhat_xlvb(request):
             phan_cong.save()
             
             if new_status == 'Hoàn thành':
-                vb.TrangThai = VanBanDen.TrangThaiChoices.HOAN_THANH
-                vb.save()
+                if doc_type == 'di':
+                    pass
+                else:
+                    vb.TrangThai = VanBanDen.TrangThaiChoices.HOAN_THANH
+                    vb.save()
             
             # Ghi lịch sử
             LichSuHoatDong.objects.create(
                 UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(),
-                LoaiDoiTuong='VanBanDen',
-                DoiTuongID=vb.VanBanDenID,
+                LoaiDoiTuong=loai_doi_tuong,
+                DoiTuongID=id_doituong,
                 HanhDong='Cập nhật trạng thái',
                 NoiDungThayDoi=noi_dung,
                 TrangThaiCu=old_status,
@@ -844,25 +918,16 @@ def api_chuyen_tiep_xlvb(request):
             so_ky_hieu = data.get('so_ky_hieu')
             don_vi_id = data.get('don_vi_id') # d1, d2, ...
             noi_dung = data.get('noi_dung')
+            doc_type = data.get('doc_type', 'den')
             
-            vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
-            
-            # Ghi nhận chuyển tiếp
-            ChuyenTiep.objects.create(
-                VanBanDenID=vb,
-                UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(),
-                NgayChuyenTiep=timezone.now(),
-                # Thông tin khác có thể bổ sung nếu có model phù hợp
-            )
-            
-            # Ghi lịch sử
-            LichSuHoatDong.objects.create(
-                UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(),
-                LoaiDoiTuong='VanBanDen',
-                DoiTuongID=vb.VanBanDenID,
-                HanhDong='Chuyển tiếp',
-                NoiDungThayDoi=f"Chuyển tới đơn vị ID: {don_vi_id}. Nội dung: {noi_dung}"
-            )
+            if doc_type == 'di':
+                vb = get_object_or_404(VanBanDi, SoKyHieu=so_ky_hieu)
+                ChuyenTiep.objects.create(VanBanDiID=vb, UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(), NgayChuyenTiep=timezone.now())
+                LichSuHoatDong.objects.create(UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(), LoaiDoiTuong='VanBanDi', DoiTuongID=vb.VanBanDiID, HanhDong='Chuyển tiếp', NoiDungThayDoi=f"Chuyển tới đơn vị ID: {don_vi_id}. Nội dung: {noi_dung}")
+            else:
+                vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
+                ChuyenTiep.objects.create(VanBanDenID=vb, UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(), NgayChuyenTiep=timezone.now())
+                LichSuHoatDong.objects.create(UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(), LoaiDoiTuong='VanBanDen', DoiTuongID=vb.VanBanDenID, HanhDong='Chuyển tiếp', NoiDungThayDoi=f"Chuyển tới đơn vị ID: {don_vi_id}. Nội dung: {noi_dung}")
             
             return JsonResponse({'status': 'success', 'message': 'Chuyển tiếp thành công!'})
         except Exception as e:
@@ -876,16 +941,14 @@ def api_bao_cao_xlvb(request):
             so_ky_hieu = data.get('so_ky_hieu')
             loai_van_de = data.get('loai_van_de')
             mo_ta = data.get('mo_ta')
+            doc_type = data.get('doc_type', 'den')
             
-            vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
-            
-            BaoCao.objects.create(
-                VanBanDenID=vb,
-                UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(),
-                NgayBaoCao=timezone.now(),
-                LoaiBaoCao=BaoCao.LoaiBaoCaoChoices.PHAN_HOI,
-                GhiChu=f"[{loai_van_de}] {mo_ta}"
-            )
+            if doc_type == 'di':
+                vb = get_object_or_404(VanBanDi, SoKyHieu=so_ky_hieu)
+                BaoCao.objects.create(VanBanDiID=vb, UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(), NgayBaoCao=timezone.now(), LoaiBaoCao=BaoCao.LoaiBaoCaoChoices.PHAN_HOI, GhiChu=f"[{loai_van_de}] {mo_ta}")
+            else:
+                vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
+                BaoCao.objects.create(VanBanDenID=vb, UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(), NgayBaoCao=timezone.now(), LoaiBaoCao=BaoCao.LoaiBaoCaoChoices.PHAN_HOI, GhiChu=f"[{loai_van_de}] {mo_ta}")
             
             return JsonResponse({'status': 'success', 'message': 'Gửi báo cáo thành công!'})
         except Exception as e:

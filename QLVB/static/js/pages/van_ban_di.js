@@ -100,9 +100,11 @@ function xoaFileHienCo() {
 }
 
 // ---- XEM CHI TIẾT ----
+let _detailId = null;
+
 function xemChiTiet(btn) {
-    let id = btn.closest("tr").dataset.id;
-    fetch('/api/van-ban-di/' + id + '/chi-tiet/')
+    _detailId = btn.closest("tr").dataset.id;
+    fetch('/api/van-ban-di/' + _detailId + '/chi-tiet/')
     .then(r => r.json())
     .then(res => {
         let d = res.data;
@@ -234,6 +236,12 @@ function luuCapNhat() {
     });
 }
 
+function guiPheDuyetCapNhat() {
+    if (!_editId) return;
+    document.getElementById('edit_trangthai').value = 'CHO_PHE_DUYET';
+    luuCapNhat();
+}
+
 // ---- XÓA ----
 let _xoaId = null;
 
@@ -307,20 +315,31 @@ function moLichSu(vanBanId) {
         let tbody = document.querySelector('#historyOverlay .history-table-full tbody');
         if (!tbody) return;
         tbody.innerHTML = '';
-        if (!res.data.length) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="color:#999;padding:20px;">Chưa có lịch sử</td></tr>';
+        if (!res.data || !res.data.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="color:#999;padding:20px;">Chưa có lịch sử chỉnh sửa</td></tr>';
         } else {
             res.data.forEach((ls, i) => {
+                let ttHtml = '';
+                if (ls.trang_thai_moi) {
+                    ttHtml = ls.trang_thai_cu && ls.trang_thai_cu !== ls.trang_thai_moi
+                        ? ` <span style="color:#888;font-size:12px;">(${ls.trang_thai_cu} → <strong>${ls.trang_thai_moi}</strong>)</span>`
+                        : ` <span style="color:#888;font-size:12px;">(→ <strong>${ls.trang_thai_moi}</strong>)</span>`;
+                }
                 tbody.innerHTML += `<tr>
                     <td class="text-center">${i+1}</td>
                     <td class="text-center">${ls.thoi_gian}</td>
                     <td>${ls.nguoi_thuc_hien}</td>
                     <td class="text-center">${ls.ma_van_ban}</td>
-                    <td>${ls.noi_dung}</td>
-                    <td>${ls.noi_dung}</td>
+                    <td>${ls.trich_yeu}</td>
+                    <td>${ls.noi_dung}${ttHtml}</td>
                 </tr>`;
             });
         }
+        openVBD('historyOverlay');
+    })
+    .catch(() => {
+        let tbody = document.querySelector('#historyOverlay .history-table-full tbody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="color:#e74c3c;padding:20px;">Không tải được lịch sử</td></tr>';
         openVBD('historyOverlay');
     });
 }

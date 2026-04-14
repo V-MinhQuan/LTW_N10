@@ -99,14 +99,14 @@
                             {% with phan_cong=doc.phancong_set.first %}
                             {% if phan_cong %}
                                 {{ phan_cong.UserID.HoTen }}<br>
-                                <small class="text-muted">({{ doc.DonViNgoaiID.TenDonVi }})</small>
+                                <small class="text-muted">({% if doc.doc_type == 'den' %}{{ doc.DonViNgoaiID.TenDonVi|default:'' }}{% else %}{{ doc.DonViTrongID.TenDonVi|default:'' }}{% endif %})</small>
                             {% else %}
                                 <span class="text-muted">Chưa phân công</span><br>
-                                <small class="text-muted">({{ doc.DonViNgoaiID.TenDonVi }})</small>
+                                <small class="text-muted">({% if doc.doc_type == 'den' %}{{ doc.DonViNgoaiID.TenDonVi|default:'' }}{% else %}{{ doc.DonViTrongID.TenDonVi|default:'' }}{% endif %})</small>
                             {% endif %}
                             {% endwith %}
                         </td>
-                        <td class="text-center">{{ doc.NgayNhan|date:"d/m/Y" }}</td>
+                        <td class="text-center">{% if doc.doc_type == 'den' %}{{ doc.NgayNhan|date:"d/m/Y" }}{% else %}{{ doc.NgayBanHanh|date:"d/m/Y" }}{% endif %}</td>
                         <td class="text-center">
                             {% with phan_cong=doc.phancong_set.first %}
                                 {{ phan_cong.HanXuLy|date:"d/m/Y"|default:"-" }}
@@ -135,11 +135,11 @@
                         <td class="col-actions">
                             {% with phan_cong=doc.phancong_set.first %}
                             <div style="display: flex; gap: 5px;">
-                                <button onclick="openModalP('modalPhanCong', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu }}')" class="action-btn" style="background-color: #00adef;" title="Phân công"><i class="fas fa-user-plus"></i></button>
+                                <button onclick="openModalP('modalPhanCong', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu|escapejs }}', '{{ doc.doc_type }}')" class="action-btn" style="background-color: #00adef;" title="Phân công"><i class="fas fa-user-plus"></i></button>
                                 {% if phan_cong %}
-                                <button onclick="openModalC('modalCapNhat', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
-                                <button onclick="openModalT('modalChuyenTiep', '{{ doc.SoKyHieu }}')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
-                                <button onclick="openModalB('modalBaoCao', '{{ doc.SoKyHieu }}')" class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
+                                <button onclick="openModalC('modalCapNhat', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}', '{{ doc.doc_type }}')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
+                                <button onclick="openModalT('modalChuyenTiep', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
+                                <button onclick="openModalB('modalBaoCao', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')" class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
                                 {% endif %}
                             </div>
                             {% endwith %}
@@ -185,6 +185,7 @@
                 <div class="form-group">
                     <label>Số ký hiệu</label>
                     <input type="text" class="form-control" id="upd-soKyHieu" readonly style="background:#f0f0f0;">
+                    <input type="hidden" id="upd-docType">
                 </div>
                 <div class="form-group">
                     <label>Người xử lý</label>
@@ -232,6 +233,7 @@
                 <div class="form-group">
                     <label style="width: 120px;">Số ký hiệu</label>
                     <input type="text" class="form-control" id="fwd-soKyHieu" readonly style="background:#f0f0f0;">
+                    <input type="hidden" id="fwd-docType">
                 </div>
                 <div class="form-group">
                     <label style="width: 120px;">Người nhận (<span class="required">*</span>)</label>
@@ -267,6 +269,7 @@
                 <div class="form-group">
                     <label style="width: 150px;">Số ký hiệu</label>
                     <input type="text" class="form-control" id="rep-soKyHieu" readonly style="background:#f0f0f0;">
+                    <input type="hidden" id="rep-docType">
                 </div>
                 <div class="form-group"></div>
             </div>
@@ -327,6 +330,7 @@
                 <div class="form-group">
                     <label style="width: 130px;">Số ký hiệu</label>
                     <input type="text" class="form-control" id="asn-soKyHieu" readonly style="background:#f0f0f0;">
+                    <input type="hidden" id="asn-docType">
                 </div>
                 <div class="form-group">
                     <label style="width: 130px;">Thời hạn xử lý (<span class="required">*</span>)</label>
