@@ -151,3 +151,21 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 LOGIN_URL = 'login'
 AUTH_USER_MODEL = 'web.UserAccount'
+
+# Cho phép session tồn tại ngay cả khi đóng tab
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# Thời gian sống của phiên đăng nhập (ví dụ: 122400 giây = 1 ngày)
+SESSION_COOKIE_AGE = 86400
+
+# Đảm bảo Cookie có thể dùng chung trên các tab
+SESSION_COOKIE_DOMAIN = None # Hoặc điền domain của ông nếu chạy web thật
+SESSION_SAVE_EVERY_REQUEST = True
+
+# Cấu hình gửi mail (Dùng Gmail)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'lnnhatanh2018@gmail.com' # Email của nhóm ông
+EMAIL_HOST_PASSWORD = 'bwyn gtje ygkq qwer' # Mật khẩu ứng dụng Google (16 ký tự)

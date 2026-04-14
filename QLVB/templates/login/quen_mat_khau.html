@@ -1,0 +1,143 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Quên mật khẩu - Vietasia Travel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body {
+            height: 100vh;
+            background: url("{% static 'img/bg_login.png' %}") no-repeat center center fixed;
+            background-size: cover;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .login-card {
+            width: 480px; background: rgba(255, 255, 255, 0.85);
+            padding: 50px; border-radius: 12px; backdrop-filter: blur(10px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+        .step { display: none; }
+        .step.active { display: block; }
+        .form-input { width: 100%; padding: 15px; margin: 15px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; outline: none; }
+        .btn-submit { width: 100%; padding: 16px; background: #00adef; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; }
+        .btn-submit:hover { background: #008ec4; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(5px); }
+        .modal-content { background: white; padding: 40px; border-radius: 15px; text-align: center; width: 380px; }
+    </style>
+</head>
+<body>
+    {% csrf_token %}
+
+    <div class="login-card">
+        <div id="step1" class="step active">
+            <h2 style="margin-bottom: 20px;">Quên mật khẩu</h2>
+            <p>Số điện thoại hoặc Email</p>
+            <input type="email" id="email" class="form-input" placeholder="Ví dụ: nhatanh@gmail.com" required>
+            <button id="btn-send-otp" class="btn-submit" onclick="handleSendOTP()">Xác nhận</button>
+        </div>
+
+        <div id="step2" class="step">
+            <h2 style="margin-bottom: 20px;">Quên mật khẩu</h2>
+            <p>Nhập mã OTP</p>
+            <input type="text" id="otp" class="form-input" placeholder="Mã OTP gồm 6 chữ số" maxlength="6">
+            <button class="btn-submit" onclick="nextStep(3)">Xác nhận OTP</button>
+        </div>
+
+        <div id="step3" class="step">
+            <h2 style="margin-bottom: 20px;">Quên mật khẩu</h2>
+            <input type="password" id="new_password" placeholder="Mật khẩu mới" class="form-input" required>
+            <input type="password" id="confirm_password" placeholder="Xác nhận mật khẩu mới" class="form-input" required>
+            <button id="btn-finish" class="btn-submit" onclick="handleResetPassword()">Đổi mật khẩu</button>
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div id="modal-icon" style="font-size: 60px; margin-bottom: 15px;"></div>
+            <h3 id="modal-text" style="margin-bottom: 20px;"></h3>
+            <button class="btn-submit" onclick="location.href='{% url 'login' %}'">Xong</button>
+        </div>
+    </div>
+
+    <script>
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        function nextStep(step) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('step' + step).classList.add('active');
+        }
+
+        // HÀM 1: GỬI MAIL OTP
+        function handleSendOTP() {
+            const email = document.getElementById('email').value;
+            const btn = document.getElementById('btn-send-otp');
+
+            if (!email) { alert("Vui lòng nhập email!"); return; }
+
+            btn.innerText = "Đang gửi...";
+            btn.disabled = true;
+
+            fetch("{% url 'api_send_otp' %}", {
+                method: "POST",
+                headers: { "X-CSRFToken": csrfToken, "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({ "email": email })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    nextStep(2);
+                } else {
+                    alert(data.message);
+                    btn.innerText = "Xác nhận";
+                    btn.disabled = false;
+                }
+            })
+            .catch(() => {
+                showPopup('error');
+                btn.innerText = "Xác nhận";
+                btn.disabled = false;
+            });
+        }
+
+        // HÀM 2: ĐỔI MẬT KHẨU THẬT TRONG DB
+        function handleResetPassword() {
+            const otp = document.getElementById('otp').value;
+            const newPass = document.getElementById('new_password').value;
+            const confirmPass = document.getElementById('confirm_password').value;
+
+            if (newPass !== confirmPass) { alert("Mật khẩu xác nhận không khớp!"); return; }
+
+            fetch("{% url 'api_confirm_reset' %}", {
+                method: "POST",
+                headers: { "X-CSRFToken": csrfToken, "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({ "otp": otp, "new_password": newPass })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showPopup('success');
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(() => showPopup('error'));
+        }
+
+        function showPopup(type) {
+            const modal = document.getElementById('modal');
+            const icon = document.getElementById('modal-icon');
+            const text = document.getElementById('modal-text');
+
+            if(type === 'success') {
+                icon.innerHTML = '✅';
+                text.innerText = 'Đổi mật khẩu thành công';
+            } else {
+                icon.innerHTML = '❌';
+                text.innerText = 'Có lỗi xảy ra, vui lòng thử lại sau.';
+            }
+            modal.style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
