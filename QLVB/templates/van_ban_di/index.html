@@ -230,6 +230,118 @@
     </div>
 </div>
 
+<!-- Modal Sửa -->
+<div id="modalEdit" class="modal-box">
+    <div class="modal-header">
+        Cập nhật văn bản đi
+        <span class="close-btn" style="cursor: pointer; font-size: 20px;" onclick="closeVBD('modalEdit')">&times;</span>
+    </div>
+    <div class="modal-body">
+        <div class="form-group full" style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Trích yếu</label>
+            <input type="text" id="edit_trichyeu" class="form-control" style="width: 100%;">
+        </div>
+        <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+            <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Loại văn bản</label><input type="text" id="edit_loaivb" class="form-control"></div>
+            <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Số ký hiệu</label><input type="text" id="edit_sokyhieu" class="form-control"></div>
+        </div>
+        <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+            <div class="form-group" style="flex: 1;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị nhận</label>
+                <select id="edit_donvi" class="form-control">
+                    <option value="">--- Chọn đơn vị ---</option>
+                    {% for dv in don_vi_ngoai_list %}
+                    <option value="ngoai_{{ dv.DonViNgoaiID }}">{{ dv.TenDonVi }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Người soạn thảo</label><input type="text" id="edit_nguoisoan" class="form-control"></div>
+        </div>
+        <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+            <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Ngày ban hành</label><input type="date" id="edit_ngay" class="form-control"></div>
+            <div class="form-group" style="flex: 1;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Trạng thái</label>
+                <select id="edit_trangthai" class="form-control">
+                    <option value="DU_THAO">Dự thảo</option>
+                    <option value="CHO_PHE_DUYET">Chờ phê duyệt</option>
+                    <option value="DA_PHE_DUYET">Đã phê duyệt</option>
+                    <option value="DA_PHAT_HANH">Đã phát hành</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group full" style="margin-bottom: 15px; flex-direction: column; align-items: flex-start;">
+            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Tài liệu đính kèm</label>
+            <input type="hidden" id="edit_xoa_file" value="0">
+            <div id="edit_file_section" style="width: 100%;"></div>
+            <div id="edit_no_file" style="width: 100%; border: 1px dashed #bbb; padding: 15px; text-align: center; border-radius: 4px; cursor: pointer;" onclick="document.getElementById('edit_file_input').click()">
+                <i class="fas fa-cloud-upload-alt" style="color:#6bb6d6"></i> Nhấn để tải lên tài liệu mới
+            </div>
+            <input type="file" id="edit_file_input" style="display:none" onchange="previewEditFile(this)">
+        </div>
+    </div>
+    <div class="modal-footer" style="padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn btn-secondary" onclick="closeVBD('modalEdit')">Hủy</button>
+        <button class="btn btn-primary" onclick="luuCapNhat()">Lưu thay đổi</button>
+    </div>
+</div>
+
+<!-- Popup Phê duyệt -->
+<div id="popupPheDuyet" class="vbd-popup-overlay">
+    <div class="vbd-popup" style="width: 500px;">
+        <div class="vbd-popup-header">
+            <span>Phê duyệt văn bản đi</span>
+            <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupPheDuyet')"></i>
+        </div>
+        <div class="vbd-popup-body">
+            <div class="form-group full">
+                <label style="display: block; margin-bottom: 8px; font-weight: bold;">Ghi chú phê duyệt</label>
+                <textarea id="pd_ghichu" class="form-control" style="width: 100%; height: 100px;" placeholder="Nhập ý kiến phê duyệt..."></textarea>
+            </div>
+        </div>
+        <div class="vbd-popup-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button class="btn btn-danger" onclick="xacNhanPheDuyet(false)">Từ chối</button>
+            <button class="btn btn-success" onclick="xacNhanPheDuyet(true)">Phê duyệt</button>
+        </div>
+    </div>
+</div>
+
+<!-- Popup Phát hành -->
+<div id="popupPhatHanh" class="vbd-popup-overlay">
+    <div class="vbd-popup" style="width: 550px;">
+        <div class="vbd-popup-header">
+            <span>Phát hành văn bản đi</span>
+            <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupPhatHanh')"></i>
+        </div>
+        <div class="vbd-popup-body">
+            <div class="form-group full" style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Trích yếu</label>
+                <input type="text" id="ph_trichyeu" class="form-control" style="width: 100%;">
+            </div>
+            <div class="form-group full">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Ngày phát hành</label>
+                <input type="date" id="ph_ngay" class="form-control" style="width: 100%;">
+            </div>
+        </div>
+        <div class="vbd-popup-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button class="btn btn-secondary" onclick="closeVBD('popupPhatHanh')">Xử lý sau</button>
+            <button class="btn btn-primary" onclick="xacNhanPhatHanh()">Xác nhận phát hành</button>
+        </div>
+    </div>
+</div>
+
+<!-- Popup Xác nhận xóa file -->
+<div id="popupRemoveFile" class="vbd-popup-overlay">
+    <div class="vbd-popup" style="width: 400px; text-align: center; padding: 30px;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 50px; color: #f39c12; margin-bottom: 20px;"></i>
+        <h3 style="margin-bottom: 15px;">Xác nhận xóa tài liệu?</h3>
+        <p style="color: #666; margin-bottom: 25px;">Hành động này sẽ xóa vĩnh viễn tài liệu đính kèm hiện tại.</p>
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            <button class="btn btn-secondary" onclick="closeVBD('popupRemoveFile')">Hủy bỏ</button>
+            <button class="btn btn-danger" onclick="xoaFileHienCo(); closeVBD('popupRemoveFile');">Đồng ý xóa</button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}

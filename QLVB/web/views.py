@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 # IMPORT CHO HỆ THỐNG THÔNG BÁO LỖI (MESSAGES)
+from django.contrib import messages
 from .forms import LoginForm
 from .forms import VanBanDenForm
 from .models import DonViBenTrong, UserAccount, VaiTro
@@ -25,8 +26,48 @@ from .models import VanBanDi, PheDuyet, PhatHanh
 # --- TRANG CHỦ ---
 @login_required
 def index(request):
-    """View cho trang Dashboard - Chỉ cho phép người đã đăng nhập"""
-    return render(request, 'index.html')
+    """View cho trang Dashboard - Hiển thị số liệu thực tế"""
+    now = timezone.now()
+    new_window = now - timedelta(days=7)
+
+    # 1. Thống kê số liệu
+    # Văn bản mới: Theo trạng thái 'MOI'
+    count_new = VanBanDen.objects.filter(TrangThai='MOI').count()
+
+    # Đang xử lý: Bao gồm cả trạng thái văn bản và các phân công đang thực hiện
+    # Đếm các phân công có trạng thái 'Đang xử lý'
+    count_processing = PhanCong.objects.filter(
+        Q(TrangThaiXuLy='Đang xử lý') | Q(TrangThaiXuLy='DANG_XU_LY')
+    ).count()
+
+    # Quá hạn: Các phân công chưa hoàn thành và đã quá hạn
+    count_overdue = PhanCong.objects.filter(
+        HanXuLy__lt=now
+    ).exclude(TrangThaiXuLy='Hoàn thành').count()
+
+    # Hoàn thành: Chỉ đếm các văn bản hoàn thành trong 7 ngày qua
+    count_completed = VanBanDen.objects.filter(
+        TrangThai='HOAN_THANH',
+        NgayHoanThanh__gte=now - timedelta(days=7)
+    ).count()
+
+    # 2. Văn bản đến mới nhất (Lấy 5 bản ghi)
+    recent_documents = VanBanDen.objects.select_related('DonViNgoaiID').order_by('-NgayNhan')[:5]
+
+    # 3. Công việc cần làm (Phân công cho user hiện tại)
+    todo_list = PhanCong.objects.filter(
+        UserID=request.user
+    ).exclude(TrangThaiXuLy='Hoàn thành').select_related('VanBanDenID').order_by('HanXuLy')[:5]
+
+    context = {
+        'count_new': count_new,
+        'count_processing': count_processing,
+        'count_overdue': count_overdue,
+        'count_completed': count_completed,
+        'recent_documents': recent_documents,
+        'todo_list': todo_list,
+    }
+    return render(request, 'index.html', context)
 
 
 # --- HỆ THỐNG ĐĂNG NHẬP / ĐĂNG XUẤT ---
@@ -177,7 +218,7 @@ def van_ban_den_xoa(request, pk):
 
 def van_ban_den_lich_su(request):
     pk = request.GET.get('id')
-    lich_su = LichSuHoatDong.objects.filter(LoaiDoiTuong='VanBanDen')
+    lich_su = LichSuHoatDong.objects.filter(LoaiDoiTuong='VanBanDen').select_related('UserID')
     if pk:
         lich_su = lich_su.filter(DoiTuongID=pk)
     lich_su = lich_su.order_by('-ThoiGianCapNhat')
@@ -400,11 +441,35 @@ def _ghi_lich_su(request, loai, doi_tuong_id, hanh_dong, noi_dung, trang_thai_cu
 def quan_ly_nguoi_dung_index(request):
     return render(request, 'quan_ly_nguoi_dung/index.html')
 
-def thong_tin_nguoi_dung(request):
-    return render(request, 'quan_ly_nguoi_dung/thong_tin.html')
-
+@login_required
 def thong_tin_view(request):
-    return render(request, 'thong_tin.html')
+    if request.method == 'POST':
+        old_password = request.POST.get('old_password')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+
+        # Kiểm tra mật khẩu hiện tại
+        if not request.user.check_password(old_password):
+            messages.error(request, "Mật khẩu hiện tại không chính xác.")
+            return render(request, 'quan_ly_nguoi_dung/thong_tin.html', {'open_modal': True})
+
+        # Kiểm tra mật khẩu mới khớp nhau
+        if new_password != confirm_password:
+            messages.error(request, "Mật khẩu mới không khớp nhau.")
+            return render(request, 'quan_ly_nguoi_dung/thong_tin.html', {'open_modal': True})
+
+        # Cập nhật mật khẩu
+        request.user.set_password(new_password)
+        request.user.save()
+
+        # Sau khi set_password, session sẽ bị logout, cần cập nhật lại session
+        from django.contrib.auth import update_session_auth_hash
+        update_session_auth_hash(request, request.user)
+
+        messages.success(request, "Đổi mật khẩu thành công!")
+        return redirect('thong_tin')
+
+    return render(request, 'quan_ly_nguoi_dung/thong_tin.html')
 
 # --- API NGƯỜI DÙNG ---
 def api_nguoi_dung_list(request):
@@ -416,7 +481,7 @@ def api_nguoi_dung_list(request):
     page_number = request.GET.get('page', 1)
     page_size = 5
 
-    users = UserAccount.objects.all().order_by('SoThuTu', '-pk')
+    users = UserAccount.objects.select_related('VaiTroID').all().order_by('SoThuTu', '-pk')
 
     if user_id:
         users = users.filter(UserID=user_id)
@@ -693,7 +758,9 @@ def xu_ly_van_ban_index(request):
     
     # Lấy danh sách văn bản và phân công liên quan
     # Ở đây chúng ta ưu tiên VanBanDen (Văn bản đến)
-    documents = VanBanDen.objects.select_related('DonViNgoaiID', 'UserID').all().order_by('-NgayNhan')
+    documents = VanBanDen.objects.select_related('DonViNgoaiID', 'UserID') \
+                                 .prefetch_related('phancong_set__UserID') \
+                                 .all().order_by('-NgayNhan')
     
     if query_so_ky_hieu:
         documents = documents.filter(SoKyHieu__icontains=query_so_ky_hieu)
@@ -819,6 +886,7 @@ def api_cap_nhat_xlvb(request):
             
             if new_status == 'Hoàn thành':
                 vb.TrangThai = VanBanDen.TrangThaiChoices.HOAN_THANH
+                vb.NgayHoanThanh = timezone.now()
                 vb.save()
             
             # Ghi lịch sử

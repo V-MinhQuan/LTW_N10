@@ -65,18 +65,20 @@ class DonViBenNgoai(models.Model):
 
 class VanBanDen(models.Model):
     class TrangThaiChoices(models.TextChoices):
+        MOI = 'MOI', 'Mới'
         HOAN_THANH = 'HOAN_THANH', 'Hoàn thành'
         DANG_XU_LY = 'DANG_XU_LY', 'Đang xử lý'
 
     VanBanDenID = models.AutoField(primary_key=True)
     DonViNgoaiID = models.ForeignKey(DonViBenNgoai, on_delete=models.CASCADE)
     UserID = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, null=True, blank=True)
-    SoKyHieu = models.CharField(max_length=50)
+    SoKyHieu = models.CharField(max_length=50, db_index=True)
     NgayBanHanh = models.DateTimeField(null=True, blank=True)
-    NgayNhan = models.DateTimeField(null=True, blank=True)
+    NgayNhan = models.DateTimeField(null=True, blank=True, db_index=True)
     LoaiVanBan = models.CharField(max_length=50, null=True, blank=True)
     TrichYeu = models.CharField(max_length=255, null=True, blank=True)
-    TrangThai = models.CharField(max_length=50, choices=TrangThaiChoices.choices, default=TrangThaiChoices.DANG_XU_LY)
+    TrangThai = models.CharField(max_length=50, choices=TrangThaiChoices.choices, default=TrangThaiChoices.DANG_XU_LY, db_index=True)
+    NgayHoanThanh = models.DateTimeField(null=True, blank=True)
     TepDinhKem = models.FileField(upload_to='den/%Y/%m/', null=True, blank=True)
 
     def __str__(self):
@@ -96,11 +98,11 @@ class VanBanDi(models.Model):
     DonViTrongID = models.ForeignKey(DonViBenTrong, on_delete=models.CASCADE)
     DonViNgoaiID = models.ForeignKey(DonViBenNgoai, on_delete=models.CASCADE)
     UserID = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, null=True, blank=True)
-    SoKyHieu = models.CharField(max_length=50)
-    NgayBanHanh = models.DateTimeField(null=True, blank=True)
+    SoKyHieu = models.CharField(max_length=50, db_index=True)
+    NgayBanHanh = models.DateTimeField(null=True, blank=True, db_index=True)
     LoaiVanBan = models.CharField(max_length=50, null=True, blank=True)
     TrichYeu = models.CharField(max_length=255, null=True, blank=True)
-    TrangThai = models.CharField(max_length=50, choices=TrangThaiChoices.choices, default=TrangThaiChoices.DU_THAO)
+    TrangThai = models.CharField(max_length=50, choices=TrangThaiChoices.choices, default=TrangThaiChoices.DU_THAO, db_index=True)
     TepDinhKem = models.FileField(upload_to='di/%Y/%m/', null=True, blank=True)
 
     def __str__(self):
@@ -115,9 +117,9 @@ class PhanCong(models.Model):
     VanBanDiID = models.ForeignKey(VanBanDi, on_delete=models.CASCADE, null=True, blank=True)
     UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE)
     NgayPhanCong = models.DateTimeField(null=True, blank=True)
-    HanXuLy = models.DateTimeField(null=True, blank=True)
+    HanXuLy = models.DateTimeField(null=True, blank=True, db_index=True)
     MucDoUuTien = models.CharField(max_length=50, null=True, blank=True)
-    TrangThaiXuLy = models.CharField(max_length=50, null=True, blank=True)
+    TrangThaiXuLy = models.CharField(max_length=50, null=True, blank=True, db_index=True)
     GhiChu = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
@@ -139,8 +141,8 @@ class ChuyenTiep(models.Model):
 class LichSuHoatDong(models.Model):
     LichSuID = models.AutoField(primary_key=True)
     UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE)
-    LoaiDoiTuong = models.CharField(max_length=50, null=True, blank=True)
-    DoiTuongID = models.IntegerField(null=True, blank=True)
+    LoaiDoiTuong = models.CharField(max_length=50, null=True, blank=True, db_index=True)
+    DoiTuongID = models.IntegerField(null=True, blank=True, db_index=True)
     HanhDong = models.CharField(max_length=50, null=True, blank=True)
     NoiDungThayDoi = models.TextField(null=True, blank=True)
     TrangThaiCu = models.CharField(max_length=50, null=True, blank=True)
