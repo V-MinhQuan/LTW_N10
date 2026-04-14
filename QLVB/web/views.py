@@ -93,26 +93,44 @@ def logout_view(request):
 
 # --- QUẢN LÝ VĂN BẢN ĐẾN ---
 def van_ban_den_index(request):
-    danh_sach = VanBanDen.objects.select_related('DonViNgoaiID').all().order_by('-VanBanDenID')
+    danh_sach = VanBanDen.objects.select_related('DonViNgoaiID', 'DonViTrongID').all().order_by('-VanBanDenID')
     don_vi_ngoai = DonViBenNgoai.objects.all()
+    don_vi_trong = DonViBenTrong.objects.all()
 
+    # Get filter params
     so_ky_hieu = request.GET.get('so_ky_hieu', '')
     trich_yeu = request.GET.get('trich_yeu', '')
-    don_vi_id = request.GET.get('don_vi', '')
+    loai_vb = request.GET.get('loai_vb', '')
+    don_vi_ngoai_id = request.GET.get('don_vi_ngoai', '')
+    don_vi_trong_id = request.GET.get('don_vi_trong', '')
+    ngay_tu = request.GET.get('ngay_tu', '')
+    ngay_den = request.GET.get('ngay_den', '')
+    trang_thai = request.GET.get('trang_thai', '')
 
+    # Apply filters
     if so_ky_hieu:
         danh_sach = danh_sach.filter(SoKyHieu__icontains=so_ky_hieu)
     if trich_yeu:
         danh_sach = danh_sach.filter(TrichYeu__icontains=trich_yeu)
-    if don_vi_id:
-        danh_sach = danh_sach.filter(DonViNgoaiID_id=don_vi_id)
+    if loai_vb:
+        danh_sach = danh_sach.filter(LoaiVanBan__icontains=loai_vb)
+    if don_vi_ngoai_id:
+        danh_sach = danh_sach.filter(DonViNgoaiID_id=don_vi_ngoai_id)
+    if don_vi_trong_id:
+        danh_sach = danh_sach.filter(DonViTrongID_id=don_vi_trong_id)
+    if ngay_tu:
+        danh_sach = danh_sach.filter(NgayNhan__gte=ngay_tu)
+    if ngay_den:
+        danh_sach = danh_sach.filter(NgayNhan__lte=ngay_den)
+    if trang_thai:
+        danh_sach = danh_sach.filter(TrangThai=trang_thai)
 
     from django.core.paginator import Paginator
-    paginator = Paginator(danh_sach, 4)
+    paginator = Paginator(danh_sach, 8) # Increased limit
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    # Tạo query string cho các filter (loại bỏ tham số page)
+    # Build query string for pagination links
     q = request.GET.copy()
     if 'page' in q:
         del q['page']
@@ -151,9 +169,58 @@ def van_ban_den_them(request):
 
 
 def van_ban_den_xem(request, pk):
-    vbd = VanBanDen.objects.filter(pk=pk).first()
+    from .models import PhanCong, ChuyenTiep, BaoCao
+    vbd = VanBanDen.objects.select_related('DonViNgoaiID', 'DonViTrongID').filter(pk=pk).first()
     if not vbd:
         return JsonResponse({'status': 'error', 'message': 'Không tìm thấy'})
+
+    qua_trinh_xu_ly = []
+    # ... (existing logic for qua_trinh_xu_ly remains same)
+    # 1. Lấy thông tin Phân công
+    phan_congs = PhanCong.objects.filter(VanBanDenID=vbd).select_related('UserID').order_by('NgayPhanCong')
+    for pc in phan_congs:
+        tag_name = pc.TrangThaiXuLy or "Phân công"
+        tag_class = "vbd-process-tag-active" if tag_name == 'Đang xử lý' else "vbd-process-tag-blue"
+        qua_trinh_xu_ly.append({
+            'time': pc.NgayPhanCong,
+            'tag': tag_name,
+            'tag_class': tag_class,
+            'icon': 'fa-user-check',
+            'chuyen_toi': f"{pc.UserID.HoTen} ({pc.UserID.username})" if pc.UserID else "Chưa xác định",
+            'dong_xu_ly': "",
+            'action': pc.GhiChu or f"Giao xử lý cho {pc.UserID.HoTen if pc.UserID else 'cán bộ'}"
+        })
+
+    # 2. Lấy thông tin Chuyển tiếp
+    chuyen_tieps = ChuyenTiep.objects.filter(VanBanDenID=vbd).select_related('UserID').order_by('NgayChuyenTiep')
+    for ct in chuyen_tieps:
+        qua_trinh_xu_ly.append({
+            'time': ct.NgayChuyenTiep,
+            'tag': "Chuyển tiếp",
+            'tag_class': "vbd-process-tag-blue",
+            'icon': 'fa-share-square',
+            'chuyen_toi': f"{ct.UserID.HoTen} ({ct.UserID.username})" if ct.UserID else "Chưa xác định",
+            'dong_xu_ly': "",
+            'action': "Chuyển tiếp văn bản cho đơn vị/cá nhân khác"
+        })
+
+    # 3. Lấy thông tin Báo cáo
+    bao_caos = BaoCao.objects.filter(VanBanDenID=vbd, LoaiBaoCao='PHAN_HOI').select_related('UserID').order_by('NgayBaoCao')
+    for bc in bao_caos:
+        qua_trinh_xu_ly.append({
+            'time': bc.NgayBaoCao,
+            'tag': "Phản hồi",
+            'tag_class': "vbd-process-tag-gray",
+            'icon': 'fa-exclamation-triangle',
+            'chuyen_toi': f"{bc.UserID.HoTen} ({bc.UserID.username})" if bc.UserID else "Nguời báo cáo",
+            'dong_xu_ly': "",
+            'action': bc.GhiChu or "Báo cáo văn bản sai sót/không phù hợp"
+        })
+
+    qua_trinh_xu_ly.sort(key=lambda x: x['time'] if x['time'] else timezone.now(), reverse=False)
+    for item in qua_trinh_xu_ly:
+        if 'time' in item: del item['time']
+
     return JsonResponse({
         'status': 'success',
         'data': {
@@ -163,11 +230,14 @@ def van_ban_den_xem(request, pk):
             'loai_van_ban': vbd.LoaiVanBan,
             'ngay_ban_hanh': vbd.NgayBanHanh.strftime('%Y-%m-%d') if vbd.NgayBanHanh else '',
             'ngay_nhan': vbd.NgayNhan.strftime('%Y-%m-%d') if vbd.NgayNhan else '',
-            'don_vi_ngoai_ten': vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else '',
+            'don_vi_ngoai_ten': vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else 'Chưa xác định',
             'don_vi_ngoai_id': vbd.DonViNgoaiID_id,
+            'don_vi_trong_ten': vbd.DonViTrongID.TenDonVi if vbd.DonViTrongID else 'Chưa xác định',
+            'don_vi_trong_id': vbd.DonViTrongID_id,
             'tep_dinh_kem': vbd.TepDinhKem.url if vbd.TepDinhKem else '',
             'tep_name': vbd.TepDinhKem.name.split('/')[-1] if vbd.TepDinhKem else '',
-            'trang_thai': vbd.TrangThai
+            'trang_thai': vbd.TrangThai,
+            'qua_trinh_xu_ly': qua_trinh_xu_ly
         }
     })
 
@@ -179,19 +249,61 @@ def van_ban_den_sua(request, pk):
         if not vbd:
             return JsonResponse({'status': 'error', 'message': 'Không tìm thấy'})
 
-        old_val = f"{vbd.SoKyHieu} - {vbd.TrichYeu}"
+        vbd_initial = VanBanDen.objects.filter(pk=pk).values().first()
+        old_data = {
+            'Số ký hiệu': vbd.SoKyHieu,
+            'Trích yếu': vbd.TrichYeu,
+            'Loại văn bản': vbd.LoaiVanBan,
+            'Ngày ban hành': vbd.NgayBanHanh.strftime('%d/%m/%Y') if vbd.NgayBanHanh else 'Trống',
+            'Ngày nhận': vbd.NgayNhan.strftime('%d/%m/%Y') if vbd.NgayNhan else 'Trống',
+            'Đơn vị gửi': vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else 'Trống',
+            'Trạng thái': 'Đang xử lý' if vbd.TrangThai != 'HOAN_THANH' else 'Hoàn thành',
+            'Tệp đính kèm': vbd.TepDinhKem.name.split('/')[-1] if vbd.TepDinhKem else 'Trống'
+        }
 
         form = VanBanDenForm(request.POST, request.FILES)
         if form.is_valid():
             vbd = form.save(user=request.user if request.user.is_authenticated else None, instance=vbd)
 
-            LichSuHoatDong.objects.create(
-                UserID=request.user if request.user.is_authenticated else None,
-                LoaiDoiTuong='VanBanDen',
-                DoiTuongID=vbd.VanBanDenID,
-                HanhDong='Cập nhật',
-                NoiDungThayDoi=f'Cập nhật từ {old_val} thành {vbd.SoKyHieu} - {vbd.TrichYeu}'
-            )
+            # Đảm bảo dữ liệu mới được load từ DB để so sánh chính xác nhất
+            vbd.refresh_from_db()
+
+            # So sánh dữ liệu mới
+            new_data = {
+                'Số ký hiệu': vbd.SoKyHieu,
+                'Trích yếu': vbd.TrichYeu,
+                'Loại văn bản': vbd.LoaiVanBan,
+                'Ngày ban hành': vbd.NgayBanHanh.strftime('%d/%m/%Y') if vbd.NgayBanHanh else 'Trống',
+                'Ngày nhận': vbd.NgayNhan.strftime('%d/%m/%Y') if vbd.NgayNhan else 'Trống',
+                'Đơn vị gửi': vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else 'Trống',
+                'Trạng thái': 'Đang xử lý' if vbd.TrangThai != 'HOAN_THANH' else 'Hoàn thành',
+                'Tệp đính kèm': vbd.TepDinhKem.name.split('/')[-1] if vbd.TepDinhKem else 'Trống'
+            }
+
+            changes = []
+            for field, old_val in old_data.items():
+                new_val = new_data.get(field)
+                if old_val != new_val:
+                    changes.append(f"{field}: {old_val} -> {new_val}")
+
+            if changes:
+                try:
+                    # Nếu có từ 2 thay đổi trở lên thì liệt kê, nếu 1 thì ghi trực tiếp
+                    if len(changes) > 1:
+                        content = "Thay đổi:\n- " + "\n- ".join(changes)
+                    else:
+                        content = "Thay đổi: " + changes[0]
+
+                    LichSuHoatDong.objects.create(
+                        UserID=request.user if request.user.is_authenticated else None,
+                        LoaiDoiTuong='VanBanDen',
+                        DoiTuongID=vbd.VanBanDenID,
+                        HanhDong='Cập nhật',
+                        NoiDungThayDoi=content
+                    )
+                except Exception as e:
+                    print(f"Lỗi lưu lịch sử: {e}")
+
             return JsonResponse({'status': 'success'})
         else:
             return JsonResponse({'status': 'error', 'message': str(form.errors)})
@@ -220,7 +332,12 @@ def van_ban_den_lich_su(request):
     pk = request.GET.get('id')
     lich_su = LichSuHoatDong.objects.filter(LoaiDoiTuong='VanBanDen').select_related('UserID')
     if pk:
-        lich_su = lich_su.filter(DoiTuongID=pk)
+        try:
+            lich_su = lich_su.filter(DoiTuongID=int(pk))
+        except (ValueError, TypeError):
+            lich_su = lich_su.none()
+
+    vbd = VanBanDen.objects.filter(pk=pk).first() if pk else None
     lich_su = lich_su.order_by('-ThoiGianCapNhat')
 
     data = []
@@ -230,9 +347,12 @@ def van_ban_den_lich_su(request):
             'NguoiThucHien': ls.UserID.HoTen if ls.UserID and ls.UserID.HoTen else (
                 ls.UserID.username if ls.UserID else 'Hệ thống'),
             'HanhDong': ls.HanhDong,
-            'NoiDungThayDoi': ls.NoiDungThayDoi
+            'NoiDungThayDoi': ls.NoiDungThayDoi,
+            'SoKyHieu': vbd.SoKyHieu if vbd else '',
+            'TrichYeu': vbd.TrichYeu if vbd else ''
         })
     return JsonResponse({'status': 'success', 'data': data})
+
 
 # --- QUẢN LÝ VĂN BẢN ĐI ---
 def van_ban_di_index(request):
@@ -470,6 +590,9 @@ def thong_tin_view(request):
         return redirect('thong_tin')
 
     return render(request, 'quan_ly_nguoi_dung/thong_tin.html')
+
+def thong_tin_view(request):
+    return render(request, 'thong_tin.html')
 
 # --- API NGƯỜI DÙNG ---
 def api_nguoi_dung_list(request):
@@ -750,6 +873,7 @@ def api_delete_don_vi(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 # --- XỬ LÝ VĂN BẢN ĐIỀU HÀNH ---
+@login_required
 def xu_ly_van_ban_index(request):
     query_so_ky_hieu = request.GET.get('so_ky_hieu', '')
     query_nguoi_xu_ly = request.GET.get('nguoi_xu_ly', '')
@@ -758,10 +882,8 @@ def xu_ly_van_ban_index(request):
     
     # Lấy danh sách văn bản và phân công liên quan
     # Ở đây chúng ta ưu tiên VanBanDen (Văn bản đến)
-    documents = VanBanDen.objects.select_related('DonViNgoaiID', 'UserID') \
-                                 .prefetch_related('phancong_set__UserID') \
-                                 .all().order_by('-NgayNhan')
-    
+    documents = VanBanDen.objects.select_related('DonViNgoaiID', 'UserID').all().order_by('-NgayNhan')
+
     if query_so_ky_hieu:
         documents = documents.filter(SoKyHieu__icontains=query_so_ky_hieu)
     
@@ -831,6 +953,23 @@ def xu_ly_van_ban_index(request):
     
     return render(request, 'xu_ly_van_ban/index.html', context)
 
+@login_required
+def xu_ly_van_ban_phan_cong(request):
+    return render(request, 'xu_ly_van_ban/phan_cong.html')
+
+@login_required
+def xu_ly_van_ban_chuyen_tiep(request):
+    return render(request, 'xu_ly_van_ban/chuyen_tiep.html')
+
+@login_required
+def xu_ly_van_ban_cap_nhat(request):
+    return render(request, 'xu_ly_van_ban/cap_nhat.html')
+
+@login_required
+def xu_ly_van_ban_bao_cao(request):
+    return render(request, 'xu_ly_van_ban/bao_cao.html')
+
+@csrf_exempt
 def api_phan_cong_xlvb(request):
     if request.method == 'POST':
         try:
@@ -864,6 +1003,7 @@ def api_phan_cong_xlvb(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
+@csrf_exempt
 def api_cap_nhat_xlvb(request):
     if request.method == 'POST':
         try:
@@ -905,6 +1045,7 @@ def api_cap_nhat_xlvb(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
+@csrf_exempt
 def api_chuyen_tiep_xlvb(request):
     if request.method == 'POST':
         try:
@@ -937,6 +1078,7 @@ def api_chuyen_tiep_xlvb(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
+@csrf_exempt
 def api_bao_cao_xlvb(request):
     if request.method == 'POST':
         try:
