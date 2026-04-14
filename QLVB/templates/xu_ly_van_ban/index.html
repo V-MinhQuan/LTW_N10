@@ -138,15 +138,13 @@
                             {% endwith %}
                         </td>
                         <td class="col-actions">
-                            {% with phan_cong=doc.phancong_set.first %
+                            {% with phan_cong=doc.phancong_set.first %}
                             <div style="display: flex; gap: 5px;">
+                                {% if not phan_cong %}
                                 <button onclick="openModalP('modalPhanCong', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu|escapejs }}', '{{ doc.doc_type }}')" class="action-btn" style="background-color: #00adef;" title="Phân công"><i class="fas fa-user-plus"></i></button>
-                                {% if phan_cong %}
-                                <button onclick="openModalP('modalPhanCong', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu }}')" class="action-btn btn-assign" title="Phân công (Giao lại)"><i class="fas fa-user-plus"></i></button>
-                                <button onclick="openModalC('modalCapNhat', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
-                                <button onclick="openModalT('modalChuyenTiep', '{{ doc.SoKyHieu }}')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-share"></i></button>
-                                <button onclick="openModalB('modalBaoCao', '{{ doc.SoKyHieu }}')" class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
-                                <button onclick="openModalC('modalCapNhat', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}', '{{ doc.doc_type }}')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
+                                {% else %}
+                                <button onclick="openModalP('modalPhanCong', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu }}', '{{ doc.doc_type }}')" class="action-btn btn-assign" title="Phân công (Giao lại)"><i class="fas fa-user-plus"></i></button>
+                                <button onclick="openModalC('modalCapNhat', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}', '{{ doc.doc_type }}', '{{ doc.TepDinhKem.url|default:'' }}')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
                                 <button onclick="openModalT('modalChuyenTiep', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
                                 <button onclick="openModalB('modalBaoCao', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')" class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
                                 {% endif %}
@@ -216,11 +214,39 @@
                 <textarea class="form-control" id="upd-noiDung" placeholder="Nội dung đã xử lý"
                     style="width: 100%; height: 80px;"></textarea>
             </div>
-            <div class="form-group full-width"
-                style="align-items: center; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
-                <label style="font-weight: bold; width: auto; margin-right: 15px;">File đính kèm</label>
-                <div style="flex: 1; border: 1px solid #ccc; padding: 5px; border-radius: 2px;">
-                    <input type="file" style="width: 100%;">
+            <input type="hidden" id="upd-docType">
+            <div class="vbd-attachment-header">
+                <label>Tài liệu đính kèm</label>
+                <input type="file" id="upd-file" style="display:none;">
+                <button type="button" class="btn-attach" onclick="document.getElementById('upd-file').click()">
+                    <i class="fa fa-paperclip"></i> Chọn tập tin
+                </button>
+            </div>
+            
+            <!-- Hiện tệp đã có -->
+            <div class="vbd-file-list" id="upd-file-list-existing" style="display:none; margin-top: 10px;">
+                <div class="vbd-file-item">
+                    <div class="vbd-file-info">
+                        <div class="vbd-file-icon"><i class="fas fa-file-alt"></i></div>
+                        <div class="vbd-file-details">
+                            <a href="#" target="_blank" class="vbd-file-name" id="upd-existing-filename" style="text-decoration: none; color: #ff5722;"></a>
+                            <span class="vbd-file-size">Đã tải lên trước đó</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hiện tệp mới chọn -->
+            <div class="vbd-file-list" id="upd-file-list-new" style="display:none; margin-top: 10px;">
+                <div class="vbd-file-item">
+                    <div class="vbd-file-info">
+                        <div class="vbd-file-icon"><i class="fas fa-file-alt"></i></div>
+                        <div class="vbd-file-details">
+                            <span class="vbd-file-name" id="upd-new-filename" style="font-weight: 500; font-size: 14px;"></span>
+                            <span class="vbd-file-size">Vừa chọn</span>
+                        </div>
+                    </div>
+                    <i class="fas fa-trash-alt vbd-file-delete" onclick="removeSelectedFileUpd()" title="Bỏ chọn tệp" style="cursor:pointer; color:#666;"></i>
                 </div>
             </div>
         </div>

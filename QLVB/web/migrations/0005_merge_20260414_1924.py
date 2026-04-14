@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('web', '0002_alter_lichsuhoatdong_userid'),
+        ('web', '0004_vanbandifile'),
         ('web', '0004_alter_lichsuhoatdong_doituongid_and_more'),
     ]
 

@@ -219,58 +219,94 @@ button.btn-assign-wide {
     appearance: auto !important;
 }
 
-/* Upload Area for Modal */
-.upload-file-area {
-    border: 1px dashed #b3d4fc;
-    background-color: #f8fbff;
-    border-radius: 8px;
-    padding: 15px;
-    text-align: center;
+/* Attachment Redesign matching van_ban_den */
+.vbd-attachment-header {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-}
-
-.upload-icon-circle {
-    width: 40px;
-    height: 40px;
-    background-color: #e6f3ff;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    margin-top: 15px;
     margin-bottom: 8px;
+    border-top: 1px solid #eee;
+    padding-top: 15px;
 }
 
-.upload-icon-circle i {
-    font-size: 18px;
-    color: #00adef;
-}
-
-.upload-text {
-    color: #666;
-    margin-bottom: 10px;
-    font-size: 13px;
-    line-height: 1.4;
+.vbd-attachment-header label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
 }
 
 .btn-attach {
-    background-color: #00adef;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 10px 20px;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: background-color 0.2s;
+    background-color: #00adef !important;
+    color: white !important;
+    border: none !important;
+    padding: 8px 20px !important;
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    font-weight: 500 !important;
+    transition: background-color 0.2s !important;
 }
 
 .btn-attach:hover {
-    background-color: #008ec0;
+    background-color: #0099d6 !important;
+}
+
+.vbd-file-list {
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px 20px;
+}
+
+.vbd-file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.vbd-file-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.vbd-file-icon {
+    width: 44px;
+    height: 50px;
+    background-color: #ffdacc;
+    color: #ff5722;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 12px;
+    border: 1px solid #ffccbc;
+}
+
+.vbd-file-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.vbd-file-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #ff5722;
+}
+
+.vbd-file-size {
+    font-size: 12px;
+    color: #999;
+}
+
+.vbd-file-delete:hover {
+    color: #d32f2f;
 }
 
 /* Override Choices.js selected item color to dark blue */

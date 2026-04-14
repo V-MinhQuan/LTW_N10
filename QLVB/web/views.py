@@ -1180,6 +1180,7 @@ def xu_ly_van_ban_cap_nhat(request):
 def xu_ly_van_ban_bao_cao(request):
     return render(request, 'xu_ly_van_ban/bao_cao.html')
 
+@login_required
 @csrf_exempt
 def api_phan_cong_xlvb(request):
     if request.method == 'POST':
@@ -1191,72 +1192,75 @@ def api_phan_cong_xlvb(request):
             ghi_chu = data.get('ghi_chu')
             doc_type = data.get('doc_type', 'den')
 
-            vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
-            
-            # Xử lý trường hợp user_id rỗng
+            # Kiểm tra nếu user_id rỗng
             if not user_id:
                 return JsonResponse({'status': 'error', 'message': 'Vui lòng chọn ít nhất một người xử lý!'}, status=400)
 
-            # user_id có thể là list hoặc 1 string
             user_ids = user_id if isinstance(user_id, list) else [user_id]
+            
+            if doc_type == 'di':
+                vb = get_object_or_404(VanBanDi, SoKyHieu=so_ky_hieu)
+                loai_doi_tuong = 'VanBanDi'
+                id_doituong = vb.VanBanDiID
+            else:
+                vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
+                loai_doi_tuong = 'VanBanDen'
+                id_doituong = vb.VanBanDenID
 
             for uid in user_ids:
                 user = get_object_or_404(UserAccount, pk=uid)
-
-                # Cập nhật hoặc tạo mới phân công cho từng người nhận
-                phan_cong, created = PhanCong.objects.get_or_create(
-                    VanBanDenID=vb,
-                    UserID=user,
-                    defaults={'NgayPhanCong': timezone.now(), 'HanXuLy': han_xu_ly, 'GhiChu': ghi_chu, 'TrangThaiXuLy': 'Đang xử lý'}
-                )
+                
+                # Tạo hoặc cập nhật phân công
+                if doc_type == 'di':
+                    phan_cong, created = PhanCong.objects.get_or_create(
+                        VanBanDiID=vb,
+                        UserID=user,
+                        defaults={'NgayPhanCong': timezone.now(), 'HanXuLy': han_xu_ly, 'GhiChu': ghi_chu, 'TrangThaiXuLy': 'Đang xử lý'}
+                    )
+                else:
+                    phan_cong, created = PhanCong.objects.get_or_create(
+                        VanBanDenID=vb,
+                        UserID=user,
+                        defaults={'NgayPhanCong': timezone.now(), 'HanXuLy': han_xu_ly, 'GhiChu': ghi_chu, 'TrangThaiXuLy': 'Đang xử lý'}
+                    )
 
                 if not created:
                     phan_cong.HanXuLy = han_xu_ly
                     phan_cong.GhiChu = ghi_chu
                     phan_cong.save()
+
+            # Cập nhật trạng thái văn bản gốc
             if doc_type == 'di':
-                vb = get_object_or_404(VanBanDi, SoKyHieu=so_ky_hieu)
-                phan_cong, created = PhanCong.objects.get_or_create(
-                    VanBanDiID=vb,
-                    defaults={'UserID': user, 'NgayPhanCong': timezone.now(), 'HanXuLy': han_xu_ly, 'GhiChu': ghi_chu, 'TrangThaiXuLy': 'Đang xử lý'}
-                )
-                # Gán luôn người soạn thảo
-                vb.UserID = user
                 vb.TrangThai = VanBanDi.TrangThaiChoices.CHO_PHE_DUYET
-                vb.save()
             else:
-                vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
-                phan_cong, created = PhanCong.objects.get_or_create(
-                    VanBanDenID=vb,
-                    defaults={'UserID': user, 'NgayPhanCong': timezone.now(), 'HanXuLy': han_xu_ly, 'GhiChu': ghi_chu, 'TrangThaiXuLy': 'Đang xử lý'}
-                )
                 vb.TrangThai = VanBanDen.TrangThaiChoices.DANG_XU_LY
-                vb.save()
-
-            if not created:
-                phan_cong.UserID = user
-                phan_cong.HanXuLy = han_xu_ly
-                phan_cong.GhiChu = ghi_chu
-                phan_cong.save()
-
-            # Cập nhật trạng thái văn bản
-            vb.TrangThai = VanBanDen.TrangThaiChoices.DANG_XU_LY
             vb.save()
-            
+
+            # Ghi lịch sử hoạt động
+            LichSuHoatDong.objects.create(
+                UserID=request.user,
+                LoaiDoiTuong=loai_doi_tuong,
+                DoiTuongID=id_doituong,
+                HanhDong='Phân công',
+                NoiDungThayDoi=f"Phân công cho {len(user_ids)} người xử lý. Hạn: {han_xu_ly}"
+            )
+
             return JsonResponse({'status': 'success', 'message': 'Phân công thành công!'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
+@login_required
 @csrf_exempt
 def api_cap_nhat_xlvb(request):
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
-            so_ky_hieu = data.get('so_ky_hieu')
-            trang_thai_id = data.get('trang_thai') # '1' hoặc '2'
-            noi_dung = data.get('noi_dung')
-            doc_type = data.get('doc_type', 'den')
+            # Dùng request.POST vì frontend gửi FormData
+            so_ky_hieu = request.POST.get('so_ky_hieu')
+            trang_thai_id = request.POST.get('trang_thai')
+            noi_dung = request.POST.get('noi_dung')
+            doc_type = request.POST.get('doc_type', 'den')
+            tep_moi = request.FILES.get('tep_dinh_kem')
 
             if doc_type == 'di':
                 vb = get_object_or_404(VanBanDi, SoKyHieu=so_ky_hieu)
@@ -1278,20 +1282,26 @@ def api_cap_nhat_xlvb(request):
             phan_cong.TrangThaiXuLy = new_status
             phan_cong.save()
             
-            if new_status == 'Hoàn thành':
-                if doc_type == 'di':
-                    pass
-                else:
-                    vb.TrangThai = VanBanDen.TrangThaiChoices.HOAN_THANH
-                    vb.save()
+            if new_status == 'Hoàn thành' and doc_type == 'den':
+                vb.TrangThai = VanBanDen.TrangThaiChoices.HOAN_THANH
+                vb.save()
+
+            # Lưu tệp đính kèm mới nếu có
+            if tep_moi:
+                vb.TepDinhKem = tep_moi
+                vb.save()
             
             # Ghi lịch sử
+            msg_history = noi_dung
+            if tep_moi:
+                msg_history += f" (Đã cập nhật tệp: {tep_moi.name})"
+
             LichSuHoatDong.objects.create(
-                UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(),
+                UserID=request.user,
                 LoaiDoiTuong=loai_doi_tuong,
                 DoiTuongID=id_doituong,
                 HanhDong='Cập nhật trạng thái',
-                NoiDungThayDoi=noi_dung,
+                NoiDungThayDoi=msg_history,
                 TrangThaiCu=old_status,
                 TrangThaiMoi=new_status
             )
@@ -1301,6 +1311,7 @@ def api_cap_nhat_xlvb(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
+@login_required
 @csrf_exempt
 def api_chuyen_tiep_xlvb(request):
     if request.method == 'POST':
@@ -1313,18 +1324,19 @@ def api_chuyen_tiep_xlvb(request):
 
             if doc_type == 'di':
                 vb = get_object_or_404(VanBanDi, SoKyHieu=so_ky_hieu)
-                ChuyenTiep.objects.create(VanBanDiID=vb, UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(), NgayChuyenTiep=timezone.now())
-                LichSuHoatDong.objects.create(UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(), LoaiDoiTuong='VanBanDi', DoiTuongID=vb.VanBanDiID, HanhDong='Chuyển tiếp', NoiDungThayDoi=f"Chuyển tới đơn vị ID: {don_vi_id}. Nội dung: {noi_dung}")
+                ChuyenTiep.objects.create(VanBanDiID=vb, UserID=request.user, NgayChuyenTiep=timezone.now())
+                LichSuHoatDong.objects.create(UserID=request.user, LoaiDoiTuong='VanBanDi', DoiTuongID=vb.VanBanDiID, HanhDong='Chuyển tiếp', NoiDungThayDoi=f"Chuyển tới đơn vị ID: {don_vi_id}. Nội dung: {noi_dung}")
             else:
                 vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
-                ChuyenTiep.objects.create(VanBanDenID=vb, UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(), NgayChuyenTiep=timezone.now())
-                LichSuHoatDong.objects.create(UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(), LoaiDoiTuong='VanBanDen', DoiTuongID=vb.VanBanDenID, HanhDong='Chuyển tiếp', NoiDungThayDoi=f"Chuyển tới đơn vị ID: {don_vi_id}. Nội dung: {noi_dung}")
+                ChuyenTiep.objects.create(VanBanDenID=vb, UserID=request.user, NgayChuyenTiep=timezone.now())
+                LichSuHoatDong.objects.create(UserID=request.user, LoaiDoiTuong='VanBanDen', DoiTuongID=vb.VanBanDenID, HanhDong='Chuyển tiếp', NoiDungThayDoi=f"Chuyển tới đơn vị ID: {don_vi_id}. Nội dung: {noi_dung}")
             
             return JsonResponse({'status': 'success', 'message': 'Chuyển tiếp thành công!'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
+@login_required
 @csrf_exempt
 def api_bao_cao_xlvb(request):
     if request.method == 'POST':
@@ -1337,24 +1349,13 @@ def api_bao_cao_xlvb(request):
 
             if doc_type == 'di':
                 vb = get_object_or_404(VanBanDi, SoKyHieu=so_ky_hieu)
-                BaoCao.objects.create(VanBanDiID=vb, UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(), NgayBaoCao=timezone.now(), LoaiBaoCao=BaoCao.LoaiBaoCaoChoices.PHAN_HOI, GhiChu=f"[{loai_van_de}] {mo_ta}")
+                BaoCao.objects.create(VanBanDiID=vb, UserID=request.user, NgayBaoCao=timezone.now(), LoaiBaoCao=BaoCao.LoaiBaoCaoChoices.PHAN_HOI, GhiChu=f"[{loai_van_de}] {mo_ta}")
             else:
                 vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
-                BaoCao.objects.create(VanBanDenID=vb, UserID=request.user if request.user.is_authenticated else UserAccount.objects.first(), NgayBaoCao=timezone.now(), LoaiBaoCao=BaoCao.LoaiBaoCaoChoices.PHAN_HOI, GhiChu=f"[{loai_van_de}] {mo_ta}")
+                BaoCao.objects.create(VanBanDenID=vb, UserID=request.user, NgayBaoCao=timezone.now(), LoaiBaoCao=BaoCao.LoaiBaoCaoChoices.PHAN_HOI, GhiChu=f"[{loai_van_de}] {mo_ta}")
             
             return JsonResponse({'status': 'success', 'message': 'Gửi báo cáo thành công!'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
-def xu_ly_van_ban_bao_cao(request):
-    return render(request, 'xu_ly_van_ban/bao_cao.html')
-
-def xu_ly_van_ban_cap_nhat(request):
-    return render(request, 'xu_ly_van_ban/cap_nhat.html')
-
-def xu_ly_van_ban_chuyen_tiep(request):
-    return render(request, 'xu_ly_van_ban/chuyen_tiep.html')
-
-def xu_ly_van_ban_phan_cong(request):
-    return render(request, 'xu_ly_van_ban/phan_cong.html')

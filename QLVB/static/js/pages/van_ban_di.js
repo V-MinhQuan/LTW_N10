@@ -43,43 +43,34 @@ function openVBD(id) {
     const modal = document.getElementById(id);
     if (modal) {
         modal.style.display = 'flex';
-        // Cleanup add form if needed
-        if (id === 'modalAdd') {
-            const form = modal.querySelector('form');
-            if (form) form.reset();
+        // Reset form nếu là modal thêm mới
+        if (id === 'modalForm') {
+            const inputs = modal.querySelectorAll('input, select, textarea');
+            inputs.forEach(i => { if (i.type !== 'button' && i.type !== 'submit') i.value = ''; });
+            const label = document.getElementById('fileLabel');
+            if (label) label.innerHTML = 'Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính';
         }
     }
 }
 
 function closeVBD(id) {
-    let el = document.getElementById(id);
-    if (el) {
-        el.style.display = 'none';
-        if (id === 'historyOverlay') {
-            openVBD('modalDetail');
-        }
-        if (!el.classList.contains('vbd-popup-overlay')) {
-            let overlay = document.getElementById('modalOverlay');
-            if (overlay) overlay.style.display = 'none';
     const modal = document.getElementById(id);
     if (modal) modal.style.display = 'none';
-    const overlay = document.getElementById('modalOverlay');
-    if (overlay) {
-        const visibleModals = document.querySelectorAll('.vbd-popup-overlay[style*="display: flex"], .vbd-popup-overlay[style*="display: block"], .modal-container[style*="display: flex"], .modal-container[style*="display: block"]');
-        if (visibleModals.length === 0) {
-            overlay.style.display = 'none';
-        }
+    
+    // Kiểm tra xem có còn modal nào đang mở không
+    const visibleModals = document.querySelectorAll('.modal-box[style*="display: flex"], .vbd-popup-overlay[style*="display: flex"]');
+    if (visibleModals.length === 0) {
+        const overlay = document.getElementById('modalOverlay');
+        if (overlay) overlay.style.display = 'none';
+    }
+
+    if (id === 'historyOverlay') {
+        openVBD('modalDetail');
     }
 }
 
 window.onclick = function(event) {
-    if (event.target.classList.contains('vbd-popup-overlay')) {
-        let id = event.target.id;
-        event.target.style.display = "none";
-        if (id === 'historyOverlay') {
-            openVBD('modalDetail');
-        }
-    if (event.target.classList.contains('vbd-popup-overlay') || event.target.classList.contains('modal-container')) {
+    if (event.target.classList.contains('vbd-popup-overlay') || event.target.classList.contains('modal-box')) {
         closeVBD(event.target.id);
     }
     if (event.target.id === 'modalOverlay') {
@@ -178,20 +169,6 @@ function xemChiTiet(btn) {
 
         openVBD('modalDetail');
     });
-}
-
-function apiPostForm(url, formData, onSuccess) {
-    fetch(url, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': getCookie('csrftoken') },
-        body: formData
-    })
-    .then(r => r.json())
-    .then(res => {
-        if (res.status === 'success') onSuccess(res);
-        else alert('Lỗi: ' + res.message);
-    })
-    .catch(() => alert('Có lỗi xảy ra, vui lòng thử lại.'));
 }
 
 // ---- THÊM MỚI ----
