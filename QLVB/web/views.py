@@ -17,7 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .forms import LoginForm
 from .forms import VanBanDenForm
 from .models import DonViBenTrong, UserAccount, VaiTro
-from .models import PhanCong, ChuyenTiep, BaoCao
+from .models import PhanCong, ChuyenTiep, BaoCao, Butphe
 from .models import VanBanDen, DonViBenNgoai, LichSuHoatDong
 from .models import VanBanDi, PheDuyet, PhatHanh
 
@@ -246,6 +246,64 @@ def van_ban_di_index(request):
 
 def api_vbdi_chi_tiet(request, pk):
     vb = get_object_or_404(VanBanDi, pk=pk)
+    
+    # Lấy lịch xử xử lý từ nhiều nguồn
+    history = []
+    
+    # 1. Phân công
+    for pc in PhanCong.objects.filter(VanBanDiID=vb).select_related('UserID'):
+        history.append({
+            'type': 'Phân công',
+            'tag_class': 'vbd-process-tag-blue',
+            'user': pc.UserID.HoTen if pc.UserID else 'N/A',
+            'username': pc.UserID.username if pc.UserID else '',
+            'action': f"Giao xử lý: {pc.GhiChu or ''}",
+            'time': pc.NgayPhanCong
+        })
+        
+    # 2. Chuyển tiếp
+    for ct in ChuyenTiep.objects.filter(VanBanDiID=vb).select_related('UserID'):
+        history.append({
+            'type': 'Chuyển tiếp',
+            'tag_class': 'vbd-process-tag-blue',
+            'user': ct.UserID.HoTen if ct.UserID else 'N/A',
+            'username': ct.UserID.username if ct.UserID else '',
+            'action': "Chuyển xử lý văn bản",
+            'time': ct.NgayChuyenTiep
+        })
+        
+    # 3. Báo cáo / Phản hồi
+    for bc in BaoCao.objects.filter(VanBanDiID=vb).select_related('UserID'):
+        history.append({
+            'type': 'Báo cáo',
+            'tag_class': 'vbd-process-tag-gray',
+            'user': bc.UserID.HoTen if bc.UserID else 'N/A',
+            'username': bc.UserID.username if bc.UserID else '',
+            'action': f"{bc.get_LoaiBaoCao_display()}: {bc.GhiChu or ''}",
+            'time': bc.NgayBaoCao
+        })
+        
+    # 4. Bút phê (Nếu cần)
+    for bp in Butphe.objects.filter(VanBanDiID=vb).select_related('UserID'):
+        history.append({
+            'type': 'Bút phê',
+            'tag_class': 'vbd-process-tag-green',
+            'user': bp.UserID.HoTen if bp.UserID else 'N/A',
+            'username': bp.UserID.username if bp.UserID else '',
+            'action': bp.NoiDung or '',
+            'time': bp.NgayButPhe
+        })
+        
+    # Sắp xếp theo thời gian (giảm dần - mới nhất lên đầu)
+    history.sort(key=lambda x: x['time'] if x['time'] else timezone.now(), reverse=True)
+    
+    # Format lại thời gian để trả về JSON
+    for item in history:
+        if item['time']:
+            item['time'] = item['time'].strftime('%d/%m/%Y %H:%M')
+        else:
+            item['time'] = ''
+
     return JsonResponse({
         'status': 'success',
         'data': {
@@ -259,6 +317,7 @@ def api_vbdi_chi_tiet(request, pk):
             'ngay_ban_hanh': vb.NgayBanHanh.strftime('%d/%m/%Y') if vb.NgayBanHanh else '',
             'trang_thai': vb.get_TrangThai_display(),
             'tep_dinh_kem': str(vb.TepDinhKem) if vb.TepDinhKem else '',
+            'xu_ly_history': history
         }
     })
 
@@ -304,34 +363,63 @@ def api_vbdi_cap_nhat(request, pk):
         new_trich_yeu  = request.POST.get('trich_yeu', vb.TrichYeu)
         new_loai_vb    = request.POST.get('loai_vb', vb.LoaiVanBan)
         new_trang_thai = request.POST.get('trang_thai')
+        new_ngay       = request.POST.get('ngay_ban_hanh')
+        new_ngoai_id   = request.POST.get('don_vi_ngoai_id')
+        new_trong_id   = request.POST.get('don_vi_trong_id')
 
+        # 1. So sánh các trường text
         if new_so_ky_hieu != (vb.SoKyHieu or ''):
-            changes.append(f'Số ký hiệu: "{vb.SoKyHieu}" → "{new_so_ky_hieu}"')
+            changes.append(f'Số ký hiệu: "{vb.SoKyHieu or "Trống"}" → "{new_so_ky_hieu}"')
         if new_trich_yeu != (vb.TrichYeu or ''):
-            changes.append('Trích yếu đã thay đổi')
+            changes.append(f'Trích yếu: "{vb.TrichYeu or "Trống"}" → "{new_trich_yeu}"')
         if new_loai_vb != (vb.LoaiVanBan or ''):
-            changes.append(f'Loại văn bản: "{vb.LoaiVanBan}" → "{new_loai_vb}"')
+            changes.append(f'Loại văn bản: "{vb.LoaiVanBan or "Trống"}" → "{new_loai_vb}"')
+        
+        # 2. So sánh trạng thái
         if new_trang_thai and new_trang_thai != cu:
             changes.append(f'Trạng thái: "{tt_map.get(cu, cu)}" → "{tt_map.get(new_trang_thai, new_trang_thai)}"')
 
+        # 3. So sánh ngày
+        old_ngay_str = vb.NgayBanHanh.strftime('%Y-%m-%d') if vb.NgayBanHanh else None
+        if new_ngay and new_ngay != old_ngay_str:
+            changes.append(f'Ngày ban hành: "{old_ngay_str or "Trống"}" → "{new_ngay}"')
+
+        # 4. So sánh đơn vị
+        if new_ngoai_id:
+            new_ngoai_obj = DonViBenNgoai.objects.filter(pk=new_ngoai_id).first()
+            old_ngoai_name = vb.DonViNgoaiID.TenDonVi if vb.DonViNgoaiID else 'Trống'
+            if new_ngoai_obj and (not vb.DonViNgoaiID or vb.DonViNgoaiID.pk != new_ngoai_obj.pk):
+                changes.append(f'Đơn vị ngoài: "{old_ngoai_name}" → "{new_ngoai_obj.TenDonVi}"')
+                vb.DonViNgoaiID = new_ngoai_obj
+        elif request.POST.get('don_vi_ngoai_id') == '' and vb.DonViNgoaiID:
+             changes.append(f'Đơn vị ngoài: "{vb.DonViNgoaiID.TenDonVi}" → "Trống"')
+             vb.DonViNgoaiID = None
+
+        if new_trong_id:
+            new_trong_obj = DonViBenTrong.objects.filter(pk=new_trong_id).first()
+            old_trong_name = vb.DonViTrongID.TenDonVi if vb.DonViTrongID else 'Trống'
+            if new_trong_obj and (not vb.DonViTrongID or vb.DonViTrongID.pk != new_trong_obj.pk):
+                changes.append(f'Đơn vị trong: "{old_trong_name}" → "{new_trong_obj.TenDonVi}"')
+                vb.DonViTrongID = new_trong_obj
+        elif request.POST.get('don_vi_trong_id') == '' and vb.DonViTrongID:
+             changes.append(f'Đơn vị trong: "{vb.DonViTrongID.TenDonVi}" → "Trống"')
+             vb.DonViTrongID = None
+
+        # Cập nhật các trường đã check
         vb.SoKyHieu   = new_so_ky_hieu
         vb.TrichYeu   = new_trich_yeu
         vb.LoaiVanBan = new_loai_vb
-        ngay = request.POST.get('ngay_ban_hanh')
-        if ngay: vb.NgayBanHanh = ngay
-        don_vi_ngoai_id = request.POST.get('don_vi_ngoai_id')
-        don_vi_trong_id = request.POST.get('don_vi_trong_id')
-        if don_vi_ngoai_id:
-            vb.DonViNgoaiID = get_object_or_404(DonViBenNgoai, pk=don_vi_ngoai_id)
-        if don_vi_trong_id:
-            vb.DonViTrongID = get_object_or_404(DonViBenTrong, pk=don_vi_trong_id)
+        if new_ngay: vb.NgayBanHanh = new_ngay
         if new_trang_thai: vb.TrangThai = new_trang_thai
+
+        # 5. So sánh file
         if request.FILES.get('tep_dinh_kem'):
             vb.TepDinhKem = request.FILES['tep_dinh_kem']
-            changes.append('Đã cập nhật tài liệu đính kèm')
+            changes.append(f'Đã cập nhật tài liệu đính kèm: "{vb.TepDinhKem.name}"')
         elif request.POST.get('xoa_file') == '1':
             vb.TepDinhKem = None
             changes.append('Đã xóa tài liệu đính kèm')
+
         vb.save()
         noi_dung = 'Cập nhật: ' + '; '.join(changes) if changes else 'Lưu văn bản (không có thay đổi)'
         _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'CAP_NHAT', noi_dung, cu, vb.TrangThai)
@@ -344,6 +432,9 @@ def api_vbdi_xoa(request, pk):
         return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
     try:
         vb = get_object_or_404(VanBanDi, pk=pk)
+        info = f'"{vb.TrichYeu or vb.SoKyHieu}"'
+        # Log trước khi xóa
+        _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'XOA', f'Đã xóa văn bản {info}', vb.TrangThai, 'DA_XOA')
         vb.delete()
         return JsonResponse({'status': 'success'})
     except Exception as e:
@@ -363,6 +454,7 @@ def api_vbdi_phe_duyet(request, pk):
         pd.NgayPheDuyet   = timezone.now()
         pd.TrangThaiDuyet = chap_nhan
         pd.GhiChu         = data.get('ghi_chu', '')
+        pd.ChuKySo        = data.get('chu_ky_so', '')
         pd.save()
         vb.TrangThai = VanBanDi.TrangThaiChoices.DA_PHE_DUYET if chap_nhan else VanBanDi.TrangThaiChoices.DU_THAO
         vb.save()

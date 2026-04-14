@@ -5,7 +5,45 @@
 
 {% block nav_vbdi %}active{% endblock %}
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/pages/van_ban_di.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/van_ban_di.css' %}?v=5">
+<style>
+    /* CSS cho vùng Nội dung xử lý văn bản */
+    .vbd-process-box { margin-top: 25px; border-top: 2px solid #f1f1f1; padding-top: 20px; }
+    .vbd-process-title { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 20px; text-transform: uppercase; border-left: 4px solid #3498db; padding-left: 10px; line-height: 1.2; }
+    .vbd-process-header { display: grid; grid-template-columns: 140px 1fr 1fr; background: #f8f9fa; padding: 12px 15px; font-weight: bold; color: #555; font-size: 13px; border-radius: 4px; border: 1px solid #eee; margin-bottom: 15px; }
+    .vbd-process-rows { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 0; 
+        border: 1px solid #eee; 
+        border-radius: 4px; 
+        max-height: 155px; 
+        overflow-y: auto; 
+    }
+    .vbd-process-rows::-webkit-scrollbar { width: 6px; }
+    .vbd-process-rows::-webkit-scrollbar-track { background: #f1f1f1; }
+    .vbd-process-rows::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+    .vbd-process-rows::-webkit-scrollbar-thumb:hover { background: #999; }
+    .vbd-process-row { display: grid; grid-template-columns: 140px 1fr 1fr; padding: 15px; border-bottom: 1px solid #f1f1f1; align-items: flex-start; transition: background 0.2s; }
+    .vbd-process-row:hover { background: #f9f9fb; }
+    .vbd-process-row:last-child { border-bottom: none; }
+    
+    .vbd-process-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-align: center; min-width: 90px; }
+    .vbd-process-tag-blue { background: #e3f2fd; color: #1976d2; border: 1px solid #bbdefb; }
+    .vbd-process-tag-gray { background: #f5f5f5; color: #616161; border: 1px solid #e0e0e0; }
+    .vbd-process-tag-green { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+    
+    .vbd-process-user { font-weight: bold; color: #333; margin-bottom: 4px; text-transform: uppercase; font-size: 13.5px; }
+    .vbd-process-info { color: #666; font-size: 13px; }
+    .vbd-process-action { color: #444; font-size: 14px; line-height: 1.5; }
+    .vbd-process-time { display: block; margin-top: 6px; color: #999; font-size: 12px; }
+    
+    /* Scrollbar */
+    .vbd-process-rows::-webkit-scrollbar { width: 6px; }
+    .vbd-process-rows::-webkit-scrollbar-track { background: #f1f1f1; }
+    .vbd-process-rows::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+    .vbd-process-rows::-webkit-scrollbar-thumb:hover { background: #999; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -230,6 +268,20 @@
             <div id="ct_file_section" class="vbd-file-list" style="width: 100%; box-sizing: border-box; display: none;"></div>
             <span id="ct_no_file" style="color: #999; font-size: 13px;">Không có tài liệu đính kèm</span>
         </div>
+
+        <!-- NỘI DUNG XỬ LÝ VĂN BẢN -->
+        <div class="vbd-process-box">
+            <h3 class="vbd-process-title">NỘI DUNG XỬ LÝ VĂN BẢN</h3>
+            <div class="vbd-process-header">
+                <div>PHÂN LOẠI</div>
+                <div>NHÂN SỰ THỰC HIỆN</div>
+                <div>THAO TÁC XỬ LÝ</div>
+            </div>
+            <div class="vbd-process-rows" id="ct_process_history">
+                <!-- Data will be loaded via JS -->
+                <div style="padding: 20px; text-align: center; color: #999;">Đang tải nội dung xử lý...</div>
+            </div>
+        </div>
     </div><!-- end modal-body -->
 
     <div class="modal-footer" style="padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; margin-top: auto;">
@@ -411,9 +463,19 @@
     <div class="vbd-popup-body" style="padding: 25px 30px;">
       <div style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 20px;">
         <label style="width: 120px; padding-top: 10px; font-weight: 500; flex-shrink: 0;">Chữ ký số</label>
-        <div style="flex: 1; border: 1px dashed #bbb; border-radius: 6px; background: #f9f9f9; padding: 30px; text-align: center; cursor: pointer;">
-          <i class="fas fa-signature" style="font-size: 32px; color: #7dccf1; margin-bottom: 8px; display: block;"></i>
-          <span style="color: #888; font-size: 14px;">Nhấn để ký số</span>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+          <div style="position: relative; border: 1px solid #ddd; border-radius: 6px; background: #fff; line-height: 0;">
+            <canvas id="signature-pad" width="400" height="150" style="width: 100%; cursor: crosshair; touch-action: none;"></canvas>
+            <div id="signature-placeholder" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ccc; pointer-events: none; text-align: center;">
+                <i class="fas fa-signature" style="font-size: 24px; display: block; margin-bottom: 5px;"></i>
+                <span style="font-size: 13px;">Ký tên vào đây</span>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <button type="button" class="btn" style="padding: 4px 12px; font-size: 12px; background: #f1f1f1; border: 1px solid #ccc; color: #666;" onclick="clearSignature()">
+                <i class="fas fa-eraser"></i> Xóa chữ ký
+            </button>
+          </div>
         </div>
       </div>
       <div style="display: flex; align-items: flex-start; gap: 20px;">
@@ -447,7 +509,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/pages/van_ban_di.js' %}?v=4"></script>
+<script src="{% static 'js/pages/van_ban_di.js' %}?v=8"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     ['modalForm','modalDetail','modalEdit','modalSuccess','popupRemoveFile','popupPheDuyet','popupPhatHanh','historyOverlay','popupFilter'].forEach(function(id) {
@@ -459,36 +521,41 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Popup History -->
 <div id="historyOverlay" class="vbd-popup-overlay">
-  <div class="vbd-popup" style="width: 1000px; max-width: 95%; height: 650px; display: flex; flex-direction: column;">
+  <div class="vbd-popup" style="width: 1000px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
     <div class="vbd-popup-header">
       <span>Lịch sử chỉnh sửa văn bản đi</span>
       <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('historyOverlay')"></i>
     </div>
     <div class="vbd-popup-body">
-      <div class="history-search-grid">
-        <div class="search-item">
-          <label>Từ ngày - Đến ngày</label>
-          <div class="date-range">
-            <input type="date" class="form-control" />
-            <span>-</span>
-            <input type="date" class="form-control" />
-          </div>
-        </div>
-        <div class="search-item">
-          <label>Số hiệu/Số văn bản</label>
-          <input type="text" class="form-control" placeholder="Nhập số hiệu hoặc số văn bản" />
-        </div>
-        <div class="search-item">
-          <label>Trích yếu</label>
-          <input type="text" class="form-control" placeholder="Nhập trích yếu" />
-        </div>
-      </div>
-      <div class="btn-group" style="margin-top: 15px; margin-bottom: 25px;">
-        <button class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>
-        <button class="btn btn-secondary" onclick="closeVBD('historyOverlay')"><i class="fa fa-sync-alt"></i> Làm mới</button>
+<!--      <div class="history-search-grid">-->
+<!--        <div class="search-item">-->
+<!--          <label>Từ ngày - Đến ngày</label>-->
+<!--          <div class="date-range">-->
+<!--            <input type="date" class="form-control" />-->
+<!--            <span>-</span>-->
+<!--            <input type="date" class="form-control" />-->
+<!--          </div>-->
+<!--        </div>-->
+<!--        <div class="search-item">-->
+<!--          <label>Số hiệu/Số văn bản</label>-->
+<!--          <input type="text" class="form-control" placeholder="Nhập số hiệu hoặc số văn bản" />-->
+<!--        </div>-->
+<!--        <div class="search-item">-->
+<!--          <label>Trích yếu</label>-->
+<!--          <input type="text" class="form-control" placeholder="Nhập trích yếu" />-->
+<!--        </div>-->
+<!--      </div>-->
+<!--      <div class="btn-group" style="margin-top: 15px; margin-bottom: 25px;">-->
+<!--        <button class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>-->
+<!--        <button class="btn btn-secondary" onclick="closeVBD('historyOverlay')"><i class="fa fa-sync-alt"></i> Làm mới</button>-->
+<!--      </div>-->
+      <div style="background: #eef7ff; border: 1px solid #d0e7f9; border-radius: 6px; padding: 15px; text-align: center; margin-bottom: 20px;">
+        <span style="font-weight: bold; color: #3b5998; font-size: 16px; text-transform: uppercase;">
+          <i class="fa fa-history" style="margin-right: 8px;"></i> Danh sách lịch sử cập nhật chi tiết
+        </span>
       </div>
       
-      <div class="table-responsive">
+      <div class="table-responsive history-table-wrapper">
         <table class="history-table-full">
           <thead>
             <tr>
@@ -507,7 +574,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <td>Nguyễn Văn A</td>
               <td class="text-center">15/CV-SDL</td>
               <td>Thông báo nghỉ lễ 30/4</td>
-              <td><span class="status-pill pill-blue">Thêm mới</span> văn bản</td>
+              <td class="text-left"><span class="status-pill pill-blue">Thêm mới</span> văn bản</td>
             </tr>
             <tr>
               <td class="text-center">2</td>
@@ -515,7 +582,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <td>Trần Thị B</td>
               <td class="text-center">15/CV-SDL</td>
               <td>Thông báo nghỉ lễ 30/4</td>
-              <td>Cập nhật bộ phận xử lý</td>
+              <td class="text-left"><strong>Cập nhật</strong> bộ phận xử lý</td>
             </tr>
             <tr>
               <td class="text-center">3</td>
@@ -523,7 +590,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <td>Lê Văn C</td>
               <td class="text-center">08/HD-CTDL</td>
               <td>Thông báo nghỉ lễ 30/4</td>
-              <td>Thay đổi trạng thái sang <span class="status-pill pill-green">Hoàn thành</span></td>
+              <td class="text-left">Thay đổi trạng thái sang <span class="status-pill pill-green">Hoàn thành</span></td>
             </tr>
           </tbody>
         </table>

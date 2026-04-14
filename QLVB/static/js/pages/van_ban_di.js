@@ -41,6 +41,9 @@ function closeVBD(id) {
     let el = document.getElementById(id);
     if (el) {
         el.style.display = 'none';
+        if (id === 'historyOverlay') {
+            openVBD('modalDetail');
+        }
         if (!el.classList.contains('vbd-popup-overlay')) {
             let overlay = document.getElementById('modalOverlay');
             if (overlay) overlay.style.display = 'none';
@@ -50,7 +53,11 @@ function closeVBD(id) {
 
 window.onclick = function(event) {
     if (event.target.classList.contains('vbd-popup-overlay')) {
+        let id = event.target.id;
         event.target.style.display = "none";
+        if (id === 'historyOverlay') {
+            openVBD('modalDetail');
+        }
     }
 }
 
@@ -71,7 +78,7 @@ function _renderFile(section, noFileEl, tepDinhKem) {
             <div class="vbd-file-info">
                 <div class="vbd-file-icon">${ext}</div>
                 <div class="vbd-file-details">
-                    <a class="vbd-file-name" href="/media/${tepDinhKem}" target="_blank">${fileName}</a>
+                    <a class="vbd-file-name" href="/media/${tepDinhKem}" download="${fileName}" onclick="window.open(this.href, '_blank'); return true;">${fileName}</a>
                     <span class="vbd-file-size"></span>
                 </div>
             </div>
@@ -116,6 +123,33 @@ function xemChiTiet(btn) {
         document.getElementById("ct_ngay").value = d.ngay_ban_hanh;
         document.getElementById("ct_trangthai").value = d.trang_thai;
         _renderFile(document.getElementById('ct_file_section'), document.getElementById('ct_no_file'), d.tep_dinh_kem);
+        
+        // Render lịch sử xử lý
+        const historyContainer = document.getElementById('ct_process_history');
+        if (historyContainer) {
+            historyContainer.innerHTML = '';
+            if (d.xu_ly_history && d.xu_ly_history.length > 0) {
+                d.xu_ly_history.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'vbd-process-row';
+                    row.innerHTML = `
+                        <div><span class="vbd-process-tag ${item.tag_class}">${item.type}</span></div>
+                        <div>
+                            <div class="vbd-process-user">${item.user}</div>
+                            <div class="vbd-process-info">Tài khoản: ${item.username}</div>
+                        </div>
+                        <div>
+                            <div class="vbd-process-action">${item.action}</div>
+                            <span class="vbd-process-time"><i class="far fa-clock"></i> ${item.time}</span>
+                        </div>
+                    `;
+                    historyContainer.appendChild(row);
+                });
+            } else {
+                historyContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Chưa có nội dung xử lý văn bản này.</div>';
+            }
+        }
+        
         openVBD('modalDetail');
     });
 }
@@ -264,13 +298,97 @@ let _pheDuyetId = null;
 function pheDuyetVanBan(btn) {
     _pheDuyetId = btn.closest("tr").dataset.id;
     openVBD('popupPheDuyet');
+    initSignaturePad();
+}
+
+let _isSigning = false;
+let _sigCanvas = null;
+let _sigCtx = null;
+
+function initSignaturePad() {
+    _sigCanvas = document.getElementById('signature-pad');
+    if (!_sigCanvas) return;
+    _sigCtx = _sigCanvas.getContext('2d');
+    _sigCtx.strokeStyle = "#222";
+    _sigCtx.lineWidth = 2;
+    _sigCtx.lineJoin = "round";
+    _sigCtx.lineCap = "round";
+
+    // Mouse events
+    _sigCanvas.addEventListener("mousedown", startSign);
+    _sigCanvas.addEventListener("mousemove", drawSign);
+    _sigCanvas.addEventListener("mouseup", stopSign);
+    _sigCanvas.addEventListener("mouseleave", stopSign);
+
+    // Touch events
+    _sigCanvas.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        startSign(e.touches[0]);
+    });
+    _sigCanvas.addEventListener("touchmove", (e) => {
+        e.preventDefault();
+        drawSign(e.touches[0]);
+    });
+    _sigCanvas.addEventListener("touchend", stopSign);
+}
+
+function startSign(e) {
+    _isSigning = true;
+    _sigCtx.beginPath();
+    const pos = _getPos(e);
+    _sigCtx.moveTo(pos.x, pos.y);
+    document.getElementById('signature-placeholder').style.display = 'none';
+}
+
+function drawSign(e) {
+    if (!_isSigning) return;
+    const pos = _getPos(e);
+    _sigCtx.lineTo(pos.x, pos.y);
+    _sigCtx.stroke();
+}
+
+function stopSign() {
+    _isSigning = false;
+}
+
+function _getPos(e) {
+    const rect = _sigCanvas.getBoundingClientRect();
+    const scaleX = _sigCanvas.width / rect.width;
+    const scaleY = _sigCanvas.height / rect.height;
+    return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+    };
+}
+
+function clearSignature() {
+    if (!_sigCanvas) return;
+    _sigCtx.clearRect(0, 0, _sigCanvas.width, _sigCanvas.height);
+    document.getElementById('signature-placeholder').style.display = 'block';
 }
 
 function xacNhanPheDuyet(chap_nhan) {
     if (!_pheDuyetId) return;
+    
+    // Kiểm tra nếu chap_nhan = true thì bắt buộc phải ký
+    let chuKy = _sigCanvas ? _sigCanvas.toDataURL() : '';
+    let isEmpty = true;
+    if (_sigCanvas) {
+        let blank = document.createElement('canvas');
+        blank.width = _sigCanvas.width;
+        blank.height = _sigCanvas.height;
+        if (_sigCanvas.toDataURL() !== blank.toDataURL()) isEmpty = false;
+    }
+
+    if (chap_nhan && isEmpty) {
+        alert("Vui lòng ký tên trước khi phê duyệt.");
+        return;
+    }
+
     let data = {
         chap_nhan: chap_nhan,
         ghi_chu: document.getElementById('pd_ghichu') ? document.getElementById('pd_ghichu').value : '',
+        chu_ky_so: isEmpty ? '' : chuKy
     };
     apiPost('/api/van-ban-di/' + _pheDuyetId + '/phe-duyet/', data, () => {
         closeVBD('popupPheDuyet');
@@ -325,16 +443,18 @@ function moLichSu(vanBanId) {
                         ? ` <span style="color:#888;font-size:12px;">(${ls.trang_thai_cu} → <strong>${ls.trang_thai_moi}</strong>)</span>`
                         : ` <span style="color:#888;font-size:12px;">(→ <strong>${ls.trang_thai_moi}</strong>)</span>`;
                 }
+                let noiDungHtml = ls.noi_dung.replace(/Cập nhật/g, '<strong>Cập nhật</strong>');
                 tbody.innerHTML += `<tr>
                     <td class="text-center">${i+1}</td>
                     <td class="text-center">${ls.thoi_gian}</td>
                     <td>${ls.nguoi_thuc_hien}</td>
                     <td class="text-center">${ls.ma_van_ban}</td>
                     <td>${ls.trich_yeu}</td>
-                    <td>${ls.noi_dung}${ttHtml}</td>
+                    <td class="text-left">${noiDungHtml}${ttHtml}</td>
                 </tr>`;
             });
         }
+        closeVBD('modalDetail');
         openVBD('historyOverlay');
     })
     .catch(() => {
