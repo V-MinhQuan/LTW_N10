@@ -6,7 +6,7 @@
 {% block nav_xlvb %}active{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/pages/xu_ly_van_ban.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/xu_ly_van_ban.css' %}?v=2">
 {% endblock %}
 
 {% block content %}
@@ -211,11 +211,18 @@
                 <textarea class="form-control" id="upd-noiDung" placeholder="Nội dung đã xử lý"
                     style="width: 100%; height: 80px;"></textarea>
             </div>
-            <div class="form-group full-width"
-                style="align-items: center; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
-                <label style="font-weight: bold; width: auto; margin-right: 15px;">File đính kèm</label>
-                <div style="flex: 1; border: 1px solid #ccc; padding: 5px; border-radius: 2px;">
-                    <input type="file" style="width: 100%;">
+            <div class="form-group full-width" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; flex-direction: column;">
+                <label style="margin-bottom: 10px; font-weight: bold; color: #333;">Tài liệu đính kèm (<span class="required" style="color: red;">*</span>)</label>
+                <div class="upload-file-area" id="uploadFileArea_upd">
+                    <input type="file" id="upd-file" style="display: none;">
+                    <div class="upload-icon-circle">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <p class="upload-text">Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính</p>
+                    <button type="button" class="btn btn-attach" onclick="document.getElementById('upd-file').click();">
+                        <i class="fas fa-paperclip"></i> Đính kèm tập tin
+                    </button>
+                    <div id="upd-fileName" style="margin-top: 10px; font-weight: 500; color: #333; text-align: center;"></div>
                 </div>
             </div>
         </div>
@@ -342,6 +349,20 @@
                 <textarea class="form-control" id="asn-ghiChu" placeholder="Nhập ghi chú nếu có"
                     style="width: 100%; height: 80px;"></textarea>
             </div>
+            <div class="form-group full-width" style="margin-top: 20px; flex-direction: column;">
+                <label style="margin-bottom: 10px; font-weight: bold; color: #333;">Tài liệu đính kèm (<span class="required" style="color: red;">*</span>)</label>
+                <div class="upload-file-area" id="uploadFileArea">
+                    <input type="file" id="asn-file" style="display: none;">
+                    <div class="upload-icon-circle">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <p class="upload-text">Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính</p>
+                    <button type="button" class="btn btn-attach" onclick="document.getElementById('asn-file').click();">
+                        <i class="fas fa-paperclip"></i> Đính kèm tập tin
+                    </button>
+                    <div id="asn-fileName" style="margin-top: 10px; font-weight: 500; color: #333;"></div>
+                </div>
+            </div>
         </div>
         <div class="modal-footer">
             <button onclick="closeModal('modalPhanCong')" class="btn btn-secondary">Hủy</button>
@@ -351,5 +372,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/pages/xu_ly_van_ban.js' %}"></script>
+<script src="{% static 'js/pages/xu_ly_van_ban.js' %}?v=2"></script>
 {% endblock %}
