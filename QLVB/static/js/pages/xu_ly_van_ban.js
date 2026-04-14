@@ -116,3 +116,77 @@ async function saveAndClose(modalId) {
         alert('Đã có lỗi xảy ra. Vui lòng thử lại!');
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // For Phân công modal
+    const fileInputAsn = document.getElementById('asn-file');
+    const fileNameDisplayAsn = document.getElementById('asn-fileName');
+    const uploadAreaAsn = document.getElementById('uploadFileArea');
+
+    if (fileInputAsn && fileNameDisplayAsn) {
+        fileInputAsn.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                fileNameDisplayAsn.textContent = 'Đã chọn tệp: ' + this.files[0].name;
+            } else {
+                fileNameDisplayAsn.textContent = '';
+            }
+        });
+    }
+
+    if (uploadAreaAsn && fileInputAsn) {
+        uploadAreaAsn.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadAreaAsn.style.backgroundColor = '#e6f3ff';
+        });
+
+        uploadAreaAsn.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadAreaAsn.style.backgroundColor = '#f8fbff';
+        });
+
+        uploadAreaAsn.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadAreaAsn.style.backgroundColor = '#f8fbff';
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                fileInputAsn.files = e.dataTransfer.files;
+                fileInputAsn.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+
+    // For Cập nhật modal
+    const fileInputUpd = document.getElementById('upd-file');
+    const fileNameDisplayUpd = document.getElementById('upd-fileName');
+    const uploadAreaUpd = document.getElementById('uploadFileArea_upd');
+
+    if (fileInputUpd && fileNameDisplayUpd) {
+        fileInputUpd.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                fileNameDisplayUpd.textContent = 'Đã chọn tệp: ' + this.files[0].name;
+            } else {
+                fileNameDisplayUpd.textContent = '';
+            }
+        });
+    }
+
+    if (uploadAreaUpd && fileInputUpd) {
+        uploadAreaUpd.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadAreaUpd.style.backgroundColor = '#e6f3ff';
+        });
+
+        uploadAreaUpd.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadAreaUpd.style.backgroundColor = '#f8fbff';
+        });
+
+        uploadAreaUpd.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadAreaUpd.style.backgroundColor = '#f8fbff';
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                fileInputUpd.files = e.dataTransfer.files;
+                fileInputUpd.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+});

@@ -221,3 +221,57 @@
 .btn-assign-wide:hover {
     background-color: #008ec0 !important;
 }
+
+/* Upload Area for Modal Phân công */
+.upload-file-area {
+    border: 1px dashed #b3d4fc;
+    background-color: #f8fbff;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-icon-circle {
+    width: 60px;
+    height: 60px;
+    background-color: #e6f3ff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+.upload-icon-circle i {
+    font-size: 24px;
+    color: #00adef;
+}
+
+.upload-text {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.btn-attach {
+    background-color: #00adef;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s;
+}
+
+.btn-attach:hover {
+    background-color: #008ec0;
+}
