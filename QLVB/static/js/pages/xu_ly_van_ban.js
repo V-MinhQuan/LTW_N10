@@ -85,13 +85,15 @@ async function saveAndClose(modalId) {
         }
     } else if (modalId === 'modalPhanCong') {
         url = '/api/xu-ly-van-ban/phan-cong/';
+        const userSelect = document.getElementById('asn-nguoiXuLy');
+        const selectedUsers = Array.from(userSelect.selectedOptions).map(opt => opt.value);
         data = {
             so_ky_hieu: document.getElementById('asn-soKyHieu').value,
-            user_id: document.getElementById('asn-nguoiXuLy').value,
+            user_id: selectedUsers,
             han_xu_ly: document.getElementById('asn-thoiHan').value,
             ghi_chu: document.getElementById('asn-ghiChu').value
         };
-        if (!data.user_id || !data.han_xu_ly) {
+        if (selectedUsers.length === 0 || !data.han_xu_ly) {
             alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
             return;
         }
@@ -122,6 +124,16 @@ async function saveAndClose(modalId) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Khởi tạo Choices.js cho chọn nhiều người
+    const userSelect = document.getElementById('asn-nguoiXuLy');
+    if (userSelect && typeof Choices !== 'undefined') {
+        new Choices(userSelect, {
+            removeItemButton: true,
+            placeholderValue: '--- Chọn người xử lý ---',
+            searchPlaceholderValue: 'Tìm kiếm người xử lý...'
+        });
+    }
+
     // For Phân công modal
     const fileInputAsn = document.getElementById('asn-file');
     const fileNameDisplayAsn = document.getElementById('asn-fileName');

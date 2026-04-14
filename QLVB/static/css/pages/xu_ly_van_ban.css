@@ -210,23 +210,15 @@ button.btn-assign-wide {
     font-size: 14px !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 8px !important;
-    width: auto !important;
-    justify-content: center !important;
-    outline: none !important;
-    transition: background-color 0.2s ease !important;
+    appearance: auto !important;
 }
 
-.btn-assign-wide:hover {
-    background-color: #008ec0 !important;
-}
-
-/* Upload Area for Modal Phân công */
+/* Upload Area for Modal */
 .upload-file-area {
     border: 1px dashed #b3d4fc;
     background-color: #f8fbff;
     border-radius: 8px;
-    padding: 30px;
+    padding: 15px;
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -235,26 +227,26 @@ button.btn-assign-wide {
 }
 
 .upload-icon-circle {
-    width: 60px;
-    height: 60px;
+    width: 40px;
+    height: 40px;
     background-color: #e6f3ff;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
 }
 
 .upload-icon-circle i {
-    font-size: 24px;
+    font-size: 18px;
     color: #00adef;
 }
 
 .upload-text {
     color: #666;
-    margin-bottom: 20px;
-    font-size: 14px;
-    line-height: 1.5;
+    margin-bottom: 10px;
+    font-size: 13px;
+    line-height: 1.4;
 }
 
 .btn-attach {
@@ -262,15 +254,22 @@ button.btn-assign-wide {
     color: white;
     border: none;
     border-radius: 6px;
-    padding: 10px 20px;
+    padding: 8px 16px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     transition: background-color 0.2s;
 }
 
 .btn-attach:hover {
     background-color: #008ec0;
+}
+
+/* Override Choices.js selected item color to dark blue */
+.choices__list--multiple .choices__item {
+    background-color: #004085 !important;
+    border: 1px solid #003366 !important;
 }

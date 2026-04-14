@@ -266,19 +266,28 @@ def api_phan_cong_xlvb(request):
             ghi_chu = data.get('ghi_chu')
             
             vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
-            user = get_object_or_404(UserAccount, pk=user_id)
             
-            # Cập nhật hoặc tạo mới phân công
-            phan_cong, created = PhanCong.objects.get_or_create(
-                VanBanDenID=vb,
-                defaults={'UserID': user, 'NgayPhanCong': timezone.now(), 'HanXuLy': han_xu_ly, 'GhiChu': ghi_chu, 'TrangThaiXuLy': 'Đang xử lý'}
-            )
+            # Xử lý trường hợp user_id rỗng
+            if not user_id:
+                return JsonResponse({'status': 'error', 'message': 'Vui lòng chọn ít nhất một người xử lý!'}, status=400)
+                
+            # user_id có thể là list hoặc 1 string
+            user_ids = user_id if isinstance(user_id, list) else [user_id]
             
-            if not created:
-                phan_cong.UserID = user
-                phan_cong.HanXuLy = han_xu_ly
-                phan_cong.GhiChu = ghi_chu
-                phan_cong.save()
+            for uid in user_ids:
+                user = get_object_or_404(UserAccount, pk=uid)
+                
+                # Cập nhật hoặc tạo mới phân công cho từng người nhận
+                phan_cong, created = PhanCong.objects.get_or_create(
+                    VanBanDenID=vb,
+                    UserID=user,
+                    defaults={'NgayPhanCong': timezone.now(), 'HanXuLy': han_xu_ly, 'GhiChu': ghi_chu, 'TrangThaiXuLy': 'Đang xử lý'}
+                )
+                
+                if not created:
+                    phan_cong.HanXuLy = han_xu_ly
+                    phan_cong.GhiChu = ghi_chu
+                    phan_cong.save()
             
             # Cập nhật trạng thái văn bản
             vb.TrangThai = VanBanDen.TrangThaiChoices.DANG_XU_LY
