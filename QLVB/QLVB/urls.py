@@ -65,6 +65,9 @@ urlpatterns = [
     path('api/xu-ly-van-ban/cap-nhat/', views.api_cap_nhat_xlvb, name='api_cap_nhat_xlvb'),
     path('api/xu-ly-van-ban/chuyen-tiep/', views.api_chuyen_tiep_xlvb, name='api_chuyen_tiep_xlvb'),
     path('api/xu-ly-van-ban/bao-cao/', views.api_bao_cao_xlvb, name='api_bao_cao_xlvb'),
+    path('quen-mat-khau/', views.quen_mat_khau_view, name='quen_mat_khau'),
+    path('api/send-otp/', views.api_send_otp, name='api_send_otp'),
+    path('api/reset-password/', views.api_confirm_reset, name='api_confirm_reset'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

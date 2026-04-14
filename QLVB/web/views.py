@@ -3,6 +3,7 @@ import json
 from datetime import timedelta
 
 # IMPORT ĐẦY ĐỦ CHO HỆ THỐNG ĐĂNG NHẬP
+from .models import UserAccount
 from django.contrib.auth import login as auth_login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -12,6 +13,12 @@ from django.shortcuts import get_object_or_404
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+import random
+from django.core.mail import send_mail
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import User # Hoặc model User của ông
+from django.http import JsonResponse
+from django.shortcuts import render
 
 # IMPORT CHO HỆ THỐNG THÔNG BÁO LỖI (MESSAGES)
 from django.contrib import messages
@@ -70,27 +77,87 @@ def index(request):
     return render(request, 'index.html', context)
 
 
-# --- HỆ THỐNG ĐĂNG NHẬP / ĐĂNG XUẤT ---
 def login_view(request):
     if request.method == 'POST':
         form = LoginForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
             auth_login(request, user)
+
+            # --- LOGIC GHI NHỚ ĐĂNG NHẬP ---
+            # 'remember_me' là cái 'name' của thẻ input checkbox trong HTML
+            if request.POST.get('remember_me'):
+                # Nếu có tích: lấy thời gian trong SESSION_COOKIE_AGE (ví dụ 1 ngày)
+                request.session.set_expiry(None)
+                print("Đã ghi nhớ đăng nhập")
+            else:
+                # Nếu không tích: hết hạn khi đóng trình duyệt (0)
+                request.session.set_expiry(0)
+                print("Không ghi nhớ - Thoát khi đóng trình duyệt")
+            # -------------------------------
+
             return redirect('index')
         else:
-            # Nếu form không hợp lệ (sai pass, thiếu user), in lỗi ra terminal để xem
             print(form.errors)
     else:
         form = LoginForm()
     return render(request, 'login/login.html', {'form': form})
 
-
 def logout_view(request):
     logout(request)
     return redirect('login')
 
+# --- QUÊN MẬT KHẨU ---
+# 1. Gửi mã OTP
+def api_send_otp(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        if not email:
+            return JsonResponse({'status': 'error', 'message': 'Vui lòng nhập email!'})
 
+        try:
+            # Kiểm tra email có tồn tại trong hệ thống không
+            user = UserAccount.objects.get(email=email)
+
+            # Tạo OTP 6 số
+            otp = str(random.randint(100000, 999999))
+            request.session['otp'] = otp
+            request.session['reset_email'] = email
+
+            # Gửi mail thực tế
+            send_mail(
+                'Mã xác thực Vietasia Travel',
+                f'Mã OTP của bạn là: {otp}',
+                'noreply@vietasia.com',
+                [email],
+                fail_silently=False,
+            )
+            return JsonResponse({'status': 'success'})
+        except User.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Email này không tồn tại trên hệ thống!'})
+    return JsonResponse({'status': 'error'})
+
+
+def api_confirm_reset(request):
+    if request.method == 'POST':
+        otp_input = request.POST.get('otp')
+        new_pass = request.POST.get('new_password')
+        otp_session = request.session.get('otp')
+        email = request.session.get('reset_email')
+
+        if otp_input == otp_session:
+            user = UserAccount.objects.get(email=email)
+            # Đổi mật khẩu trong Database (có mã hóa)
+            user.password = make_password(new_pass)
+            user.save()
+
+            del request.session['otp']  # Xóa OTP sau khi dùng xong
+            return JsonResponse({'status': 'success'})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Mã OTP không đúng!'})
+
+def quen_mat_khau_view(request):
+    return render(request, 'login/quen_mat_khau.html')
 # --- QUẢN LÝ VĂN BẢN ĐẾN ---
 def van_ban_den_index(request):
     danh_sach = VanBanDen.objects.select_related('DonViNgoaiID', 'DonViTrongID').all().order_by('-VanBanDenID')
@@ -143,7 +210,6 @@ def van_ban_den_index(request):
         'tong_so': paginator.count,
         'query_string': query_string
     })
-
 
 @csrf_exempt
 def van_ban_den_them(request):
@@ -719,7 +785,7 @@ def thong_tin_view(request):
     return render(request, 'quan_ly_nguoi_dung/thong_tin.html')
 
 def thong_tin_view(request):
-    return render(request, 'thong_tin.html')
+    return render(request, 'quan_ly_nguoi_dung/thong_tin.html')
 
 # --- API NGƯỜI DÙNG ---
 def api_nguoi_dung_list(request):
