@@ -39,8 +39,47 @@ function xemVBD(id) {
                 fileContainer.style.display = 'none';
             }
             
-            // Gán id để nút lịch sử biết
-            document.querySelector('.btn-history').dataset.id = id;
+            // Xử lý render Nội dung xử lý văn bản (động)
+            const processRows = document.getElementById('view_process_rows');
+            if (processRows) {
+                if (v.qua_trinh_xu_ly && v.qua_trinh_xu_ly.length > 0) {
+                    processRows.innerHTML = v.qua_trinh_xu_ly.map((item, index) => {
+                        let actionClass = item.tag === 'Đang xử lý' ? ' vbd-process-action-highlight' : '';
+                        let isLast = index === v.qua_trinh_xu_ly.length - 1;
+                        
+                        let userHtml = `
+                             <p class="vbd-p-target">
+                                <i class="fas ${item.icon || 'fa-info-circle'}"></i> 
+                                <b>${item.tag === 'Phản hồi' ? 'NGƯỜI PHẢN HỒI' : 'CHUYỂN TỚI'}</b>
+                            </p>
+                            <p class="vbd-p-name">${item.chuyen_toi}</p>
+                        `;
+                        
+                        return `
+                          <div class="vbd-process-row">
+                            <div class="vbd-process-tag-cell">
+                                <div class="vbd-process-tag ${item.tag_class}">${item.tag}</div>
+                                ${!isLast ? '<div class="vbd-process-line"></div>' : ''}
+                            </div>
+                            <div class="vbd-process-user">
+                                ${userHtml}
+                            </div>
+                            <div class="vbd-process-action${actionClass}">${item.action || ""}</div>
+                          </div>
+                        `;
+                    }).join('');
+                } else {
+                    processRows.innerHTML = '<div style="padding: 20px; text-align: center; color: #999; font-style: italic;">Chưa có thông tin xử lý điều hành</div>';
+                }
+            }
+            
+            // Gán id cho nút lịch sử (chỉ nút trong popupView)
+            const historyBtn = document.querySelector('#popupView .btn-history');
+            if (historyBtn) {
+                historyBtn.dataset.id = id;
+            } else {
+                console.error("Không tìm thấy nút .btn-history trong #popupView");
+            }
             
             openVBD('popupView');
         } else {
@@ -87,6 +126,7 @@ function suaVBD(id) {
             document.getElementById('edit_ngay_ban_hanh').value = v.ngay_ban_hanh;
             document.getElementById('edit_ngay_nhan').value = v.ngay_nhan;
             document.getElementById('edit_don_vi_gui').value = v.don_vi_ngoai_id;
+            document.getElementById('edit_trang_thai').value = v.trang_thai;
             
             const editFileContainer = document.getElementById('edit_tep_dinh_kem_container');
             const editFileLink = document.getElementById('edit_tep_dinh_kem_name');
@@ -151,11 +191,16 @@ function submitXoaVBD() {
 
 // Xem lịch sử hoạt động
 function openHistory(id) {
-    fetch(`/van-ban-den/lich-su/?id=${id}`)
+    if (!id || id === 'undefined') {
+        alert('Không xác định được ID văn bản để xem lịch sử.');
+        return;
+    }
+    // Thêm timestamp để tránh cache
+    fetch(`/van-ban-den/lich-su/?id=${id}&t=${new Date().getTime()}`)
     .then(res => res.json())
     .then(data => {
         if (data.status === 'success') {
-            const tbody = document.getElementById('historyTableBody');
+            const tbody = document.getElementById('historyTableBodyDetail');
             tbody.innerHTML = '';
             
             if (data.data.length === 0) {

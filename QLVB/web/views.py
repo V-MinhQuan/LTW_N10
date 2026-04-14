@@ -72,11 +72,64 @@ def van_ban_den_them(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'invalid method'})
-
 def van_ban_den_xem(request, pk):
+    from .models import PhanCong, ChuyenTiep, BaoCao
     vbd = VanBanDen.objects.filter(pk=pk).first()
     if not vbd:
         return JsonResponse({'status': 'error', 'message': 'Không tìm thấy'})
+        
+    qua_trinh_xu_ly = []
+    
+    # 1. Lấy thông tin Phân công
+    phan_congs = PhanCong.objects.filter(VanBanDenID=vbd).select_related('UserID').order_by('NgayPhanCong')
+    for pc in phan_congs:
+        tag_name = pc.TrangThaiXuLy or "Phân công"
+        tag_class = "vbd-process-tag-active" if tag_name == 'Đang xử lý' else "vbd-process-tag-blue"
+        
+        qua_trinh_xu_ly.append({
+            'time': pc.NgayPhanCong,
+            'tag': tag_name,
+            'tag_class': tag_class,
+            'icon': 'fa-user-check',
+            'chuyen_toi': f"{pc.UserID.HoTen} ({pc.UserID.username})" if pc.UserID else "Chưa xác định",
+            'dong_xu_ly': "",
+            'action': pc.GhiChu or f"Giao xử lý cho {pc.UserID.HoTen if pc.UserID else 'cán bộ'}"
+        })
+
+    # 2. Lấy thông tin Chuyển tiếp
+    chuyen_tieps = ChuyenTiep.objects.filter(VanBanDenID=vbd).select_related('UserID').order_by('NgayChuyenTiep')
+    for ct in chuyen_tieps:
+        qua_trinh_xu_ly.append({
+            'time': ct.NgayChuyenTiep,
+            'tag': "Chuyển tiếp",
+            'tag_class': "vbd-process-tag-blue",
+            'icon': 'fa-share-square',
+            'chuyen_toi': f"{ct.UserID.HoTen} ({ct.UserID.username})" if ct.UserID else "Chưa xác định",
+            'dong_xu_ly': "",
+            'action': "Chuyển tiếp văn bản cho đơn vị/cá nhân khác"
+        })
+
+    # 3. Lấy thông tin Báo cáo (Chỉ lấy loại Phản hồi - Sai sót/Không phù hợp)
+    bao_caos = BaoCao.objects.filter(VanBanDenID=vbd, LoaiBaoCao='PHAN_HOI').select_related('UserID').order_by('NgayBaoCao')
+    for bc in bao_caos:
+        qua_trinh_xu_ly.append({
+            'time': bc.NgayBaoCao,
+            'tag': "Phản hồi",
+            'tag_class': "vbd-process-tag-gray",
+            'icon': 'fa-exclamation-triangle',
+            'chuyen_toi': f"{bc.UserID.HoTen} ({bc.UserID.username})" if bc.UserID else "Nguời báo cáo",
+            'dong_xu_ly': "",
+            'action': bc.GhiChu or "Báo cáo văn bản sai sót/không phù hợp"
+        })
+
+    # Sắp xếp theo thời gian
+    qua_trinh_xu_ly.sort(key=lambda x: x['time'] if x['time'] else timezone.now(), reverse=False)
+    
+    # Xóa field thời gian trước khi trả về JSON để tránh lỗi serialize nếu cần, 
+    # nhưng ở đây ta chỉ cần extract thông tin string
+    for item in qua_trinh_xu_ly:
+        if 'time' in item: del item['time']
+
     return JsonResponse({
         'status': 'success',
         'data': {
@@ -90,7 +143,8 @@ def van_ban_den_xem(request, pk):
             'don_vi_ngoai_id': vbd.DonViNgoaiID_id,
             'tep_dinh_kem': vbd.TepDinhKem.url if vbd.TepDinhKem else '',
             'tep_name': vbd.TepDinhKem.name.split('/')[-1] if vbd.TepDinhKem else '',
-            'trang_thai': vbd.TrangThai
+            'trang_thai': vbd.TrangThai,
+            'qua_trinh_xu_ly': qua_trinh_xu_ly
         }
     })
 
@@ -101,19 +155,50 @@ def van_ban_den_sua(request, pk):
         if not vbd:
             return JsonResponse({'status': 'error', 'message': 'Không tìm thấy'})
             
-        old_val = f"{vbd.SoKyHieu} - {vbd.TrichYeu}"
+        # Lưu lại giá trị cũ để so sánh
+        old_data = {
+            'Số ký hiệu': vbd.SoKyHieu,
+            'Trích yếu': vbd.TrichYeu,
+            'Loại văn bản': vbd.LoaiVanBan,
+            'Ngày ban hành': vbd.NgayBanHanh.strftime('%d/%m/%Y') if vbd.NgayBanHanh else 'Trống',
+            'Ngày nhận': vbd.NgayNhan.strftime('%d/%m/%Y') if vbd.NgayNhan else 'Trống',
+            'Đơn vị gửi': vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else 'Trống',
+            'Trạng thái': 'Đang xử lý' if vbd.TrangThai != 'HOAN_THANH' else 'Hoàn thành'
+        }
         
         form = VanBanDenForm(request.POST, request.FILES)
         if form.is_valid():
             vbd = form.save(user=request.user if request.user.is_authenticated else None, instance=vbd)
             
-            LichSuHoatDong.objects.create(
-                UserID=request.user if request.user.is_authenticated else None,
-                LoaiDoiTuong='VanBanDen',
-                DoiTuongID=vbd.VanBanDenID,
-                HanhDong='Cập nhật',
-                NoiDungThayDoi=f'Cập nhật từ {old_val} thành {vbd.SoKyHieu} - {vbd.TrichYeu}'
-            )
+            # So sánh dữ liệu mới
+            new_data = {
+                'Số ký hiệu': vbd.SoKyHieu,
+                'Trích yếu': vbd.TrichYeu,
+                'Loại văn bản': vbd.LoaiVanBan,
+                'Ngày ban hành': vbd.NgayBanHanh.strftime('%d/%m/%Y') if vbd.NgayBanHanh else 'Trống',
+                'Ngày nhận': vbd.NgayNhan.strftime('%d/%m/%Y') if vbd.NgayNhan else 'Trống',
+                'Đơn vị gửi': vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else 'Trống',
+                'Trạng thái': 'Đang xử lý' if vbd.TrangThai != 'HOAN_THANH' else 'Hoàn thành'
+            }
+            
+            changes = []
+            for field, old_val in old_data.items():
+                new_val = new_data.get(field)
+                if old_val != new_val:
+                    changes.append(f"{field}: {old_val} -> {new_val}")
+            
+            if changes:
+                try:
+                    LichSuHoatDong.objects.create(
+                        UserID=request.user if request.user.is_authenticated else None,
+                        LoaiDoiTuong='VanBanDen',
+                        DoiTuongID=vbd.VanBanDenID,
+                        HanhDong='Cập nhật',
+                        NoiDungThayDoi='Thay đổi: ' + ', '.join(changes)
+                    )
+                except Exception as e:
+                    print(f"Lỗi lưu lịch sử: {e}")
+            
             return JsonResponse({'status': 'success'})
         else:
             return JsonResponse({'status': 'error', 'message': str(form.errors)})
@@ -140,7 +225,11 @@ def van_ban_den_lich_su(request):
     pk = request.GET.get('id')
     lich_su = LichSuHoatDong.objects.filter(LoaiDoiTuong='VanBanDen')
     if pk:
-        lich_su = lich_su.filter(DoiTuongID=pk)
+        try:
+            lich_su = lich_su.filter(DoiTuongID=int(pk))
+        except (ValueError, TypeError):
+            lich_su = lich_su.none()
+    
     lich_su = lich_su.order_by('-ThoiGianCapNhat')
     
     data = []

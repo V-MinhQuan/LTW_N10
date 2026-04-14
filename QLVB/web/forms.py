@@ -7,9 +7,10 @@ class VanBanDenForm(forms.Form):
     loai_van_ban = forms.CharField(max_length=50, required=False)
     ngay_ban_hanh = forms.DateField(required=False)
     ngay_nhan = forms.DateField(required=False)
-    dont_vi_ngoai_id = forms.CharField(required=False)
+    don_vi_ngoai_id = forms.CharField(required=False)
     tep_dinh_kem = forms.FileField(required=False)
     xoa_tep_dinh_kem = forms.CharField(required=False)
+    trang_thai = forms.CharField(max_length=50, required=False)
 
     def clean_don_vi_ngoai_id(self):
         don_vi_id = self.cleaned_data.get('don_vi_ngoai_id', '')
@@ -59,6 +60,9 @@ class VanBanDenForm(forms.Form):
                     instance.TepDinhKem.delete(save=False)
                 instance.TepDinhKem = None
                 
+            if data.get('trang_thai') is not None:
+                instance.TrangThai = data.get('trang_thai')
+                
             instance.save()
             return instance
         else:
@@ -72,6 +76,7 @@ class VanBanDenForm(forms.Form):
                 NgayNhan=data.get('ngay_nhan'),
                 DonViNgoaiID=data.get('don_vi_ngoai_id'), # this is the cleaned object
                 TepDinhKem=file_upload,
+                TrangThai=data.get('trang_thai', 'DANG_XU_LY'),
                 UserID=user
             )
             return vbd

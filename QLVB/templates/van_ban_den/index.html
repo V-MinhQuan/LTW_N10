@@ -308,6 +308,59 @@
   .vbd-process-action-highlight {
     color: #2f80ed !important;
     font-weight: 700 !important;
+    border-left: 3px solid #2f80ed !important;
+    background: #f0f7ff !important;
+  }
+
+  /* NEW TIMELINE STYLES */
+  .vbd-process-tag-cell {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    position: relative !important;
+  }
+
+  .vbd-process-line {
+    width: 2px !important;
+    background-color: #dee2e6 !important;
+    flex-grow: 1 !important;
+    margin-top: 5px !important;
+    min-height: 30px !important;
+  }
+
+  .vbd-process-user {
+    padding-left: 10px !important;
+  }
+
+  .vbd-p-target {
+    margin: 0 0 4px !important;
+    font-size: 11px !important;
+    color: #888 !important;
+    text-transform: uppercase !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  .vbd-p-target i {
+    color: #2f80ed !important;
+    font-size: 13px !important;
+  }
+
+  .vbd-p-name {
+    margin: 0 !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #2c3e50 !important;
+  }
+
+  .vbd-process-action {
+    background: #f8f9fa !important;
+    padding: 12px 15px !important;
+    border-radius: 6px !important;
+    border-left: 3px solid #dee2e6 !important;
+    align-items: start !important;
+    display: block !important;
   }
 
   /* UPLOAD AREA (popupAdd) */
@@ -486,7 +539,7 @@
       </div>
       <div class="btn-group" style="margin-top: 15px; margin-bottom: 25px;">
         <button class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>
-        <button class="btn btn-secondary" onclick="closeVBD('historyView')"><i class="fa fa-sync-alt"></i> Làm mới</button>
+        <button class="btn btn-secondary" onclick="closeVBD('historyView');"><i class="fa fa-sync-alt"></i> Làm mới</button>
       </div>
       
       <div class="table-responsive">
@@ -499,7 +552,7 @@
               <th>Nội dung thay đổi</th>
             </tr>
           </thead>
-          <tbody id="historyTableBody">
+          <tbody id="historyTableBodySearch">
             <!-- JS will populate this -->
           </tbody>
         </table>
@@ -691,35 +744,7 @@
           <div>NHÂN SỰ THỰC HIỆN</div>
           <div>THAO TÁC XỬ LÝ</div>
         </div>
-        <div class="vbd-process-rows">
-          <div class="vbd-process-row">
-            <div class="vbd-process-tag vbd-process-tag-blue">Chuyển tiếp</div>
-            <div class="vbd-process-user">
-              <p><b>CHUYỂN TỚI</b></p>
-              <p>Lê Minh Nguyệt (nguyetlm)</p>
-              <p><b>ĐỒNG XỬ LÝ</b></p>
-              <p>Trần Bá Hùng (hungtb)</p>
-            </div>
-            <div class="vbd-process-action">Chuyển Văn thư Tập đoàn</div>
-          </div>
-          <div class="vbd-process-row">
-            <div class="vbd-process-tag vbd-process-tag-gray">Báo cáo</div>
-            <div class="vbd-process-user">
-              <p><b>CHUYỂN TỚI</b></p>
-              <p>Phạm Đức Long (longpd)</p>
-            </div>
-            <div class="vbd-process-action">Trình lãnh đạo Tập đoàn</div>
-          </div>
-          <div class="vbd-process-row">
-            <div class="vbd-process-tag vbd-process-tag-active">Đang thực hiện</div>
-            <div class="vbd-process-user">
-              <p><b>CHUYỂN TỚI</b></p>
-              <p>Lê Anh Tuấn (tuanla)</p>
-              <p><b>ĐỒNG XỬ LÝ</b></p>
-              <p>Phạm Thu Thảo, Quách Gia Huy</p>
-            </div>
-            <div class="vbd-process-action vbd-process-action-highlight">Đề xuất phương án hạ tầng số</div>
-          </div>
+        <div class="vbd-process-rows" id="view_process_rows">
         </div>
       </div>
 
@@ -736,66 +761,23 @@
       <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('historyOverlay')"></i>
     </div>
     <div class="vbd-popup-body">
-      <div class="history-search-grid">
-        <div class="search-item">
-          <label>Từ ngày - Đến ngày</label>
-          <div class="date-range">
-            <input type="date" class="form-control" />
-            <span>-</span>
-            <input type="date" class="form-control" />
-          </div>
-        </div>
-        <div class="search-item">
-          <label>Số hiệu/Số văn bản</label>
-          <input type="text" class="form-control" placeholder="Nhập số hiệu hoặc số văn bản" />
-        </div>
-        <div class="search-item">
-          <label>Trích yếu</label>
-          <input type="text" class="form-control" placeholder="Nhập trích yếu" />
-        </div>
-      </div>
-      <div class="btn-group" style="margin-top: 15px; margin-bottom: 25px;">
-        <button class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>
-        <button class="btn btn-secondary"><i class="fa fa-sync-alt"></i> Làm mới</button>
+      <!-- Hiện thông tin lịch sử trực tiếp cho văn bản này, không cần tìm kiếm -->
+      <div style="margin-bottom: 20px; font-weight: bold; color: #2c3e50; text-align: center; background: #e3f2fd; padding: 12px; border: 1px solid #bbdefb; border-radius: 6px;">
+        <i class="fa fa-history"></i> DANH SÁCH LỊCH SỬ CẬP NHẬT CHI TIẾT
       </div>
 
       <div class="table-responsive">
         <table class="history-table-full">
           <thead>
             <tr>
-              <th style="width: 50px;">STT</th>
               <th style="width: 150px;">Thời gian</th>
               <th style="width: 150px;">Người thực hiện</th>
-              <th style="width: 120px;">Mã văn bản</th>
-              <th style="width: 250px;">Trích yếu</th>
+              <th style="width: 120px;">Hành động</th>
               <th>Nội dung thay đổi</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td class="text-center">1</td>
-              <td class="text-center">01/03/2026 14:30</td>
-              <td>Nguyễn Văn A</td>
-              <td class="text-center">15/CV-SDL</td>
-              <td>Thông báo nghỉ lễ 30/4</td>
-              <td><span class="status-pill pill-blue">Thêm mới</span> văn bản</td>
-            </tr>
-            <tr>
-              <td class="text-center">2</td>
-              <td class="text-center">03/03/2026 09:15</td>
-              <td>Trần Thị B</td>
-              <td class="text-center">15/CV-SDL</td>
-              <td>Thông báo nghỉ lễ 30/4</td>
-              <td>Cập nhật bộ phận xử lý</td>
-            </tr>
-            <tr>
-              <td class="text-center">3</td>
-              <td class="text-center">05/03/2026 16:45</td>
-              <td>Lê Văn C</td>
-              <td class="text-center">15/CV-SDL</td>
-              <td>Thông báo nghỉ lễ 30/4</td>
-              <td>Thay đổi trạng thái sang <span class="status-pill pill-green">Hoàn thành</span></td>
-            </tr>
+          <tbody id="historyTableBodyDetail">
+            <!-- Dữ liệu lịch sử sẽ được load động qua JS -->
           </tbody>
         </table>
       </div>
@@ -844,14 +826,23 @@
           </div>
         </div>
 
-        <div class="vbd-row-full">
-          <label>Đơn vị gửi</label>
-          <select name="don_vi_ngoai_id" id="edit_don_vi_gui" class="form-control" style="flex:1;">
-            <option value="">- Chọn đơn vị -</option>
-            {% for dv in don_vi_ngoai %}
-            <option value="{{ dv.DonViNgoaiID }}">{{ dv.TenDonVi }}</option>
-            {% endfor %}
-          </select>
+        <div class="vbd-grid">
+          <div class="vbd-field">
+            <label>Đơn vị gửi</label>
+            <select name="don_vi_ngoai_id" id="edit_don_vi_gui" class="form-control" style="flex:1;">
+              <option value="">- Chọn đơn vị -</option>
+              {% for dv in don_vi_ngoai %}
+              <option value="{{ dv.DonViNgoaiID }}">{{ dv.TenDonVi }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="vbd-field">
+            <label>Trạng thái</label>
+            <select name="trang_thai" id="edit_trang_thai" class="form-control" style="flex:1;">
+              <option value="DANG_XU_LY">Đang xử lý</option>
+              <option value="HOAN_THANH">Hoàn thành</option>
+            </select>
+          </div>
         </div>
 
         <div class="vbd-attachment-header">

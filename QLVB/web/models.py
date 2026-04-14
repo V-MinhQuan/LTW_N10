@@ -128,7 +128,7 @@ class ChuyenTiep(models.Model):
 
 class LichSuHoatDong(models.Model):
     LichSuID = models.AutoField(primary_key=True)
-    UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE)
+    UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE, null=True, blank=True)
     LoaiDoiTuong = models.CharField(max_length=50, null=True, blank=True)
     DoiTuongID = models.IntegerField(null=True, blank=True)
     HanhDong = models.CharField(max_length=50, null=True, blank=True)
