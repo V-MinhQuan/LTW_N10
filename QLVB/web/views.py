@@ -7,7 +7,7 @@ from .models import UserAccount
 from django.contrib.auth import login as auth_login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Q, Max
+from django.db.models import Q, Max, Case, When, Value, IntegerField
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render, redirect
@@ -161,7 +161,7 @@ def quen_mat_khau_view(request):
 # --- QUẢN LÝ VĂN BẢN ĐẾN ---
 def van_ban_den_index(request):
     danh_sach = VanBanDen.objects.select_related('DonViNgoaiID', 'DonViTrongID').all().order_by('-VanBanDenID')
-    don_vi_ngoai = DonViBenNgoai.objects.all()
+    don_vi_ngoai = DonViBenNgoai.objects.filter(trang_thai='ACTIVE')
     don_vi_trong = DonViBenTrong.objects.all()
 
     # Get filter params
@@ -447,7 +447,7 @@ def van_ban_di_index(request):
 
     paginator  = Paginator(vbs, page_size)
     page_obj   = paginator.get_page(page_number)
-    don_vi_ngoai_list = DonViBenNgoai.objects.all()
+    don_vi_ngoai_list = DonViBenNgoai.objects.filter(trang_thai='ACTIVE')
     don_vi_trong_list = DonViBenTrong.objects.all()
 
     # Tính range trang hiển thị (tối đa 3 trang xung quanh trang hiện tại)
@@ -784,8 +784,7 @@ def thong_tin_view(request):
 
     return render(request, 'quan_ly_nguoi_dung/thong_tin.html')
 
-def thong_tin_view(request):
-    return render(request, 'quan_ly_nguoi_dung/thong_tin.html')
+
 
 # --- API NGƯỜI DÙNG ---
 def api_nguoi_dung_list(request):
@@ -797,7 +796,12 @@ def api_nguoi_dung_list(request):
     page_number = request.GET.get('page', 1)
     page_size = 5
 
-    users = UserAccount.objects.select_related('VaiTroID').all().order_by('SoThuTu', '-pk')
+    # Sắp xếp: ACTIVE trước, INACTIVE sau
+    users = UserAccount.objects.select_related('VaiTroID').all().order_by(
+        Case(When(trang_thai='INACTIVE', then=1), default=0),
+        'SoThuTu',
+        'UserID'
+    )
 
     if user_id:
         users = users.filter(UserID=user_id)
@@ -808,14 +812,19 @@ def api_nguoi_dung_list(request):
     if query_dept:
         users = users.filter(PhongBan__icontains=query_dept)
     if query_status:
-        status_val = True if query_status == 'Đang hoạt động' else False
-        users = users.filter(TrangThai=status_val)
+        # Map label lọc sang code DB
+        status_db = 'ACTIVE' if query_status == 'Đang hoạt động' else 'INACTIVE'
+        users = users.filter(trang_thai=status_db)
 
     paginator = Paginator(users, page_size)
     page_obj = paginator.get_page(page_number)
 
     user_list = []
     for u in page_obj:
+        # Chốt logic nhãn: ACTIVE -> Đang hoạt động, còn lại -> Vô hiệu hóa
+        trang_thai_db = (u.trang_thai or 'ACTIVE').strip().upper()
+        is_active = (trang_thai_db == 'ACTIVE')
+        
         user_list.append({
             'id': u.UserID,
             'username': u.username,
@@ -825,7 +834,8 @@ def api_nguoi_dung_list(request):
             'dept': u.PhongBan,
             'role_id': u.VaiTroID.VaiTroID if u.VaiTroID else None,
             'role_name': u.VaiTroID.ChucVu if u.VaiTroID else '',
-            'status': 'Đang hoạt động' if u.TrangThai else 'Vô hiệu hóa',
+            'status': trang_thai_db,
+            'status_label': 'Đang hoạt động' if is_active else 'Vô hiệu hóa',
             'stt': u.SoThuTu
         })
 
@@ -868,8 +878,11 @@ def api_upsert_user(request):
                 user.VaiTroID = get_object_or_404(VaiTro, VaiTroID=role_id)
 
             # Trạng thái
-            status_text = data.get('status')
-            user.TrangThai = True if status_text == 'Đang hoạt động' else False
+            status_code = data.get('status')
+            if status_code in ['ACTIVE', 'INACTIVE']:
+                user.trang_thai = status_code
+            else:
+                user.trang_thai = 'ACTIVE' if status_code == 'Đang hoạt động' else 'INACTIVE'
 
             # Mật khẩu (chỉ set nếu là tạo mới hoặc có nhập pass mới)
             password = data.get('password')
@@ -886,14 +899,33 @@ def api_upsert_user(request):
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
 
-def api_delete_user(request):
+@csrf_exempt
+def api_nguoi_dung_update_status(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             user_id = data.get('id')
+            new_status = data.get('status') # 'ACTIVE' or 'INACTIVE'
+            
             user = get_object_or_404(UserAccount, UserID=user_id)
-            user.delete()
-            return JsonResponse({'status': 'success', 'message': 'Xóa người dùng thành công!'})
+            old_status = user.trang_thai
+            user.trang_thai = new_status
+            user.save()
+            
+            # Ghi lịch sử hoạt động
+            action = 'Vô hiệu hóa' if new_status == 'INACTIVE' else 'Khôi phục'
+            msg = f"{action} người dùng: {user.username}"
+            LichSuHoatDong.objects.create(
+                UserID=request.user,
+                LoaiDoiTuong='UserAccount',
+                DoiTuongID=user.UserID,
+                HanhDong=action,
+                NoiDungThayDoi=msg,
+                TrangThaiCu=old_status,
+                TrangThaiMoi=new_status
+            )
+            
+            return JsonResponse({'status': 'success', 'message': f'Đã {action.lower()} người dùng thành công!'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
@@ -910,19 +942,29 @@ def quan_ly_don_vi_ben_ngoai(request):
     query_name = request.GET.get('name', '')
     query_address = request.GET.get('address', '')
     query_contact = request.GET.get('contact', '')
+    query_status = request.GET.get('status', '') # Thêm filter trạng thái
     page_number = request.GET.get('page', 1)
-    page_size = 5  # Giới hạn duy nhất cho quản lý đơn vị
+    page_size = 5
     unit_id = request.GET.get('id')
 
-    units = DonViBenNgoai.objects.all().order_by('SoThuTu', '-pk')
+    units = DonViBenNgoai.objects.annotate(
+        sort_status=Case(
+            When(trang_thai='INACTIVE', then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField(),
+        )
+    ).order_by('sort_status', 'SoThuTu', '-pk')
 
     if unit_id:
         units = units.filter(DonViNgoaiID=unit_id)
+    if query_name:
         units = units.filter(TenDonVi__icontains=query_name)
     if query_address:
         units = units.filter(DiaChi__icontains=query_address)
     if query_contact:
         units = units.filter(NguoiLienHe__icontains=query_contact)
+    if query_status and query_status != 'ALL':
+        units = units.filter(trang_thai=query_status)
 
     paginator = Paginator(units, page_size)
     page_obj = paginator.get_page(page_number)
@@ -936,7 +978,8 @@ def quan_ly_don_vi_ben_ngoai(request):
                 'address': u.DiaChi,
                 'phone': u.SoDienThoai,
                 'email': u.Email,
-                'contact': u.NguoiLienHe
+                'contact': u.NguoiLienHe,
+                'status': u.trang_thai # Thêm status
             })
         return JsonResponse({
             'status': 'success',
@@ -954,7 +997,8 @@ def quan_ly_don_vi_ben_ngoai(request):
         'page_obj': page_obj,
         'query_name': query_name,
         'query_address': query_address,
-        'query_contact': query_contact
+        'query_contact': query_contact,
+        'query_status': query_status
     })
 
 
@@ -962,14 +1006,28 @@ def quan_ly_don_vi_ben_trong(request):
     query_name = request.GET.get('name', '')
     query_address = request.GET.get('address', '')
     query_contact = request.GET.get('contact', '')
+    query_status = request.GET.get('status', 'ALL')
     page_number = request.GET.get('page', 1)
     page_size = 5  # Giới hạn duy nhất cho quản lý đơn vị
     unit_id = request.GET.get('id')
 
-    units = DonViBenTrong.objects.all().order_by('SoThuTu', '-pk')
+    units = DonViBenTrong.objects.annotate(
+        sort_status=Case(
+            When(trang_thai='INACTIVE', then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField(),
+        )
+    ).order_by('sort_status', 'SoThuTu', '-pk')
+
+    if query_status == 'ACTIVE':
+        units = units.filter(trang_thai='ACTIVE')
+    elif query_status == 'INACTIVE':
+        units = units.filter(trang_thai='INACTIVE')
 
     if unit_id:
         units = units.filter(DonViTrongID=unit_id)
+    
+    if query_name:
         units = units.filter(TenDonVi__icontains=query_name)
     if query_address:
         units = units.filter(DiaChi__icontains=query_address)
@@ -988,7 +1046,8 @@ def quan_ly_don_vi_ben_trong(request):
                 'address': u.DiaChi,
                 'phone': u.SoDienThoai,
                 'email': u.Email,
-                'contact': u.NguoiLienHe
+                'contact': u.NguoiLienHe,
+                'status': u.trang_thai
             })
         return JsonResponse({
             'status': 'success',
@@ -1006,7 +1065,8 @@ def quan_ly_don_vi_ben_trong(request):
         'page_obj': page_obj,
         'query_name': query_name,
         'query_address': query_address,
-        'query_contact': query_contact
+        'query_contact': query_contact,
+        'query_status': query_status
     })
 
 
@@ -1048,19 +1108,42 @@ def api_upsert_don_vi(request):
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
 def api_delete_don_vi(request):
+    """API xử lý Ngừng hợp tác (Soft Delete) hoặc Xóa thực tế tùy loại"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             unit_type = data.get('type')
             unit_id = data.get('id')
+            action = data.get('action') # 'deactivate' or 'reactivate' or 'delete'
             
-            if unit_type == 'trong':
-                unit = get_object_or_404(DonViBenTrong, DonViTrongID=unit_id)
-            else:
+            if unit_type == 'ngoai':
                 unit = get_object_or_404(DonViBenNgoai, DonViNgoaiID=unit_id)
-            
-            unit.delete()
-            return JsonResponse({'status': 'success', 'message': 'Xóa thành công!'})
+                if action == 'deactivate':
+                    unit.trang_thai = 'INACTIVE'
+                    unit.save()
+                    return JsonResponse({'status': 'success', 'message': 'Đã chuyển sang ngừng hợp tác!'})
+                elif action == 'reactivate':
+                    unit.trang_thai = 'ACTIVE'
+                    unit.save()
+                    return JsonResponse({'status': 'success', 'message': 'Đã kích hoạt lại thành công!'})
+                else:
+                    # Giữ lại logic xóa cũ nếu cần cho các trường hợp khác, nhưng UI giờ dùng deactivate
+                    unit.delete()
+                    return JsonResponse({'status': 'success', 'message': 'Xóa thành công!'})
+            else:
+                unit = get_object_or_404(DonViBenTrong, DonViTrongID=unit_id)
+                if action == 'deactivate':
+                    unit.trang_thai = 'INACTIVE'
+                    unit.save()
+                    return JsonResponse({'status': 'success', 'message': 'Đã chuyển sang ngừng hợp tác!'})
+                elif action == 'reactivate':
+                    unit.trang_thai = 'ACTIVE'
+                    unit.save()
+                    return JsonResponse({'status': 'success', 'message': 'Đã kích hoạt lại thành công!'})
+                else:
+                    unit.delete()
+                    return JsonResponse({'status': 'success', 'message': 'Xóa thành công!'})
+                
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)

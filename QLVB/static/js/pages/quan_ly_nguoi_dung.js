@@ -49,34 +49,40 @@ function openModal(title, mode) {
     modal.style.display = "block";
     overlay.style.display = "block";
     document.getElementById('userModalTitle').innerText = title;
-    
+
     const inputs = modal.querySelectorAll('.modal-input');
     const saveBtn = document.getElementById('btnSaveUser');
-    const passwordField = document.getElementById('passwordField');
-
+    const statusBtn = document.getElementById('btnUpdateStatus');
     if (mode === 'view') {
         inputs.forEach(i => i.disabled = true);
         if (saveBtn) saveBtn.style.display = 'none';
-        if (passwordField) passwordField.style.display = 'none';
+        if (statusBtn) statusBtn.style.display = 'none';
     } else if (mode === 'edit') {
         inputs.forEach(i => i.disabled = false);
         if (saveBtn) saveBtn.style.display = 'block';
-        if (passwordField) passwordField.style.display = 'block'; // Allow updating password
+
+        // Chỉ hiện nút Vô hiệu hóa nếu user đang ACTIVE
+        const currentStatus = (document.getElementById('userStatus').value || '').toString().toUpperCase();
+        if (statusBtn) {
+            statusBtn.style.display = (currentStatus === 'ACTIVE' || currentStatus === 'ĐANG HOẠT ĐỘNG') ? 'block' : 'none';
+        }
     } else {
         // Add mode
         inputs.forEach(i => i.disabled = false);
         inputs.forEach(i => i.value = '');
         if (saveBtn) saveBtn.style.display = 'block';
-        if (passwordField) passwordField.style.display = 'block';
+        if (statusBtn) statusBtn.style.display = 'none';
+        const statusInput = document.getElementById('userStatus');
+        if (statusInput) statusInput.value = 'ACTIVE';
     }
 }
 
-window.closeModal = function() {
+window.closeModal = function () {
     if (modal) modal.style.display = "none";
     if (overlay) overlay.style.display = "none";
 }
 
-window.loadUsers = function(page = 1) {
+window.loadUsers = function (page = 1) {
     currentPage = page;
     const username = document.getElementById('searchUsername')?.value || '';
     const fullname = document.getElementById('searchFullName')?.value || '';
@@ -112,6 +118,21 @@ function renderTable(users, pagination) {
 
     users.forEach((user, index) => {
         const tr = document.createElement('tr');
+
+        // Resilience: Handle both backend status code and label
+        const s_code = (user.status || '').toString().toUpperCase().trim();
+        const s_label = (user.status_label || '').toString().trim();
+        const isActive = (s_code === 'ACTIVE' || s_label === 'Đang hoạt động' || user.status === 'Đang hoạt động');
+
+        const pillClass = isActive ? 'pill-active-modern' : 'pill-inactive-modern';
+        const displayLabel = isActive ? 'Đang hoạt động' : 'Vô hiệu hóa';
+
+        // ACTIVE user: Xem, Sửa
+        // INACTIVE user: Xem, Sửa, Khôi phục (vàng cam)
+        const actionBtnExtra = !isActive
+            ? `<button type="button" class="action-btn btn-restore" onclick="toggleUserStatusById(${user.id}, 'ACTIVE')" title="Khôi phục"><i class="fas fa-undo"></i></button>`
+            : '';
+
         tr.innerHTML = `
             <td class="col-stt">${user.stt || (startSTT + index)}</td>
             <td>${user.username}</td>
@@ -120,12 +141,12 @@ function renderTable(users, pagination) {
             <td>${user.role_name || ''}</td>
             <td>${user.email}</td>
             <td class="col-status">
-                <span class="status-pill ${user.status === 'Đang hoạt động' ? 'pill-green' : 'pill-red'}">${user.status}</span>
+                <span class="status-pill ${pillClass}">${displayLabel}</span>
             </td>
             <td class="col-actions">
                 <button type="button" class="action-btn btn-primary" onclick="viewUserById(${user.id})" title="Xem"><i class="fas fa-eye"></i></button>
                 <button type="button" class="action-btn btn-success" onclick="editUserById(${user.id})" title="Sửa"><i class="fas fa-edit"></i></button>
-                <button type="button" class="action-btn btn-danger" onclick="confirmDeleteUser(${user.id})" title="Xóa"><i class="fas fa-trash-alt"></i></button>
+                ${actionBtnExtra}
             </td>
         `;
         tbody.appendChild(tr);
@@ -139,10 +160,9 @@ function renderPagination(pagination) {
 
     if (pagination.total_pages <= 1) return;
 
-    if (pagination.current_page > 1) {
-        container.appendChild(createPageBtn('Đầu', 1));
-        container.appendChild(createPageBtn('Trước', pagination.current_page - 1));
-    }
+    // Luôn hiện Đầu và Trước
+    container.appendChild(createPageBtn('Đầu', 1, false));
+    container.appendChild(createPageBtn('Trước', Math.max(1, pagination.current_page - 1), false));
 
     let startPage = Math.max(1, pagination.current_page - 2);
     let endPage = Math.min(pagination.total_pages, startPage + 4);
@@ -154,10 +174,9 @@ function renderPagination(pagination) {
         container.appendChild(createPageBtn(i, i, i === pagination.current_page));
     }
 
-    if (pagination.has_next) {
-        container.appendChild(createPageBtn('Sau', pagination.current_page + 1));
-        container.appendChild(createPageBtn('Cuối', pagination.total_pages));
-    }
+    // Luôn hiện Sau và Cuối
+    container.appendChild(createPageBtn('Sau', Math.min(pagination.total_pages, pagination.current_page + 1), false));
+    container.appendChild(createPageBtn('Cuối', pagination.total_pages, false));
 }
 
 function createPageBtn(text, page, active = false) {
@@ -171,7 +190,7 @@ function createPageBtn(text, page, active = false) {
     return btn;
 }
 
-window.viewUserById = function(id) {
+window.viewUserById = function (id) {
     fetch(`/api/nguoi-dung/list/?id=${id}`)
         .then(res => res.json())
         .then(res => {
@@ -182,7 +201,7 @@ window.viewUserById = function(id) {
         });
 }
 
-window.editUserById = function(id) {
+window.editUserById = function (id) {
     currentId = id;
     fetch(`/api/nguoi-dung/list/?id=${id}`)
         .then(res => res.json())
@@ -202,43 +221,52 @@ function populateModal(user) {
     document.getElementById('userEmail').value = user.email;
     document.getElementById('userPhone').value = user.phone || '';
     document.getElementById('userStatus').value = user.status;
-    document.getElementById('userPassword').value = ''; // Don't show password
 }
 
-window.confirmDeleteUser = function(id) {
-    App.confirmDelete("Bạn có chắc chắn muốn xóa người dùng này không?", function() {
-        deleteUserConfirm(id);
-    });
+window.toggleUserStatus = function () {
+    if (!currentId) return;
+    toggleUserStatusById(currentId, 'INACTIVE');
 }
 
-window.closeDeleteUserModal = function() {
-    overlay.style.display = "none";
-    deleteModal.style.display = "none";
-    currentId = null;
-}
+window.toggleUserStatusById = function (id, newStatus) {
+    const isDeactivating = (newStatus === 'INACTIVE');
+    const title = isDeactivating ? 'Xác nhận vô hiệu hóa' : 'Xác nhận kích hoạt lại';
+    const message = isDeactivating
+        ? 'Bạn có chắc muốn vô hiệu hóa người dùng này? Người dùng sẽ không thể tiếp tục sử dụng hệ thống, nhưng dữ liệu lịch sử vẫn được giữ lại.'
+        : 'Bạn có chắc muốn kích hoạt lại người dùng này để tiếp tục sử dụng hệ thống?';
+    const icon = isDeactivating ? 'fa-ban' : 'fa-check-circle';
+    const type = isDeactivating ? 'danger' : 'success';
 
-window.deleteUserConfirm = function(id) {
-    fetch('/api/nguoi-dung/delete/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({ id: id })
-    })
-    .then(res => res.json())
-    .then(res => {
-        if (res.status === 'success') {
-            App.showSuccess(res.message, () => {
-                loadUsers(currentPage);
-            });
-        } else {
-            alert('Lỗi: ' + res.message);
+    App.confirm({
+        title: title,
+        message: message,
+        type: type,
+        icon: icon,
+        onConfirm: () => {
+            fetch('/api/nguoi-dung/update-status/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ id: id, status: newStatus })
+            })
+                .then(res => res.json())
+                .then(res => {
+                    if (res.status === 'success') {
+                        App.showSuccess(res.message, () => {
+                            window.closeModal();
+                            loadUsers(currentPage);
+                        });
+                    } else {
+                        alert('Lỗi: ' + res.message);
+                    }
+                });
         }
     });
 }
 
-window.saveData = function() {
+window.saveData = function () {
     const payload = {
         id: currentId,
         username: document.getElementById('userUsername').value,
@@ -247,8 +275,7 @@ window.saveData = function() {
         phone: document.getElementById('userPhone').value,
         dept: document.getElementById('userDept').value,
         role_id: document.getElementById('userRole').value,
-        status: document.getElementById('userStatus').value,
-        password: document.getElementById('userPassword').value
+        status: (currentId === null) ? 'ACTIVE' : document.getElementById('userStatus').value
     };
 
     if (!payload.username || !payload.fullname || !payload.email || !payload.dept || !payload.role_id) {
@@ -264,24 +291,24 @@ window.saveData = function() {
         },
         body: JSON.stringify(payload)
     })
-    .then(res => res.json())
-    .then(res => {
-        if (res.status === 'success') {
-            App.showSuccess(res.message, () => {
-                closeModal();
-                loadUsers(currentPage);
-            });
-        } else {
-            alert('Lỗi: ' + res.message);
-        }
-    })
-    .catch(err => {
-        console.error('Save error:', err);
-        alert('Đã xảy ra lỗi khi lưu.');
-    });
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === 'success') {
+                App.showSuccess(res.message, () => {
+                    closeModal();
+                    loadUsers(currentPage);
+                });
+            } else {
+                alert('Lỗi: ' + res.message);
+            }
+        })
+        .catch(err => {
+            console.error('Save error:', err);
+            alert('Đã xảy ra lỗi khi lưu.');
+        });
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     loadRoles();
     loadUsers(1);
 
@@ -306,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const addBtn = document.querySelector('.btn-success');
     if (addBtn) {
-        addBtn.onclick = function() {
+        addBtn.onclick = function () {
             currentId = null;
             openModal('THÊM NGƯỜI DÙNG MỚI', 'add');
         };

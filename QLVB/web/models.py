@@ -19,6 +19,9 @@ class UserAccount(AbstractUser):
     NgaySinh = models.DateField(null=True, blank=True)
     GioiTinh = models.CharField(max_length=10, choices=[('Nam', 'Nam'), ('Nữ', 'Nữ')], null=True, blank=True)
     TrangThai = models.BooleanField(default=True)
+    trang_thai = models.CharField(max_length=20, default='ACTIVE')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     SoThuTu = models.IntegerField(default=0, null=True, blank=True)
     PhongBan = models.CharField(max_length=100, null=True, blank=True)
 
@@ -39,6 +42,9 @@ class DonViBenTrong(models.Model):
     NguoiLienHe = models.CharField(max_length=100, null=True, blank=True)
     Email = models.EmailField(max_length=100, null=True, blank=True)
     SoThuTu = models.IntegerField(default=0, null=True, blank=True)
+    trang_thai = models.CharField(max_length=20, default='ACTIVE')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
     def __str__(self):
@@ -55,6 +61,9 @@ class DonViBenNgoai(models.Model):
     NguoiLienHe = models.CharField(max_length=100, null=True, blank=True)
     Email = models.EmailField(max_length=100, null=True, blank=True)
     SoThuTu = models.IntegerField(default=0, null=True, blank=True)
+    trang_thai = models.CharField(max_length=20, default='ACTIVE')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
     def __str__(self):

@@ -18,16 +18,19 @@
 <div class="panel">
     <div class="panel-header header-blue">Tìm kiếm đơn vị bên ngoài</div>
     <div class="panel-body">
-        <form method="GET" action="{% url 'qldv_ngoai' %}" class="search-row">
-            <div class="search-inputs">
-                <input type="text" name="name" class="form-control" placeholder="Nhập tên đơn vị"
-                    value="{{ query_name }}">
-                <input type="text" name="address" class="form-control" placeholder="Nhập địa chỉ"
-                    value="{{ query_address }}">
-                <input type="text" name="contact" class="form-control" placeholder="Nhập người liên hệ"
-                    value="{{ query_contact }}">
-            </div>
-            <div class="btn-group">
+        <form method="GET" action="{% url 'qldv_ngoai' %}" class="search-grid">
+            <input type="text" name="name" class="form-control" placeholder="Nhập tên đơn vị"
+                value="{{ query_name }}">
+            <input type="text" name="address" class="form-control" placeholder="Nhập địa chỉ"
+                value="{{ query_address }}">
+            <input type="text" name="contact" class="form-control" placeholder="Nhập người liên hệ"
+                value="{{ query_contact }}">
+            <select name="status" class="form-control">
+                <option value="ALL" {% if query_status == 'ALL' or not query_status %}selected{% endif %}>Tất cả trạng thái</option>
+                <option value="ACTIVE" {% if query_status == 'ACTIVE' %}selected{% endif %}>Đang hợp tác</option>
+                <option value="INACTIVE" {% if query_status == 'INACTIVE' %}selected{% endif %}>Ngừng hợp tác</option>
+            </select>
+            <div class="btn-group" style="grid-column: span 4; justify-content: flex-start; margin-top: 0;">
                 <button type="submit" class="btn btn-blue"><i class="fas fa-search"></i> Tìm kiếm</button>
                 <a href="{% url 'qldv_ngoai' %}" class="btn btn-gray"><i class="fas fa-sync-alt"></i> Làm mới</a>
                 <button type="button" class="btn btn-green"><i class="fas fa-plus"></i> Thêm mới</button>
@@ -49,7 +52,8 @@
                         <th width="15%">Điện thoại</th>
                         <th width="15%">Email</th>
                         <th width="15%">Người liên hệ</th>
-                        <th width="10%" class="col-actions">Thao tác</th>
+                        <th width="12%" class="col-status">Trạng thái</th>
+                        <th width="12%" class="col-actions">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody id="unitTableBody">
@@ -59,9 +63,16 @@
                         <td style="text-align: left;"><a href="javascript:void(0)" class="text-blue"
                                 onclick="viewUnit(this)">{{ unit.TenDonVi }}</a></td>
                         <td style="text-align: left;">{{ unit.DiaChi|default:"" }}</td>
-                        <td>{{ unit.SoDienThoai|default:"" }}</td>
-                        <td>{{ unit.Email|default:"" }}</td>
-                        <td>{{ unit.NguoiLienHe|default:"" }}</td>
+                        <td class="text-left">{{ unit.SoDienThoai|default:"" }}</td>
+                        <td class="text-left">{{ unit.Email|default:"" }}</td>
+                        <td class="text-left">{{ unit.NguoiLienHe|default:"" }}</td>
+                        <td class="col-status">
+                            {% if unit.trang_thai == 'ACTIVE' %}
+                                <span class="status-pill pill-green">Đang hợp tác</span>
+                            {% else %}
+                                <span class="status-pill pill-gray">Ngừng hợp tác</span>
+                            {% endif %}
+                        </td>
                         <td class="col-actions">
                             <button class="action-btn btn-primary" onclick="viewUnit(this)" title="Xem"
                                 data-name="{{ unit.TenDonVi }}" data-address="{{ unit.DiaChi|default:'' }}"
@@ -73,18 +84,21 @@
                                 data-id="{{ unit.DonViNgoaiID }}" data-name="{{ unit.TenDonVi }}"
                                 data-address="{{ unit.DiaChi|default:'' }}"
                                 data-phone="{{ unit.SoDienThoai|default:'' }}" data-email="{{ unit.Email|default:'' }}"
-                                data-contact="{{ unit.NguoiLienHe|default:'' }}">
+                                data-contact="{{ unit.NguoiLienHe|default:'' }}"
+                                data-status="{{ unit.trang_thai }}">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="action-btn btn-danger" onclick="confirmDelete(this)" title="Xóa"
+                            {% if unit.trang_thai == 'INACTIVE' %}
+                            <button class="action-btn btn-warning" onclick="confirmReactivate(this)" title="Khôi phục"
                                 data-id="{{ unit.DonViNgoaiID }}">
-                                <i class="fas fa-trash-alt"></i>
+                                <i class="fas fa-rotate-left"></i>
                             </button>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" style="text-align: center;">Không tìm thấy kết quả nào</td>
+                        <td colspan="8" style="text-align: center;">Không tìm thấy kết quả nào</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -96,6 +110,9 @@
                 <!-- Pagination buttons will be loaded/updated via AJAX -->
                 {% if page_obj.paginator.num_pages > 1 %}
                     <button type="button" class="page-btn" onclick="loadUnits(1)">Đầu</button>
+                    {% if page_obj.has_previous %}
+                        <button type="button" class="page-btn" onclick="loadUnits({{ page_obj.previous_page_number }})">Trước</button>
+                    {% endif %}
                     
                     {% for num in page_obj.paginator.page_range %}
                         {% if page_obj.number == num %}
@@ -149,6 +166,11 @@
     </div>
     <div class="modal-footer"
         style="padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn" id="btnDeactivateModal" 
+            style="background: #fff5f5; color: #e74c3c; border: 1px solid #ffcfcf; margin-right: auto; display: none;" 
+            onclick="handleDeactivateFromModal()">
+            <i class="fas fa-ban"></i> Ngừng hợp tác
+        </button>
         <button class="btn btn-secondary" onclick="closeUnitModal()">Hủy</button>
         <button class="btn btn-primary" id="btnSaveUnit" onclick="saveUnit()">Lưu</button>
     </div>
@@ -168,5 +190,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/pages/quan_ly_don_vi.js' %}"></script>
+<script src="{% static 'js/pages/quan_ly_don_vi.js' %}?v={% now 'U' %}"></script>
 {% endblock %}

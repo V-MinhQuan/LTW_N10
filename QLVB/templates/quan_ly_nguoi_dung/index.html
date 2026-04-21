@@ -88,10 +88,7 @@
                     <label>Tên đăng nhập (<span class="required">*</span>)</label>
                     <input type="text" id="userUsername" class="modal-input" placeholder="Nhập tên đăng nhập">
                 </div>
-                <div id="passwordField" class="form-group">
-                    <label>Mật khẩu (<span class="required">*</span>)</label>
-                    <input type="password" id="userPassword" class="modal-input" placeholder="Nhập mật khẩu">
-                </div>
+
             </div>
 
             <!-- Hàng 2 -->
@@ -136,33 +133,21 @@
                 <div class="form-group">
                     <label>Trạng thái</label>
                     <select id="userStatus" class="modal-input">
-                        <option>Đang hoạt động</option>
-                        <option>Vô hiệu hóa</option>
+                        <option value="ACTIVE">Đang hoạt động</option>
+                        <option value="INACTIVE">Vô hiệu hóa</option>
                     </select>
                 </div>
             </div>
         </form>
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn btn-red-outline" id="btnUpdateStatus" style="display: none; margin-right: auto;" onclick="toggleUserStatus()"><i class="fas fa-ban" style="margin-right: 5px;"></i> Vô hiệu hóa</button>
         <button class="btn btn-secondary" onclick="closeModal()">Hủy</button>
         <button class="btn btn-primary" id="btnSaveUser" onclick="saveData()">Lưu</button>
-    </div>
-</div>
-
-<!-- MODAL XÁC NHẬN XÓA -->
-<div id="modalDeleteUser" class="modal-box" style="width: 400px; text-align: center; padding: 30px;">
-    <div class="modal-body">
-        <i class="fas fa-exclamation-triangle" style="font-size: 50px; color: #f39c12; margin-bottom: 20px;"></i>
-        <h3>Xác nhận xóa</h3>
-        <p style="margin-top: 10px;">Bạn có chắc chắn muốn xóa người dùng này không?</p>
-    </div>
-    <div class="modal-footer" style="display: flex; justify-content: center; gap: 15px; border-top: none;">
-        <button class="btn btn-secondary" onclick="closeDeleteUserModal()">Hủy</button>
-        <button class="btn btn-danger" onclick="deleteUserConfirm()">Xóa</button>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/pages/quan_ly_nguoi_dung.js' %}"></script>
+<script src="{% static 'js/pages/quan_ly_nguoi_dung.js' %}?v=1.0.5"></script>
 {% endblock %}

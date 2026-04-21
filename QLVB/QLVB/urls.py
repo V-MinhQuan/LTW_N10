@@ -51,7 +51,7 @@ urlpatterns = [
     # API Người dùng
     path('api/nguoi-dung/list/', views.api_nguoi_dung_list, name='api_user_list'),
     path('api/nguoi-dung/upsert/', views.api_upsert_user, name='api_user_upsert'),
-    path('api/nguoi-dung/delete/', views.api_delete_user, name='api_user_delete'),
+    path('api/nguoi-dung/update-status/', views.api_nguoi_dung_update_status, name='api_user_update_status'),
     path('api/vai-tro/list/', views.api_vai_tro_list, name='api_role_list'),
 
     # --- Xử lý văn bản ---
