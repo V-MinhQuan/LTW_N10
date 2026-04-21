@@ -17,6 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from web import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -54,4 +56,5 @@ urlpatterns = [
     path('api/xu-ly-van-ban/cap-nhat/', views.api_cap_nhat_xlvb, name='api_cap_nhat_xlvb'),
     path('api/xu-ly-van-ban/chuyen-tiep/', views.api_chuyen_tiep_xlvb, name='api_chuyen_tiep_xlvb'),
     path('api/xu-ly-van-ban/bao-cao/', views.api_bao_cao_xlvb, name='api_bao_cao_xlvb'),
-]
+    path('api/xu-ly-van-ban/document-details/', views.api_get_document_details, name='api_get_document_details'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

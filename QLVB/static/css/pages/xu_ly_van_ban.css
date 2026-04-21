@@ -144,15 +144,19 @@
 
 /* Status Pills */
 .status-pill {
-    padding: 5px 12px;
+    padding: 6px 14px;
     border-radius: 20px;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 700; /* Bolder text for better visibility */
     color: #fff;
     display: inline-block;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-.pill-orange { background-color: #ff9800; }
-.pill-gray { background-color: #9e9e9e; }
+.pill-orange { background-color: #ff9800 !important; }
+.pill-gray { background-color: #78909c !important; }
+.pill-red { background-color: #e53935 !important; } /* More vibrant Red */
+.pill-green { background-color: #43a047 !important; }
 
 /* Description Badges */
 .desc-item {
@@ -213,62 +217,105 @@ button.btn-assign-wide {
     appearance: auto !important;
 }
 
-/* Upload Area for Modal */
-.upload-file-area {
-    border: 1px dashed #b3d4fc;
-    background-color: #f8fbff;
+/* Attachment View Component */
+.attachment-view-container {
+    padding: 2px;
+    width: 100%;
+}
+
+.file-preview-card {
+    display: flex;
+    align-items: center;
+    background-color: #ffffff;
+    border: 1px solid #e0e6ed;
+    border-radius: 10px;
+    padding: 12px 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 5px;
+}
+
+.file-preview-card:hover {
+    border-color: #00adef;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.file-icon {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #f0f7ff 0%, #e6f1fe 100%);
     border-radius: 8px;
-    padding: 15px;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    color: #00adef;
+    font-size: 20px;
+}
+
+.file-info {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    overflow: hidden;
 }
 
-.upload-icon-circle {
-    width: 40px;
-    height: 40px;
-    background-color: #e6f3ff;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 8px;
+.file-name {
+    font-weight: 600;
+    color: #2d3748;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
 }
 
-.upload-icon-circle i {
-    font-size: 18px;
-    color: #00adef;
+.file-source {
+    font-size: 11px;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.upload-text {
-    color: #666;
-    margin-bottom: 10px;
-    font-size: 13px;
-    line-height: 1.4;
-}
-
-.btn-attach {
-    background-color: #00adef;
-    color: white;
-    border: none;
-    border-radius: 6px;
+.btn-view-file {
+    background: #00adef;
+    color: white !important;
     padding: 8px 16px;
+    border-radius: 8px;
     font-size: 13px;
     font-weight: 600;
-    cursor: pointer;
+    text-decoration: none !important;
+    transition: background 0.2s;
+    white-space: nowrap;
+    margin-left: 10px;
+}
+
+.btn-view-file:hover {
+    background: #008ec0;
+    transform: translateY(-1px);
+}
+
+.no-file-placeholder {
     display: flex;
     align-items: center;
-    gap: 6px;
-    transition: background-color 0.2s;
+    justify-content: center;
+    gap: 10px;
+    height: 60px;
+    background-color: #f8fafc;
+    border: 1px dashed #cbd5e0;
+    border-radius: 8px;
+    color: #718096;
+    font-size: 14px;
+    width: 100%;
 }
 
-.btn-attach:hover {
-    background-color: #008ec0;
+.no-file-placeholder i {
+    color: #a0aec0;
 }
 
-/* Override Choices.js selected item color to dark blue */
+/* Choices.js Customization */
 .choices__list--multiple .choices__item {
     background-color: #004085 !important;
     border: 1px solid #003366 !important;
