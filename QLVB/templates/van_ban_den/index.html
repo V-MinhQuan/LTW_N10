@@ -441,6 +441,12 @@
       <div class="search-grid">
         <input type="text" name="so_ky_hieu" class="form-control" placeholder="Số ký hiệu văn bản" value="{{ request.GET.so_ky_hieu }}" />
         <input type="text" name="trich_yeu" class="form-control" placeholder="Trích yếu văn bản" value="{{ request.GET.trich_yeu }}" />
+        <select class="form-control" name="don_vi_ngoai">
+          <option value="">-- Đơn vị gửi --</option>
+          {% for dv in don_vi_ngoai %}
+          <option value="{{ dv.DonViNgoaiID }}" {% if request.GET.don_vi_ngoai == dv.DonViNgoaiID|stringformat:"s" %}selected{% endif %}>{{ dv.TenDonVi }}</option>
+          {% endfor %}
+        </select>
         <select class="form-control" name="don_vi_trong">
           <option value="">-- Đơn vị nội bộ nhận --</option>
           {% for dv in don_vi_trong %}
@@ -497,7 +503,6 @@
             <td class="col-actions">
               <button class="action-btn btn-primary" onclick="xemVBD({{ vbd.VanBanDenID }})" title="Xem"><i class="fas fa-eye"></i></button>
               <button class="action-btn btn-success" onclick="suaVBD({{ vbd.VanBanDenID }})" title="Sửa"><i class="fas fa-edit"></i></button>
-              <button class="action-btn btn-danger" onclick="xoaVBD({{ vbd.VanBanDenID }})" title="Xóa"><i class="fas fa-trash"></i></button>
             </td>
           </tr>
           {% empty %}
@@ -639,7 +644,7 @@
               <i class="fa fa-cloud-upload-alt"></i>
             </div>
             <p>Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính</p>
-            <input type="file" id="popupAddFileInput" name="tep_dinh_kem" style="display:none;" multiple required>
+            <input type="file" id="popupAddFileInput" name="tep_dinh_kem" style="display:none;" required>
             <button type="button" class="btn-attach-new" onclick="document.getElementById('popupAddFileInput').click()">
               <i class="fas fa-paperclip"></i> Đính kèm tập tin
             </button>
@@ -703,17 +708,11 @@
             {% endfor %}
           </select>
 
-          <label style="font-size: 14px; font-weight: 500; color: #333;">Ngày nhận</label>
-          <div style="display: grid; grid-template-columns: 1fr 130px 1fr; gap: 25px; align-items: center; grid-column: span 3;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span style="font-size: 13px; min-width: 25px;">Từ</span>
-              <input type="date" name="ngay_tu" class="form-control" value="{{ request.GET.ngay_tu }}">
-            </div>
-            <div style="display: flex; align-items: center; gap: 10px; grid-column: 2 / span 2;">
-              <span style="font-size: 13px; min-width: 25px;">Đến</span>
-              <input type="date" name="ngay_den" class="form-control" value="{{ request.GET.ngay_den }}">
-            </div>
-          </div>
+          <label style="font-size: 14px; font-weight: 500; color: #333;">Ngày nhận (Từ)</label>
+          <input type="date" name="ngay_tu" class="form-control" value="{{ request.GET.ngay_tu }}">
+          
+          <label style="font-size: 14px; font-weight: 500; color: #333; text-align: left;">Đến</label>
+          <input type="date" name="ngay_den" class="form-control" value="{{ request.GET.ngay_den }}">
 
           <datalist id="loai_vb_list">
             <option value="Công văn">
@@ -865,6 +864,7 @@
     <div class="vbd-popup-body">
       <form id="formEditVBD">
         <input type="hidden" name="vbd_id" id="edit_id">
+        <input type="hidden" name="xoa_tep_dinh_kem" id="edit_xoa_tep_dinh_kem" value="0">
         <div class="vbd-row-full">
           <label>Trích yếu</label>
           <input type="text" name="trich_yeu" id="edit_trich_yeu" />
@@ -922,7 +922,7 @@
 
         <div class="vbd-attachment-header">
           <label>Tài liệu đính kèm</label>
-          <input type="file" id="popupEditFileInput" name="tep_dinh_kem" style="display:none;" multiple>
+          <input type="file" id="popupEditFileInput" name="tep_dinh_kem" style="display:none;">
           <button type="button" class="btn-attach" onclick="document.getElementById('popupEditFileInput').click()">
             <i class="fa fa-paperclip"></i> Chọn tập tin
           </button>
@@ -936,6 +936,7 @@
                 <span class="vbd-file-size">Đã tải lên trước đó</span>
               </div>
             </div>
+            <i class="fas fa-trash-alt vbd-file-delete" onclick="removeEditFile(event)" title="Xóa tệp hiện tại"></i>
           </div>
         </div>
         <div class="vbd-file-list" id="edit_new_tep_container" style="display:none; margin-top: 10px;">

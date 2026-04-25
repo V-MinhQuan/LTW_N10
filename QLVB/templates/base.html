@@ -340,6 +340,21 @@
                     if (onDone) onDone();
                 };
             },
+            showError: function(message) {
+                const overlay = document.getElementById('appPopupOverlay');
+                overlay.style.display = 'flex';
+                overlay.innerHTML = `
+                    <div class="app-popup">
+                        <i class="fas fa-exclamation-circle app-popup-icon danger"></i>
+                        <div class="app-popup-title">Thất bại</div>
+                        <div class="app-popup-message">${message}</div>
+                        <div class="app-popup-buttons">
+                            <button class="app-btn app-btn-blue" id="appErrorBtn">Đóng</button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('appErrorBtn').onclick = () => App.closePopup();
+            },
             closePopup: function() {
                 document.getElementById('appPopupOverlay').style.display = 'none';
             }
