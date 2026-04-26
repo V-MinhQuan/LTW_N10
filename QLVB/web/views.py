@@ -222,6 +222,8 @@ def van_ban_di_index(request):
     page_obj   = paginator.get_page(page_number)
     don_vi_ngoai_list = DonViBenNgoai.objects.all()
     don_vi_trong_list = DonViBenTrong.objects.all()
+    # Lấy danh sách loại văn bản unique từ DB
+    loai_vb_list = VanBanDi.objects.exclude(LoaiVanBan__isnull=True).exclude(LoaiVanBan='').values_list('LoaiVanBan', flat=True).distinct().order_by('LoaiVanBan')
 
     # Tính range trang hiển thị (tối đa 3 trang xung quanh trang hiện tại)
     current = page_obj.number
@@ -237,6 +239,7 @@ def van_ban_di_index(request):
         'page_range': page_range,
         'don_vi_ngoai_list': don_vi_ngoai_list,
         'don_vi_trong_list': don_vi_trong_list,
+        'loai_vb_list': loai_vb_list,
         'so_ky_hieu': so_ky_hieu,
         'trich_yeu': trich_yeu,
         'loai_vb': loai_vb,
@@ -755,6 +758,13 @@ def quan_ly_don_vi_ben_trong(request):
         'query_address': query_address,
         'query_contact': query_contact
     })
+
+
+def api_don_vi_list(request):
+    """Trả về danh sách đơn vị bên ngoài và bên trong để JS reload dynamic"""
+    ngoai = [{'id': dv.DonViNgoaiID, 'ten': dv.TenDonVi} for dv in DonViBenNgoai.objects.all().order_by('TenDonVi')]
+    trong = [{'id': dv.DonViTrongID, 'ten': dv.TenDonVi} for dv in DonViBenTrong.objects.all().order_by('TenDonVi')]
+    return JsonResponse({'status': 'success', 'ngoai': ngoai, 'trong': trong})
 
 
 def api_upsert_don_vi(request):
