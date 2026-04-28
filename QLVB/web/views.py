@@ -190,7 +190,12 @@ def van_ban_den_index(request):
     if ngay_den:
         danh_sach = danh_sach.filter(NgayNhan__lte=ngay_den)
     if trang_thai:
-        danh_sach = danh_sach.filter(TrangThai=trang_thai)
+        if trang_thai == 'DANG_XU_LY':
+            # "Đang xử lý" should include everything except "Hoàn thành" 
+            # to match the frontend display logic
+            danh_sach = danh_sach.exclude(TrangThai='HOAN_THANH')
+        else:
+            danh_sach = danh_sach.filter(TrangThai=trang_thai)
 
     from django.core.paginator import Paginator
     paginator = Paginator(danh_sach, 8) # Increased limit
@@ -228,7 +233,8 @@ def van_ban_den_them(request):
                 )
                 return JsonResponse({'status': 'success'})
             else:
-                return JsonResponse({'status': 'error', 'message': str(form.errors)})
+                error_msg = list(form.errors.values())[0][0] if form.errors else "Dữ liệu không hợp lệ."
+                return JsonResponse({'status': 'error', 'message': error_msg})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'invalid method'})
@@ -327,7 +333,7 @@ def van_ban_den_sua(request, pk):
             'Tệp đính kèm': vbd.TepDinhKem.name.split('/')[-1] if vbd.TepDinhKem else 'Trống'
         }
 
-        form = VanBanDenForm(request.POST, request.FILES)
+        form = VanBanDenForm(request.POST, request.FILES, instance_id=pk)
         if form.is_valid():
             vbd = form.save(user=request.user if request.user.is_authenticated else None, instance=vbd)
 
@@ -372,26 +378,14 @@ def van_ban_den_sua(request, pk):
 
             return JsonResponse({'status': 'success'})
         else:
-            return JsonResponse({'status': 'error', 'message': str(form.errors)})
+            error_msg = list(form.errors.values())[0][0] if form.errors else "Dữ liệu không hợp lệ."
+            return JsonResponse({'status': 'error', 'message': error_msg})
     return JsonResponse({'status': 'error'})
 
 
 @csrf_exempt
 def van_ban_den_xoa(request, pk):
-    if request.method == 'POST':
-        vbd = VanBanDen.objects.filter(pk=pk).first()
-        if vbd:
-            so_k_h = vbd.SoKyHieu
-            vbd.delete()
-            LichSuHoatDong.objects.create(
-                UserID=request.user if request.user.is_authenticated else None,
-                LoaiDoiTuong='VanBanDen',
-                DoiTuongID=pk,
-                HanhDong='Xóa',
-                NoiDungThayDoi=f'Đã xóa văn bản {so_k_h}'
-            )
-        return JsonResponse({'status': 'success'})
-    return JsonResponse({'status': 'error'})
+    return JsonResponse({'status': 'error', 'message': 'Chức năng xóa văn bản đến đã bị vô hiệu hóa bởi quản trị viên.'})
 
 
 def van_ban_den_lich_su(request):

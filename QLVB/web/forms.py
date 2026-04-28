@@ -13,6 +13,21 @@ class VanBanDenForm(forms.Form):
     tep_dinh_kem = forms.FileField(required=False)
     xoa_tep_dinh_kem = forms.CharField(required=False)
     trang_thai = forms.CharField(max_length=50, required=False)
+    
+    def __init__(self, *args, **kwargs):
+        self.instance_id = kwargs.pop('instance_id', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_so_ky_hieu(self):
+        so_ky_hieu = self.cleaned_data.get('so_ky_hieu')
+        # Check uniqueness, ignore case if needed, but here we do exact match as per Django default
+        query = VanBanDen.objects.filter(SoKyHieu=so_ky_hieu)
+        if self.instance_id:
+            query = query.exclude(VanBanDenID=self.instance_id)
+            
+        if query.exists():
+            raise forms.ValidationError("Số ký hiệu này đã tồn tại trên hệ thống.")
+        return so_ky_hieu
 
     def clean_don_vi_ngoai_id(self):
         don_vi_id = self.cleaned_data.get('don_vi_ngoai_id', '')
