@@ -123,6 +123,11 @@ class VanBanDi(models.Model):
         verbose_name_plural = "Văn bản đi"
 
 class PhanCong(models.Model):
+    class TrangThaiXuLyChoices(models.TextChoices):
+        DANG_XU_LY = 'Đang xử lý', 'Đang xử lý'
+        HOAN_THANH = 'Hoàn thành', 'Hoàn thành'
+        QUA_HAN = 'Quá hạn', 'Quá hạn'
+
     PhanCongID = models.AutoField(primary_key=True)
     VanBanDenID = models.ForeignKey(VanBanDen, on_delete=models.CASCADE, null=True, blank=True)
     VanBanDiID = models.ForeignKey(VanBanDi, on_delete=models.CASCADE, null=True, blank=True)
@@ -130,7 +135,7 @@ class PhanCong(models.Model):
     NgayPhanCong = models.DateTimeField(null=True, blank=True)
     HanXuLy = models.DateTimeField(null=True, blank=True, db_index=True)
     MucDoUuTien = models.CharField(max_length=50, null=True, blank=True)
-    TrangThaiXuLy = models.CharField(max_length=50, null=True, blank=True, db_index=True)
+    TrangThaiXuLy = models.CharField(max_length=50, choices=TrangThaiXuLyChoices.choices, null=True, blank=True, db_index=True)
     GhiChu = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
@@ -138,8 +143,8 @@ class PhanCong(models.Model):
 
 class ChuyenTiep(models.Model):
     ChuyenTiepID = models.AutoField(primary_key=True)
-    VanBanDenID = models.ForeignKey(VanBanDen, on_delete=models.CASCADE)
-    VanBanDiID = models.ForeignKey(VanBanDi, on_delete=models.CASCADE)
+    VanBanDenID = models.ForeignKey(VanBanDen, on_delete=models.CASCADE, null=True, blank=True)
+    VanBanDiID = models.ForeignKey(VanBanDi, on_delete=models.CASCADE, null=True, blank=True)
     UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE)
     NgayChuyenTiep = models.DateTimeField(null=True, blank=True)
     NgayBatDau = models.DateTimeField(null=True, blank=True)

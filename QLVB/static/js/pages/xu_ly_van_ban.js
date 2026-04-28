@@ -12,7 +12,58 @@ function closeModal(modalId) {
     if (overlay) overlay.style.display = 'none';
 }
 
-function openModalC(modalId, soKyHieu, nguoiXuLy, docType, fileUrl) {
+async function fetchDocumentDetails(id, docType, prefix) {
+    console.log(`Fetching details for ${docType} ID: ${id} with prefix: ${prefix}`);
+    const fileCard = document.getElementById(`${prefix}-fileCard`);
+    const noFile = document.getElementById(`${prefix}-noFile`);
+    const loadingDiv = document.getElementById(`${prefix}-loading`);
+    
+    // Reset UI to loading state
+    if (fileCard) fileCard.style.display = 'none';
+    if (noFile) noFile.style.display = 'none';
+    if (loadingDiv) loadingDiv.style.display = 'flex';
+
+    const fileNameElementId = prefix === 'upd' ? 'upd-fileNameSpan' : `${prefix}-fileName`;
+    const fileNameSpan = document.getElementById(fileNameElementId);
+    const fileLink = document.getElementById(`${prefix}-fileLink`);
+
+    try {
+        const response = await fetch(`/api/xu-ly-van-ban/document-details/?id=${id}&doc_type=${docType}`);
+        const result = await response.json();
+        console.log('API Result:', result);
+        
+        if (loadingDiv) loadingDiv.style.display = 'none';
+
+        if (result.status === 'success') {
+            const data = result.data;
+            
+            if (data.TepDinhKemUrl) {
+                console.log('Found file URL:', data.TepDinhKemUrl);
+                if (fileLink) fileLink.href = data.TepDinhKemUrl;
+                let displayFileName = data.TepDinhKemName;
+                if (displayFileName && displayFileName.includes('/')) {
+                    displayFileName = displayFileName.split('/').pop();
+                }
+                if (fileNameSpan) fileNameSpan.textContent = displayFileName || 'Tệp đính kèm';
+                if (fileCard) fileCard.style.display = 'flex';
+                if (noFile) noFile.style.display = 'none';
+            } else {
+                console.log('No file URL returned.');
+                if (fileCard) fileCard.style.display = 'none';
+                if (noFile) noFile.style.display = 'flex';
+            }
+        } else {
+            console.error('Error fetching doc details:', result.message);
+            if (noFile) noFile.style.display = 'flex';
+        }
+    } catch (error) {
+        console.error('Fetch error:', error);
+        if (loadingDiv) loadingDiv.style.display = 'none';
+        if (noFile) noFile.style.display = 'flex';
+    }
+}
+
+async function openModalC(modalId, docId, soKyHieu, nguoiXuLy, docType, fileUrl) {
     const elSo = document.getElementById('upd-soKyHieu');
     const elNguoi = document.getElementById('upd-nguoiXuLy');
     const elType = document.getElementById('upd-docType');
@@ -20,48 +71,48 @@ function openModalC(modalId, soKyHieu, nguoiXuLy, docType, fileUrl) {
     if (elNguoi) elNguoi.value = nguoiXuLy;
     if (elType) elType.value = docType;
 
-    // Hiển thị tệp hiện có nếu có
-    const existingContainer = document.getElementById('upd-file-list-existing');
-    const existingLink = document.getElementById('upd-existing-filename');
     const newContainer = document.getElementById('upd-file-list-new');
-    
-    if (fileUrl && existingContainer && existingLink) {
-        existingLink.href = fileUrl;
-        existingLink.textContent = fileUrl.split('/').pop();
-        existingContainer.style.display = 'block';
-    } else if (existingContainer) {
-        existingContainer.style.display = 'none';
-    }
-    
     if (newContainer) newContainer.style.display = 'none';
     document.getElementById('upd-file').value = '';
 
+    await fetchDocumentDetails(docId, docType, 'upd');
     openModal(modalId);
 }
 
-function openModalT(modalId, soKyHieu, docType) {
+async function openModalT(modalId, docId, soKyHieu, docType) {
     const elSo = document.getElementById('fwd-soKyHieu');
     const elType = document.getElementById('fwd-docType');
     if (elSo) elSo.value = soKyHieu;
     if (elType) elType.value = docType;
+
+    await fetchDocumentDetails(docId, docType, 'fwd');
     openModal(modalId);
 }
 
-function openModalB(modalId, soKyHieu, docType) {
+function openModalB(modalId, docId, soKyHieu, docType) {
     const elSo = document.getElementById('rep-soKyHieu');
     const elType = document.getElementById('rep-docType');
     if (elSo) elSo.value = soKyHieu;
     if (elType) elType.value = docType;
+    
     openModal(modalId);
 }
 
-function openModalP(modalId, soKyHieu, trichYeu, docType) {
+async function openModalP(modalId, docId, soKyHieu, trichYeu, docType) {
     const elSo = document.getElementById('asn-soKyHieu');
     const elTrich = document.getElementById('asn-trichYeu');
     const elType = document.getElementById('asn-docType');
     if (elSo) elSo.value = soKyHieu;
     if (elTrich) elTrich.value = trichYeu;
     if (elType) elType.value = docType;
+
+    const dateInput = document.getElementById('asn-thoiHan');
+    if (dateInput) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.min = today;
+    }
+
+    await fetchDocumentDetails(docId, docType, 'asn');
     openModal(modalId);
 }
 
@@ -107,13 +158,15 @@ async function saveAndClose(modalId) {
         }
     } else if (modalId === 'modalChuyenTiep') {
         url = '/api/xu-ly-van-ban/chuyen-tiep/';
+        const userSelect = document.getElementById('fwd-nguoiNhan');
+        const selectedUsers = Array.from(userSelect.selectedOptions).map(opt => opt.value);
         const data = {
             so_ky_hieu: document.getElementById('fwd-soKyHieu').value,
-            don_vi_id: document.getElementById('fwd-nguoiNhan').value,
+            don_vi_id: selectedUsers,
             noi_dung: document.getElementById('fwd-noiDung').value,
             doc_type: document.getElementById('fwd-docType').value
         };
-        if (!data.don_vi_id || !data.noi_dung) {
+        if (selectedUsers.length === 0 || !data.noi_dung) {
             alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
             return;
         }
@@ -147,6 +200,11 @@ async function saveAndClose(modalId) {
         };
         if (selectedUsers.length === 0 || !data.han_xu_ly) {
             alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
+            return;
+        }
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (data.han_xu_ly < todayStr) {
+            alert('Thời hạn xử lý không được nhỏ hơn ngày hiện tại!');
             return;
         }
         return postJson(url, data, modalId);
@@ -213,44 +271,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (userSelect && typeof Choices !== 'undefined') {
         new Choices(userSelect, {
             removeItemButton: true,
-            placeholderValue: '--- Chọn người xử lý ---',
+            placeholder: true,
+            placeholderValue: 'Chọn người xử lý',
             searchPlaceholderValue: 'Tìm kiếm người xử lý...'
         });
     }
 
-    // For Phân công modal
-    const fileInputAsn = document.getElementById('asn-file');
-    const fileNameDisplayAsn = document.getElementById('asn-fileName');
-    const uploadAreaAsn = document.getElementById('uploadFileArea');
-
-    if (fileInputAsn && fileNameDisplayAsn) {
-        fileInputAsn.addEventListener('change', function() {
-            if (this.files && this.files.length > 0) {
-                fileNameDisplayAsn.textContent = 'Đã chọn tệp: ' + this.files[0].name;
-            } else {
-                fileNameDisplayAsn.textContent = '';
-            }
-        });
-    }
-
-    if (uploadAreaAsn && fileInputAsn) {
-        uploadAreaAsn.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            uploadAreaAsn.style.backgroundColor = '#e6f3ff';
-        });
-
-        uploadAreaAsn.addEventListener('dragleave', function(e) {
-            e.preventDefault();
-            uploadAreaAsn.style.backgroundColor = '#f8fbff';
-        });
-
-        uploadAreaAsn.addEventListener('drop', function(e) {
-            e.preventDefault();
-            uploadAreaAsn.style.backgroundColor = '#f8fbff';
-            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                fileInputAsn.files = e.dataTransfer.files;
-                fileInputAsn.dispatchEvent(new Event('change'));
-            }
+    // Khởi tạo Choices.js cho chọn nhiều người - Chuyển tiếp
+    const fwdUserSelect = document.getElementById('fwd-nguoiNhan');
+    if (fwdUserSelect && typeof Choices !== 'undefined') {
+        new Choices(fwdUserSelect, {
+            removeItemButton: true,
+            placeholder: true,
+            placeholderValue: 'Chọn người nhận',
+            searchPlaceholderValue: 'Tìm kiếm người nhận...'
         });
     }
 
@@ -264,9 +298,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (this.files && this.files.length > 0) {
                 if (newFilename) newFilename.textContent = this.files[0].name;
                 if (newContainer) newContainer.style.display = 'block';
-                // Ẩn tệp cũ nếu người dùng chọn tệp mới (tùy chọn UI)
-                const existingContainer = document.getElementById('upd-file-list-existing');
+                // Ẩn tệp cũ nếu người dùng chọn tệp mới
+                const existingContainer = document.getElementById('upd-fileCard');
                 if (existingContainer) existingContainer.style.display = 'none';
+                const existingNoFile = document.getElementById('upd-noFile');
+                if (existingNoFile) existingNoFile.style.display = 'none';
             } else {
                 if (newContainer) newContainer.style.display = 'none';
             }

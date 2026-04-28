@@ -7,7 +7,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
-<link rel="stylesheet" href="{% static 'css/pages/xu_ly_van_ban.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'css/pages/xu_ly_van_ban.css' %}?v=10">
 {% endblock %}
 
 {% block content %}
@@ -104,14 +104,25 @@
                             {% with phan_cong=doc.phancong_set.first %}
                             {% if phan_cong %}
                                 {{ phan_cong.UserID.HoTen }}<br>
-                                <small class="text-muted">({{ doc.DonViNgoaiID.TenDonVi }})</small>
+                                <small class="text-muted">
+                                    {% if doc.doc_type == 'den' %}
+                                        Từ: {{ doc.DonViNgoaiID.TenDonVi }}
+                                    {% else %}
+                                        Đến: {{ doc.DonViNgoaiID.TenDonVi }}
+                                    {% endif %}
+                                </small>
                             {% else %}
                                 <span class="text-muted">Chưa phân công</span><br>
-                                <small class="text-muted">({{ doc.DonViNgoaiID.TenDonVi }})</small>
+                                <small class="text-muted">
+                                    {% if doc.doc_type == 'den' %}
+                                        Từ: {{ doc.DonViNgoaiID.TenDonVi }}
+                                    {% else %}
+                                        Đến: {{ doc.DonViNgoaiID.TenDonVi }}
+                                    {% endif %}
+                                </small>
                             {% endif %}
                             {% endwith %}
                         </td>
-                        <td class="text-center">{{ doc.NgayNhan|date:"d/m/Y" }}</td>
                         <td class="text-center">
                             {% with phan_cong=doc.phancong_set.first %}
                                 {{ phan_cong.HanXuLy|date:"d/m/Y"|default:"-" }}
@@ -122,6 +133,8 @@
                             {% if phan_cong %}
                                 {% if phan_cong.TrangThaiXuLy == 'Hoàn thành' %}
                                 <span class="status-pill pill-green">Hoàn thành</span>
+                                {% elif phan_cong.TrangThaiXuLy == 'Quá hạn' %}
+                                <span class="status-pill pill-red">Quá hạn</span>
                                 {% else %}
                                 <span class="status-pill pill-orange">Đang xử lý</span>
                                 {% endif %}
@@ -140,13 +153,16 @@
                         <td class="col-actions">
                             {% with phan_cong=doc.phancong_set.first %}
                             <div style="display: flex; gap: 5px;">
-                                {% if not phan_cong %}
-                                <button onclick="openModalP('modalPhanCong', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu|escapejs }}', '{{ doc.doc_type }}')" class="action-btn" style="background-color: #00adef;" title="Phân công"><i class="fas fa-user-plus"></i></button>
+                                {% if phan_cong %}
+                                    {% if phan_cong.TrangThaiXuLy == 'Hoàn thành' %}
+                                        <span class="text-muted" style="font-size: 13px; font-style: italic;"><i class="fas fa-check-circle text-success"></i> Đã kết thúc</span>
+                                    {% else %}
+                                        <button onclick="openModalC('modalCapNhat', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}', '{{ doc.doc_type }}', '{{ doc.TepDinhKem.url|default:'' }}')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
+                                        <button onclick="openModalT('modalChuyenTiep', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
+                                        <button onclick="openModalB('modalBaoCao', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')" class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
+                                    {% endif %}
                                 {% else %}
-                                <button onclick="openModalP('modalPhanCong', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu }}', '{{ doc.doc_type }}')" class="action-btn btn-assign" title="Phân công (Giao lại)"><i class="fas fa-user-plus"></i></button>
-                                <button onclick="openModalC('modalCapNhat', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}', '{{ doc.doc_type }}', '{{ doc.TepDinhKem.url|default:'' }}')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
-                                <button onclick="openModalT('modalChuyenTiep', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
-                                <button onclick="openModalB('modalBaoCao', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')" class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
+                                    <button onclick="openModalP('modalPhanCong', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu|escapejs }}', '{{ doc.doc_type }}')" class="action-btn" style="background-color: #00adef;" title="Phân công"><i class="fas fa-user-plus"></i></button>
                                 {% endif %}
                             </div>
                             {% endwith %}
@@ -154,7 +170,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="9" class="text-center">Không tìm thấy văn bản nào.</td>
+                        <td colspan="8" class="text-center">Không tìm thấy văn bản nào.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -223,16 +239,20 @@
                 </button>
             </div>
             
-            <!-- Hiện tệp đã có -->
-            <div class="vbd-file-list" id="upd-file-list-existing" style="display:none; margin-top: 10px;">
-                <div class="vbd-file-item">
-                    <div class="vbd-file-info">
-                        <div class="vbd-file-icon"><i class="fas fa-file-alt"></i></div>
-                        <div class="vbd-file-details">
-                            <a href="#" target="_blank" class="vbd-file-name" id="upd-existing-filename" style="text-decoration: none; color: #ff5722;"></a>
-                            <span class="vbd-file-size">Đã tải lên trước đó</span>
-                        </div>
+            <div class="attachment-view-container" style="margin-top: 10px;">
+                <div id="upd-loading" class="no-file-placeholder" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i> Đang tải thông tin tệp...
+                </div>
+                <div id="upd-fileCard" class="file-preview-card" style="display: none;">
+                    <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                    <div class="file-info">
+                        <span id="upd-fileNameSpan" class="file-name">filename.pdf</span>
+                        <span class="file-source">Đính kèm từ văn bản gốc</span>
                     </div>
+                    <a id="upd-fileLink" href="#" target="_blank" class="btn-view-file">Xem tệp</a>
+                </div>
+                <div id="upd-noFile" class="no-file-placeholder" style="display: none;">
+                    <i class="fas fa-info-circle"></i> Không có tệp đính kèm gốc
                 </div>
             </div>
 
@@ -243,10 +263,11 @@
                         <div class="vbd-file-icon"><i class="fas fa-file-alt"></i></div>
                         <div class="vbd-file-details">
                             <span class="vbd-file-name" id="upd-new-filename" style="font-weight: 500; font-size: 14px;"></span>
-                            <span class="vbd-file-size">Vừa chọn</span>
+                            <span class="vbd-file-size">Vừa chọn (sẽ ghi đè tệp cũ)</span>
                         </div>
                     </div>
                     <i class="fas fa-trash-alt vbd-file-delete" onclick="removeSelectedFileUpd()" title="Bỏ chọn tệp" style="cursor:pointer; color:#666;"></i>
+                </div>
                 </div>
             </div>
         </div>
@@ -270,10 +291,9 @@
                 </div>
                 <div class="form-group">
                     <label style="width: 120px;">Người nhận (<span class="required">*</span>)</label>
-                    <select class="form-control" id="fwd-nguoiNhan">
-                        <option value="">--- Chọn đơn vị ---</option>
-                        {% for unit in units_trong %}
-                        <option value="{{ unit.DonViTrongID }}">{{ unit.TenDonVi }}</option>
+                    <select class="form-control" id="fwd-nguoiNhan" multiple placeholder="Chọn người nhận...">
+                        {% for user in users %}
+                        <option value="{{ user.UserID }}">{{ user.HoTen }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -283,6 +303,25 @@
                         class="required">*</span>)</label>
                 <textarea class="form-control" id="fwd-noiDung" placeholder="Nhập nội dung chuyển tiếp"
                     style="width: 100%; height: 100px;"></textarea>
+            </div>
+            <div class="form-group full-width" style="margin-top: 20px; flex-direction: column;">
+                <label style="margin-bottom: 10px; font-weight: bold; color: #333;">Tài liệu đính kèm</label>
+                <div class="attachment-view-container">
+                    <div id="fwd-loading" class="no-file-placeholder" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i> Đang tải thông tin tệp...
+                    </div>
+                    <div id="fwd-fileCard" class="file-preview-card" style="display: none;">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-info">
+                            <span id="fwd-fileName" class="file-name">filename.pdf</span>
+                            <span class="file-source">Đính kèm từ văn bản gốc</span>
+                        </div>
+                        <a id="fwd-fileLink" href="#" target="_blank" class="btn-view-file">Xem tệp</a>
+                    </div>
+                    <div id="fwd-noFile" class="no-file-placeholder" style="display: none;">
+                        <i class="fas fa-info-circle"></i> Không có tệp đính kèm
+                    </div>
+                </div>
             </div>
         </div>
         <div class="modal-footer">
@@ -350,7 +389,7 @@
                 </div>
                 <div class="form-group">
                     <label style="width: 130px;">Người xử lý (<span class="required">*</span>)</label>
-                    <select class="form-control" id="asn-nguoiXuLy" multiple>
+                    <select class="form-control" id="asn-nguoiXuLy" multiple placeholder="Chọn người xử lý...">
                         {% for user in users %}
                         <option value="{{ user.UserID }}">{{ user.HoTen }}</option>
                         {% endfor %}
@@ -373,17 +412,22 @@
                     style="width: 100%; height: 80px;"></textarea>
             </div>
             <div class="form-group full-width" style="margin-top: 20px; flex-direction: column;">
-                <label style="margin-bottom: 10px; font-weight: bold; color: #333;">Tài liệu đính kèm (<span class="required" style="color: red;">*</span>)</label>
-                <div class="upload-file-area" id="uploadFileArea">
-                    <input type="file" id="asn-file" style="display: none;">
-                    <div class="upload-icon-circle">
-                        <i class="fas fa-cloud-upload-alt"></i>
+                <label style="margin-bottom: 10px; font-weight: bold; color: #333;">Tài liệu đính kèm</label>
+                <div class="attachment-view-container">
+                    <div id="asn-loading" class="no-file-placeholder" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i> Đang tải thông tin tệp...
                     </div>
-                    <p class="upload-text">Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính</p>
-                    <button type="button" class="btn btn-attach" onclick="document.getElementById('asn-file').click();">
-                        <i class="fas fa-paperclip"></i> Đính kèm tập tin
-                    </button>
-                    <div id="asn-fileName" style="margin-top: 10px; font-weight: 500; color: #333;"></div>
+                    <div id="asn-fileCard" class="file-preview-card" style="display: none;">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-info">
+                            <span id="asn-fileName" class="file-name">filename.pdf</span>
+                            <span class="file-source">Đính kèm từ văn bản gốc</span>
+                        </div>
+                        <a id="asn-fileLink" href="#" target="_blank" class="btn-view-file">Xem tệp</a>
+                    </div>
+                    <div id="asn-noFile" class="no-file-placeholder" style="display: none;">
+                        <i class="fas fa-info-circle"></i> Không có tệp đính kèm
+                    </div>
                 </div>
             </div>
         </div>
@@ -396,5 +440,5 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-<script src="{% static 'js/pages/xu_ly_van_ban.js' %}?v=4"></script>
+<script src="{% static 'js/pages/xu_ly_van_ban.js' %}?v=6"></script>
 {% endblock %}

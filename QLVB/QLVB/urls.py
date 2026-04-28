@@ -7,6 +7,8 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from web import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -69,6 +71,6 @@ urlpatterns = [
     path('quen-mat-khau/', views.quen_mat_khau_view, name='quen_mat_khau'),
     path('api/send-otp/', views.api_send_otp, name='api_send_otp'),
     path('api/reset-password/', views.api_confirm_reset, name='api_confirm_reset'),
+    path('api/xu-ly-van-ban/document-details/', views.api_get_document_details, name='api_get_document_details'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
