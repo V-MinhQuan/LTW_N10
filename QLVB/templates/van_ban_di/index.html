@@ -9,8 +9,8 @@
 <style>
     /* CSS cho vùng Nội dung xử lý văn bản */
     .vbd-process-box { margin-top: 25px; border-top: 2px solid #f1f1f1; padding-top: 20px; }
-    .vbd-process-title { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 20px; text-transform: uppercase; border-left: 4px solid #3498db; padding-left: 10px; line-height: 1.2; }
-    .vbd-process-header { display: grid; grid-template-columns: 140px 1fr 1fr; background: #f8f9fa; padding: 12px 15px; font-weight: bold; color: #555; font-size: 13px; border-radius: 4px; border: 1px solid #eee; margin-bottom: 15px; }
+    .vbd-process-title { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 20px; text-transform: uppercase; text-align: center; line-height: 1.2; }
+    .vbd-process-header { display: grid; grid-template-columns: 140px 1fr 1fr; background: #f8f9fa; padding: 12px 15px; font-weight: bold; color: #555; font-size: 13px; border-radius: 4px; border: 1px solid #eee; margin-bottom: 15px; text-align: center; }
     .vbd-process-rows { 
         display: flex; 
         flex-direction: column; 
@@ -43,6 +43,16 @@
     .vbd-process-rows::-webkit-scrollbar-track { background: #f1f1f1; }
     .vbd-process-rows::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
     .vbd-process-rows::-webkit-scrollbar-thumb:hover { background: #999; }
+
+    /* Process row redesign */
+    .vbd-process-header { grid-template-columns: 130px 1fr 1fr; }
+    .vbd-process-row { grid-template-columns: 130px 1fr 1fr; align-items: center; }
+    .vbd-process-tag { min-width: 80px; font-size: 12px; padding: 4px 10px; }
+    .vbd-process-personnel { display: flex; flex-direction: column; gap: 2px; }
+    .vbd-process-personnel-icon { display: flex; align-items: center; gap: 6px; font-weight: 700; color: #1a73e8; font-size: 13px; text-transform: uppercase; }
+    .vbd-process-personnel-sub { color: #666; font-size: 12px; }
+    .vbd-process-action-box { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 8px 12px; font-size: 13.5px; color: #333; }
+    .vbd-process-time-row { display: flex; align-items: center; gap: 4px; color: #999; font-size: 12px; margin-top: 5px; }
 </style>
 {% endblock %}
 
@@ -54,15 +64,13 @@
             <div class="search-grid">
                 <input type="text" name="so_ky_hieu" class="form-control" placeholder="Nhập Số ký hiệu văn bản" value="{{ so_ky_hieu|default_if_none:'' }}">
                 <input type="text" name="trich_yeu" class="form-control" placeholder="Nhập Trích yếu" value="{{ trich_yeu|default_if_none:'' }}">
-                <select name="loai_vb" class="form-control">
+                <select name="loai_vb" id="search_loai_vb" class="form-control">
                     <option value="">--- Chọn loại văn bản ---</option>
-                    <option value="Công văn" {% if loai_vb == "Công văn" %}selected{% endif %}>Công văn</option>
-                    <option value="Thông báo" {% if loai_vb == "Thông báo" %}selected{% endif %}>Thông báo</option>
-                    <option value="Báo cáo" {% if loai_vb == "Báo cáo" %}selected{% endif %}>Báo cáo</option>
-                    <option value="Tờ trình" {% if loai_vb == "Tờ trình" %}selected{% endif %}>Tờ trình</option>
-                    <option value="Kế hoạch" {% if loai_vb == "Kế hoạch" %}selected{% endif %}>Kế hoạch</option>
+                    {% for lv in loai_vb_list %}
+                    <option value="{{ lv }}" {% if loai_vb == lv %}selected{% endif %}>{{ lv }}</option>
+                    {% endfor %}
                 </select>
-                <select name="don_vi" class="form-control">
+                <select name="don_vi" id="search_don_vi" class="form-control">
                     <option value="">--- Chọn đơn vị bên ngoài ---</option>
                     {% for dv in don_vi_ngoai_list %}
                     <option value="{{ dv.TenDonVi }}" {% if don_vi == dv.TenDonVi %}selected{% endif %}>{{ dv.TenDonVi }}</option>
@@ -235,16 +243,21 @@
 
 <div id="modalDetail" class="modal-box">
     <div class="modal-header">
-        Chi tiết văn bản đi
+        Xem thông tin văn bản đi
         <span class="close-btn" style="cursor: pointer; font-size: 20px;" onclick="closeVBD('modalDetail')">&times;</span>
     </div>
     <div class="modal-body">
         <div class="form-group full" style="margin-bottom: 15px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                 <label style="font-weight: bold; margin: 0;">Trích yếu</label>
-                <button type="button" class="btn" style="background: #f8f9fa; border: 1px solid #ced4da; color: #333; padding: 4px 10px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;" onclick="if(_detailId) moLichSu(_detailId)">
-                    <i class="fa fa-history" style="color: #666;"></i> Lịch sử chỉnh sửa
-                </button>
+                <div style="display: inline-flex; gap: 8px;">
+                    <button type="button" class="btn btn-primary" style="padding: 4px 10px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;" onclick="timDeXuLy()">
+                        <i class="fa fa-search"></i> Tìm để xử lý
+                    </button>
+                    <button type="button" class="btn" style="background: #f8f9fa; border: 1px solid #ced4da; color: #333; padding: 4px 10px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;" onclick="if(_detailId) moLichSu(_detailId)">
+                        <i class="fa fa-history" style="color: #666;"></i> Lịch sử chỉnh sửa
+                    </button>
+                </div>
             </div>
             <input type="text" id="ct_trichyeu" class="form-control" style="width: 100%;" readonly>
         </div>
@@ -388,13 +401,11 @@
         <div class="vbd-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
           <div class="vbd-field" style="display: flex; align-items: center; gap: 10px;">
             <label style="margin: 0; min-width: 90px; color:#333; font-weight: 500;">Loại văn bản</label>
-            <select name="loai_vb" class="form-control" style="flex: 1;">
+            <select name="loai_vb" id="filter_loai_vb" class="form-control" style="flex: 1;">
               <option value="">--- Tất cả ---</option>
-              <option value="Công văn" {% if loai_vb == "Công văn" %}selected{% endif %}>Công văn</option>
-              <option value="Thông báo" {% if loai_vb == "Thông báo" %}selected{% endif %}>Thông báo</option>
-              <option value="Báo cáo" {% if loai_vb == "Báo cáo" %}selected{% endif %}>Báo cáo</option>
-              <option value="Tờ trình" {% if loai_vb == "Tờ trình" %}selected{% endif %}>Tờ trình</option>
-              <option value="Kế hoạch" {% if loai_vb == "Kế hoạch" %}selected{% endif %}>Kế hoạch</option>
+              {% for lv in loai_vb_list %}
+              <option value="{{ lv }}" {% if loai_vb == lv %}selected{% endif %}>{{ lv }}</option>
+              {% endfor %}
             </select>
           </div>
           <div class="vbd-field" style="display: flex; align-items: center; gap: 10px;">
@@ -409,13 +420,13 @@
           </div>
           <div class="vbd-field" style="display: flex; align-items: center; gap: 10px; grid-column: 1 / -1;">
             <label style="margin: 0; min-width: 90px; color:#333; font-weight: 500;">Đơn vị</label>
-            <select name="don_vi" class="form-control" style="flex: 1;">
+            <select name="don_vi" id="filter_don_vi" class="form-control" style="flex: 1;">
               <option value="">--- Tất cả ---</option>
               {% for dv in don_vi_ngoai_list %}
-              <option value="{{ dv.TenDonVi }}" {% if don_vi == dv.TenDonVi %}selected{% endif %}>{{ dv.TenDonVi }}</option>
+              <option value="{{ dv.TenDonVi }}" {% if don_vi == dv.TenDonVi %}selected{% endif %}>{{ dv.TenDonVi }} (BN)</option>
               {% endfor %}
               {% for dv in don_vi_trong_list %}
-              <option value="{{ dv.TenDonVi }}" {% if don_vi == dv.TenDonVi %}selected{% endif %}>{{ dv.TenDonVi }}</option>
+              <option value="{{ dv.TenDonVi }}" {% if don_vi == dv.TenDonVi %}selected{% endif %}>{{ dv.TenDonVi }} (BT)</option>
               {% endfor %}
             </select>
           </div>
@@ -509,7 +520,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/pages/van_ban_di.js' %}?v=8"></script>
+<script src="{% static 'js/pages/van_ban_di.js' %}?v=11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     ['modalForm','modalDetail','modalEdit','modalSuccess','popupRemoveFile','popupPheDuyet','popupPhatHanh','historyOverlay','popupFilter'].forEach(function(id) {

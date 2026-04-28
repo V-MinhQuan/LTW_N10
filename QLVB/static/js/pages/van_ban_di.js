@@ -146,18 +146,28 @@ function xemChiTiet(btn) {
         if (historyContainer) {
             historyContainer.innerHTML = '';
             if (d.xu_ly_history && d.xu_ly_history.length > 0) {
+                // Map loại -> icon
+                const iconMap = {
+                    'Phân công': 'fas fa-user-plus',
+                    'Chuyển tiếp': 'fas fa-share',
+                    'Báo cáo': 'fas fa-flag',
+                    'Bút phê': 'fas fa-pen-nib',
+                };
                 d.xu_ly_history.forEach(item => {
+                    const icon = iconMap[item.type] || 'fas fa-circle';
                     const row = document.createElement('div');
                     row.className = 'vbd-process-row';
                     row.innerHTML = `
                         <div><span class="vbd-process-tag ${item.tag_class}">${item.type}</span></div>
-                        <div>
-                            <div class="vbd-process-user">${item.user}</div>
-                            <div class="vbd-process-info">Tài khoản: ${item.username}</div>
+                        <div class="vbd-process-personnel">
+                            <div class="vbd-process-personnel-icon">
+                                <i class="${icon}"></i> ${item.user}
+                            </div>
+                            <div class="vbd-process-personnel-sub">Tài khoản: ${item.username}</div>
                         </div>
                         <div>
-                            <div class="vbd-process-action">${item.action}</div>
-                            <span class="vbd-process-time"><i class="far fa-clock"></i> ${item.time}</span>
+                            <div class="vbd-process-action-box">${item.action}</div>
+                            <div class="vbd-process-time-row"><i class="far fa-clock"></i> ${item.time}</div>
                         </div>
                     `;
                     historyContainer.appendChild(row);
@@ -481,3 +491,114 @@ function moLichSu(vanBanId) {
         openVBD('historyOverlay');
     });
 }
+
+// ---- TÌM ĐỂ XỬ LÝ ----
+function timDeXuLy() {
+    const soKyHieu = document.getElementById('ct_sokyhieu')?.value || '';
+    const url = '/xu-ly-van-ban/' + (soKyHieu ? '?so_ky_hieu=' + encodeURIComponent(soKyHieu) : '');
+    window.location.href = url;
+}
+
+// ---- RELOAD ĐƠN VỊ DYNAMIC ----
+function reloadDonViDropdowns() {
+    fetch('/api/don-vi/list/')
+    .then(r => r.json())
+    .then(res => {
+        if (res.status !== 'success') return;
+
+        // Helper build options
+        function buildNgoaiOptions(selEl, withLabel) {
+            const cur = selEl.value;
+            selEl.innerHTML = `<option value="">${withLabel}</option>`;
+            res.ngoai.forEach(dv => {
+                const opt = document.createElement('option');
+                opt.value = withLabel.includes('Tất cả') ? dv.ten : dv.id;
+                opt.textContent = dv.ten + (withLabel.includes('Tất cả') ? ' (BN)' : '');
+                if (String(opt.value) === String(cur)) opt.selected = true;
+                selEl.appendChild(opt);
+            });
+        }
+        function buildTrongOptions(selEl, withLabel) {
+            const cur = selEl.value;
+            // Xóa options cũ của đơn vị trong (giữ đơn vị ngoài nếu mixed)
+            Array.from(selEl.options).forEach(o => {
+                if (o.dataset.type === 'trong') selEl.removeChild(o);
+            });
+            res.trong.forEach(dv => {
+                const opt = document.createElement('option');
+                opt.value = withLabel.includes('Tất cả') ? dv.ten : dv.id;
+                opt.textContent = dv.ten + (withLabel.includes('Tất cả') ? ' (BT)' : '');
+                opt.dataset.type = 'trong';
+                if (String(opt.value) === String(cur)) opt.selected = true;
+                selEl.appendChild(opt);
+            });
+        }
+
+        // 1. Thanh tìm kiếm - chỉ đơn vị ngoài
+        const searchDonVi = document.getElementById('search_don_vi');
+        if (searchDonVi) buildNgoaiOptions(searchDonVi, '--- Chọn đơn vị bên ngoài ---');
+
+        // 2. Modal Thêm mới - đơn vị ngoài
+        const donViNgoai = document.getElementById('donViNgoai');
+        if (donViNgoai) buildNgoaiOptions(donViNgoai, '--- Chọn đơn vị bên ngoài ---');
+
+        // 3. Modal Thêm mới - đơn vị trong
+        const donViBH = document.getElementById('donViBH');
+        if (donViBH) {
+            const cur = donViBH.value;
+            donViBH.innerHTML = '<option value="">--- Chọn đơn vị bên trong ---</option>';
+            res.trong.forEach(dv => {
+                const opt = document.createElement('option');
+                opt.value = dv.id;
+                opt.textContent = dv.ten;
+                if (String(opt.value) === String(cur)) opt.selected = true;
+                donViBH.appendChild(opt);
+            });
+        }
+
+        // 4. Bộ lọc - đơn vị ngoài + trong
+        const filterDonVi = document.getElementById('filter_don_vi');
+        if (filterDonVi) {
+            const cur = filterDonVi.value;
+            filterDonVi.innerHTML = '<option value="">--- Tất cả ---</option>';
+            res.ngoai.forEach(dv => {
+                const opt = document.createElement('option');
+                opt.value = dv.ten;
+                opt.textContent = dv.ten + ' (BN)';
+                if (opt.value === cur) opt.selected = true;
+                filterDonVi.appendChild(opt);
+            });
+            res.trong.forEach(dv => {
+                const opt = document.createElement('option');
+                opt.value = dv.ten;
+                opt.textContent = dv.ten + ' (BT)';
+                if (opt.value === cur) opt.selected = true;
+                filterDonVi.appendChild(opt);
+            });
+        }
+
+        // 5. Modal Sửa - đơn vị ngoài + trong
+        const editDonVi = document.getElementById('edit_donvi');
+        if (editDonVi) {
+            const cur = editDonVi.value;
+            editDonVi.innerHTML = '<option value="">--- Chọn đơn vị ---</option>';
+            res.ngoai.forEach(dv => {
+                const opt = document.createElement('option');
+                opt.value = 'ngoai_' + dv.id;
+                opt.textContent = dv.ten + ' (BN)';
+                if (opt.value === cur) opt.selected = true;
+                editDonVi.appendChild(opt);
+            });
+            res.trong.forEach(dv => {
+                const opt = document.createElement('option');
+                opt.value = 'trong_' + dv.id;
+                opt.textContent = dv.ten + ' (BT)';
+                if (opt.value === cur) opt.selected = true;
+                editDonVi.appendChild(opt);
+            });
+        }
+    });
+}
+
+// Gọi khi trang load
+document.addEventListener('DOMContentLoaded', reloadDonViDropdowns);

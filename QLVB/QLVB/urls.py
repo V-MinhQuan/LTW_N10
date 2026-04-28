@@ -45,6 +45,7 @@ urlpatterns = [
     path('quan-ly-don-vi/ben-trong/', views.quan_ly_don_vi_ben_trong, name='qldv_trong'),
     
     # API Đơn vị
+    path('api/don-vi/list/', views.api_don_vi_list, name='api_don_vi_list'),
     path('api/don-vi/upsert/', views.api_upsert_don_vi, name='api_upsert_don_vi'),
     path('api/don-vi/delete/', views.api_delete_don_vi, name='api_delete_don_vi'),
     
