@@ -426,8 +426,27 @@
     margin-top: 4px !important;
   }
 
-  .btn-attach-new:hover {
+    .btn-attach-new:hover {
     background-color: #0099d6 !important;
+  }
+
+  /* Status Pills Badge Styles */
+  .status-pill {
+    padding: 4px 12px !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    display: inline-block !important;
+    text-align: center !important;
+    min-width: 90px !important;
+  }
+  .pill-orange { 
+    background-color: #FFEDD5 !important; 
+    color: #C26844 !important; 
+  }
+  .pill-green { 
+    background-color: #E8F5E9 !important; 
+    color: #2E7D32 !important; 
   }
 </style>
 {% endblock %}
@@ -517,6 +536,10 @@
         {% if page_obj.paginator.num_pages > 1 %}
             <a href="?page=1{{ query_string }}" class="page-btn">Đầu</a>
             
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{{ query_string }}" class="page-btn">Trước</a>
+            {% endif %}
+
             {% for num in page_obj.paginator.page_range %}
                 {% if page_obj.number == num %}
                     <button type="button" class="page-btn active">{{ num }}</button>
@@ -528,6 +551,7 @@
             {% if page_obj.has_next %}
                 <a href="?page={{ page_obj.next_page_number }}{{ query_string }}" class="page-btn">Sau</a>
             {% endif %}
+
             <a href="?page={{ page_obj.paginator.num_pages }}{{ query_string }}" class="page-btn">Cuối</a>
         {% endif %}
       </div>

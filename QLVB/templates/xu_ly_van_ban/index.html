@@ -7,77 +7,84 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
-<link rel="stylesheet" href="{% static 'css/pages/xu_ly_van_ban.css' %}?v=10">
+<link rel="stylesheet" href="{% static 'css/pages/xu_ly_van_ban.css' %}?v=11">
 {% endblock %}
 
 {% block content %}
-    <div class="panel">
-        <div class="panel-header header-gray">
-            <div>Tìm kiếm văn bản xử lý</div>
-        </div>
-        <div class="panel-body">
-            <form method="GET" action="{% url 'xlvb_index' %}">
-                <div class="search-grid">
-                    <input type="text" name="so_ky_hieu" class="form-control" placeholder="Nhập số ký hiệu" value="{{ query_so_ky_hieu|default:'' }}">
-                    <select name="nguoi_xu_ly" class="form-control">
-                        <option value="">--- Chọn người xử lý ---</option>
-                        {% for user in users %}
-                        <option value="{{ user.HoTen }}" {% if query_nguoi_xu_ly == user.HoTen %}selected{% endif %}>{{ user.HoTen }}</option>
-                        {% endfor %}
-                    </select>
-                    <input type="text" name="ngay_nhan" class="form-control" placeholder="dd/mm/yyyy" value="{{ query_ngay_nhan|default:'' }}">
-                    <input type="text" class="form-control" placeholder="Tất cả" readonly>
-                </div>
-                <div class="btn-group">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Tìm kiếm</button>
-                    <a href="{% url 'xlvb_index' %}" class="btn btn-secondary"><i class="fas fa-sync-alt"></i> Làm mới</a>
-                </div>
-            </form>
-        </div>
+<div class="panel">
+    <div class="panel-header header-gray">
+        <div>Tìm kiếm văn bản xử lý</div>
     </div>
-
-    <div class="alert-box">
-        <div class="alert-title">
-            <i class="fas fa-exclamation-triangle"></i>
-            <span>Cảnh báo: Có {{ coming_soon_count }} văn bản sắp đến hạn, {{ overdue_count }} văn bản quá hạn</span>
-        </div>
-        <div class="alert-separator"></div>
-        <div class="alert-items-container">
-            <div class="alert-items-scroll" id="alert-scroll">
-                {% for days_str, symbols in coming_soon_groups.items %}
-                    {% for symbol in symbols %}
-                    <div class="alert-tag">
-                        <span class="tag-symbol">{{ symbol }}</span>
-                        <span class="tag-status">{{ days_str }}</span>
-                    </div>
+    <div class="panel-body">
+        <form method="GET" action="{% url 'xlvb_index' %}">
+            <div class="search-grid">
+                <input type="text" name="so_ky_hieu" class="form-control" placeholder="Nhập số ký hiệu"
+                    value="{{ query_so_ky_hieu|default:'' }}">
+                <select name="nguoi_xu_ly" class="form-control">
+                    <option value="">--- Chọn người xử lý ---</option>
+                    {% for user in users %}
+                    <option value="{{ user.HoTen }}" {% if query_nguoi_xu_ly == user.HoTen %}selected{% endif %}>{{
+                        user.HoTen }}</option>
                     {% endfor %}
-                {% endfor %}
-                {% for days_str, symbols in overdue_groups.items %}
-                    {% for symbol in symbols %}
-                    <div class="alert-tag">
-                        <span class="tag-symbol">{{ symbol }}</span>
-                        <span class="tag-status">{{ days_str }}</span>
-                    </div>
-                    {% endfor %}
-                {% endfor %}
-                {% if coming_soon_count == 0 and overdue_count == 0 %}
-                <div class="alert-tag">
-                    <span class="tag-status">Hiện tại không có văn bản nào cần lưu ý.</span>
-                </div>
-                {% endif %}
+                </select>
+                <input type="text" name="ngay_nhan" class="form-control" placeholder="dd/mm/yyyy"
+                    value="{{ query_ngay_nhan|default:'' }}">
+                <input type="text" class="form-control" placeholder="Tất cả" readonly>
             </div>
-        </div>
-        <div class="alert-nav">
-            <button class="nav-btn" onclick="document.getElementById('alert-scroll').scrollBy({left: -200, behavior: 'smooth'})"><i class="fas fa-chevron-left"></i></button>
-            <button class="nav-btn" onclick="document.getElementById('alert-scroll').scrollBy({left: 200, behavior: 'smooth'})"><i class="fas fa-chevron-right"></i></button>
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Tìm kiếm</button>
+                <a href="{% url 'xlvb_index' %}" class="btn btn-secondary"><i class="fas fa-sync-alt"></i> Làm mới</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="alert-box">
+    <div class="alert-title">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Cảnh báo: Có {{ coming_soon_count }} văn bản sắp đến hạn, {{ overdue_count }} văn bản quá hạn</span>
+    </div>
+    <div class="alert-separator"></div>
+    <div class="alert-items-container">
+        <div class="alert-items-scroll" id="alert-scroll">
+            {% for days_str, symbols in coming_soon_groups.items %}
+            {% for symbol in symbols %}
+            <a href="?so_ky_hieu={{ symbol }}" class="alert-tag">
+                <span class="tag-symbol">{{ symbol }}</span>
+                <span class="tag-status">{{ days_str }}</span>
+            </a>
+            {% endfor %}
+            {% endfor %}
+            {% for days_str, symbols in overdue_groups.items %}
+            {% for symbol in symbols %}
+            <a href="?so_ky_hieu={{ symbol }}" class="alert-tag">
+                <span class="tag-symbol">{{ symbol }}</span>
+                <span class="tag-status">{{ days_str }}</span>
+            </a>
+            {% endfor %}
+            {% endfor %}
+            {% if coming_soon_count == 0 and overdue_count == 0 %}
+            <div class="alert-tag">
+                <span class="tag-status">Hiện tại không có văn bản nào cần lưu ý.</span>
+            </div>
+            {% endif %}
         </div>
     </div>
+    <div class="alert-nav">
+        <button class="nav-btn"
+            onclick="document.getElementById('alert-scroll').scrollBy({left: -200, behavior: 'smooth'})"><i
+                class="fas fa-chevron-left"></i></button>
+        <button class="nav-btn"
+            onclick="document.getElementById('alert-scroll').scrollBy({left: 200, behavior: 'smooth'})"><i
+                class="fas fa-chevron-right"></i></button>
+    </div>
+</div>
 
-    <div class="panel">
-        <div class="table-panel-header panel-header header-gray" style="display: flex; justify-content: space-between;">
-            <span>Danh sách văn bản</span>
-            <span>Tổng số: {{ page_obj.paginator.count }} văn bản</span>
-        </div>
+<div class="panel">
+    <div class="table-panel-header panel-header header-gray" style="display: flex; justify-content: space-between;">
+        <span>Danh sách văn bản</span>
+        <span>Tổng số: {{ page_obj.paginator.count }} văn bản</span>
+    </div>
     <div class="panel-body">
         <div class="table-responsive">
             <table class="data-table">
@@ -87,7 +94,6 @@
                         <th width="12%">Số ký hiệu</th>
                         <th width="20%">Trích yếu</th>
                         <th width="15%">Đơn vị gửi-Người xử lý</th>
-                        <th width="10%">Ngày nhận</th>
                         <th width="10%">Thời hạn</th>
                         <th width="10%" class="col-status">Trạng thái</th>
                         <th width="10%">Mô tả</th>
@@ -99,70 +105,85 @@
                     <tr>
                         <td class="col-stt">{{ page_obj.start_index|add:forloop.counter0 }}</td>
                         <td class="text-left"><a href="javascript:void(0)" class="text-blue">{{ doc.SoKyHieu }}</a></td>
-                        <td class="text-left" style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ doc.TrichYeu }}">{{ doc.TrichYeu }}</td>
+                        <td class="text-left"
+                            style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                            title="{{ doc.TrichYeu }}">{{ doc.TrichYeu }}</td>
                         <td class="text-left">
                             {% with phan_cong=doc.phancong_set.first %}
                             {% if phan_cong %}
-                                {{ phan_cong.UserID.HoTen }}<br>
-                                <small class="text-muted">
-                                    {% if doc.doc_type == 'den' %}
-                                        Từ: {{ doc.DonViNgoaiID.TenDonVi }}
-                                    {% else %}
-                                        Đến: {{ doc.DonViNgoaiID.TenDonVi }}
-                                    {% endif %}
-                                </small>
+                            {{ phan_cong.UserID.HoTen }}<br>
+                            <small class="text-muted">
+                                {% if doc.doc_type == 'den' %}
+                                Từ: {{ doc.DonViNgoaiID.TenDonVi }}
+                                {% else %}
+                                Đến: {{ doc.DonViNgoaiID.TenDonVi }}
+                                {% endif %}
+                            </small>
                             {% else %}
-                                <span class="text-muted">Chưa phân công</span><br>
-                                <small class="text-muted">
-                                    {% if doc.doc_type == 'den' %}
-                                        Từ: {{ doc.DonViNgoaiID.TenDonVi }}
-                                    {% else %}
-                                        Đến: {{ doc.DonViNgoaiID.TenDonVi }}
-                                    {% endif %}
-                                </small>
+                            <span class="text-muted">Chưa phân công</span><br>
+                            <small class="text-muted">
+                                {% if doc.doc_type == 'den' %}
+                                Từ: {{ doc.DonViNgoaiID.TenDonVi }}
+                                {% else %}
+                                Đến: {{ doc.DonViNgoaiID.TenDonVi }}
+                                {% endif %}
+                            </small>
                             {% endif %}
                             {% endwith %}
                         </td>
                         <td class="text-center">
                             {% with phan_cong=doc.phancong_set.first %}
-                                {{ phan_cong.HanXuLy|date:"d/m/Y"|default:"-" }}
+                            {{ phan_cong.HanXuLy|date:"d/m/Y"|default:"-" }}
                             {% endwith %}
                         </td>
                         <td class="col-status">
                             {% with phan_cong=doc.phancong_set.first %}
                             {% if phan_cong %}
-                                {% if phan_cong.TrangThaiXuLy == 'Hoàn thành' %}
-                                <span class="status-pill pill-green">Hoàn thành</span>
-                                {% elif phan_cong.TrangThaiXuLy == 'Quá hạn' %}
-                                <span class="status-pill pill-red">Quá hạn</span>
-                                {% else %}
-                                <span class="status-pill pill-orange">Đang xử lý</span>
-                                {% endif %}
+                            {% if phan_cong.TrangThaiXuLy == 'Hoàn thành' %}
+                            <span class="status-badge status-completed">Hoàn thành</span>
+                            {% elif phan_cong.TrangThaiXuLy == 'Quá hạn' %}
+                            <span class="status-badge status-overdue">Quá hạn</span>
                             {% else %}
-                                <span class="status-pill pill-gray">Chưa phân công</span>
+                            <span class="status-badge status-processing">Đang xử lý</span>
+                            {% endif %}
+                            {% else %}
+                            <span class="status-badge status-pending">Chưa phân công</span>
                             {% endif %}
                             {% endwith %}
                         </td>
                         <td class="text-left">
                             {% with phan_cong=doc.phancong_set.first %}
-                                {% if phan_cong and phan_cong.GhiChu %}
-                                <div class="desc-item"><span class="desc-label">Ghi chú:</span> <span class="desc-value">{{ phan_cong.GhiChu }}</span></div>
-                                {% endif %}
+                            {% if phan_cong and phan_cong.GhiChu %}
+                            <div class="desc-item"><span class="desc-label">Ghi chú:</span> <span class="desc-value">{{
+                                    phan_cong.GhiChu }}</span></div>
+                            {% endif %}
                             {% endwith %}
                         </td>
                         <td class="col-actions">
                             {% with phan_cong=doc.phancong_set.first %}
-                            <div style="display: flex; gap: 5px;">
+                            <div style="display: flex; gap: 5px; justify-content: center; width: 100%;">
                                 {% if phan_cong %}
-                                    {% if phan_cong.TrangThaiXuLy == 'Hoàn thành' %}
-                                        <span class="text-muted" style="font-size: 13px; font-style: italic;"><i class="fas fa-check-circle text-success"></i> Đã kết thúc</span>
-                                    {% else %}
-                                        <button onclick="openModalC('modalCapNhat', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}', '{{ doc.doc_type }}', '{{ doc.TepDinhKem.url|default:'' }}')" class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
-                                        <button onclick="openModalT('modalChuyenTiep', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')" class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
-                                        <button onclick="openModalB('modalBaoCao', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')" class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
-                                    {% endif %}
+                                {% if phan_cong.TrangThaiXuLy == 'Hoàn thành' %}
+                                <span class="status-finished"><i class="fas fa-check-circle"></i> Đã kết thúc</span>
                                 {% else %}
-                                    <button onclick="openModalP('modalPhanCong', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu|escapejs }}', '{{ doc.doc_type }}')" class="action-btn" style="background-color: #00adef;" title="Phân công"><i class="fas fa-user-plus"></i></button>
+                                <button
+                                    onclick="openModalC('modalCapNhat', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}', '{{ doc.doc_type }}', '{% if doc.TepDinhKem %}{{ doc.TepDinhKem.url }}{% endif %}')"
+                                    class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
+                                <button
+                                    onclick="openModalT('modalChuyenTiep', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
+                                    class="action-btn btn-forward" title="Chuyển tiếp"><i
+                                        class="fas fa-file-export"></i></button>
+                                <button
+                                    onclick="openModalB('modalBaoCao', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
+                                    class="action-btn btn-report" title="Báo cáo"><i
+                                        class="fas fa-exclamation-triangle"></i></button>
+                                {% endif %}
+                                {% else %}
+                                <button
+                                    onclick="openModalP('modalPhanCong', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu|escapejs }}', '{{ doc.doc_type }}')"
+                                    class="btn-assign-wide" title="Phân công">
+                                    <i class="fas fa-user-plus"></i>&nbsp;Phân công
+                                </button>
                                 {% endif %}
                             </div>
                             {% endwith %}
@@ -180,262 +201,320 @@
             <div>Hiển thị {{ page_obj.start_index }} - {{ page_obj.end_index }} / Tổng số: {{ page_obj.paginator.count }}</div>
             <div class="pagination">
                 {% if page_obj.paginator.num_pages > 1 %}
-                <a href="?page=1&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}" class="page-btn">Đầu</a>
-                {% for num in page_obj.paginator.page_range %}
-                    {% if page_obj.number == num %}
-                        <button type="button" class="page-btn active">{{ num }}</button>
-                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                        <a href="?page={{ num }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}" class="page-btn">{{ num }}</a>
-                    {% endif %}
-                {% endfor %}
-                <a href="?page={{ page_obj.paginator.num_pages }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}" class="page-btn">Cuối</a>
+                <a href="?page=1&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}"
+                    class="page-btn">Đầu</a>
+                
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}"
+                    class="page-btn">Trước</a>
                 {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <button type="button" class="page-btn active">{{ num }}</button>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <a
+                    href="?page={{ num }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}"
+                    class="page-btn">{{ num }}</a>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}"
+                        class="page-btn">Sau</a>
+                    {% endif %}
+
+                    <a href="?page={{ page_obj.paginator.num_pages }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}"
+                        class="page-btn">Cuối</a>
+                    {% endif %}
             </div>
         </div>
 
     </div>
+</div>
+
+<!-- Modals Containers -->
+<!-- Modal Cập nhật -->
+<div id="modalCapNhat" class="modal-container">
+    <div class="modal-header">
+        Cập nhật trạng thái xử lý
+        <span class="close-btn" onclick="closeModal('modalCapNhat')">&times;</span>
     </div>
-
-    <!-- Modals Containers -->
-    <!-- Modal Cập nhật -->
-    <div id="modalCapNhat" class="modal-container">
-        <div class="modal-header">
-            Cập nhật trạng thái xử lý
-            <span class="close-btn" onclick="closeModal('modalCapNhat')">&times;</span>
+    <div class="modal-content">
+        <div class="form-group-row">
+            <div class="form-group">
+                <label>Số ký hiệu</label>
+                <input type="text" class="form-control" id="upd-soKyHieu" readonly style="background:#f0f0f0;">
+            </div>
+            <div class="form-group">
+                <label>Người xử lý</label>
+                <input type="text" class="form-control" id="upd-nguoiXuLy" readonly style="background:#f0f0f0;">
+            </div>
         </div>
-        <div class="modal-content">
-            <div class="form-group-row">
-                <div class="form-group">
-                    <label>Số ký hiệu</label>
-                    <input type="text" class="form-control" id="upd-soKyHieu" readonly style="background:#f0f0f0;">
-                </div>
-                <div class="form-group">
-                    <label>Người xử lý</label>
-                    <input type="text" class="form-control" id="upd-nguoiXuLy" readonly style="background:#f0f0f0;">
-                </div>
+        <div class="form-group-row" style="margin-bottom: 0;">
+            <div class="form-group">
+                <label>Trạng thái (<span class="required">*</span>)</label>
+                <select class="form-control" id="upd-trangThai">
+                    <option value="">--- Chọn trạng thái ---</option>
+                    <option value="1">Đang xử lý</option>
+                    <option value="2">Hoàn thành</option>
+                </select>
             </div>
-            <div class="form-group-row" style="margin-bottom: 0;">
-                <div class="form-group">
-                    <label>Trạng thái (<span class="required">*</span>)</label>
-                    <select class="form-control" id="upd-trangThai">
-                        <option value="">--- Chọn trạng thái ---</option>
-                        <option value="1">Đang xử lý</option>
-                        <option value="2">Hoàn thành</option>
-                    </select>
-                </div>
-                <div class="form-group"></div>
-            </div>
-            <div class="form-group full-width" style="margin-top: 15px; flex-direction: column;">
-                <label style="margin-bottom: 5px;">Nội dung cập nhật (<span class="required">*</span>)</label>
-                <textarea class="form-control" id="upd-noiDung" placeholder="Nội dung đã xử lý"
-                    style="width: 100%; height: 80px;"></textarea>
-            </div>
-            <input type="hidden" id="upd-docType">
-            <div class="vbd-attachment-header">
-                <label>Tài liệu đính kèm</label>
-                <input type="file" id="upd-file" style="display:none;">
-                <button type="button" class="btn-attach" onclick="document.getElementById('upd-file').click()">
-                    <i class="fa fa-paperclip"></i> Chọn tập tin
-                </button>
-            </div>
-            
-            <div class="attachment-view-container" style="margin-top: 10px;">
-                <div id="upd-loading" class="no-file-placeholder" style="display: none;">
-                    <i class="fas fa-spinner fa-spin"></i> Đang tải thông tin tệp...
-                </div>
-                <div id="upd-fileCard" class="file-preview-card" style="display: none;">
-                    <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
-                    <div class="file-info">
-                        <span id="upd-fileNameSpan" class="file-name">filename.pdf</span>
-                        <span class="file-source">Đính kèm từ văn bản gốc</span>
-                    </div>
-                    <a id="upd-fileLink" href="#" target="_blank" class="btn-view-file">Xem tệp</a>
-                </div>
-                <div id="upd-noFile" class="no-file-placeholder" style="display: none;">
-                    <i class="fas fa-info-circle"></i> Không có tệp đính kèm gốc
-                </div>
-            </div>
+            <div class="form-group"></div>
+        </div>
+        <div class="form-group full-width" style="margin-top: 15px; flex-direction: column;">
+            <label style="margin-bottom: 5px;">Nội dung cập nhật (<span class="required">*</span>)</label>
+            <textarea class="form-control" id="upd-noiDung" placeholder="Nội dung đã xử lý"
+                style="width: 100%; height: 80px;"></textarea>
+        </div>
+        <input type="hidden" id="upd-docType">
+        <div class="vbd-attachment-header">
+            <label>Tài liệu đính kèm</label>
+        </div>
 
-            <!-- Hiện tệp mới chọn -->
-            <div class="vbd-file-list" id="upd-file-list-new" style="display:none; margin-top: 10px;">
+        <div class="attachment-view-container" style="margin-top: 10px;">
+            <div id="upd-loading" class="no-file-placeholder" style="display: none;">
+                <i class="fas fa-spinner fa-spin"></i> Đang tải thông tin tệp...
+            </div>
+            <div id="upd-fileCard" class="vbd-file-list" style="display: none;">
                 <div class="vbd-file-item">
                     <div class="vbd-file-info">
-                        <div class="vbd-file-icon"><i class="fas fa-file-alt"></i></div>
+                        <div class="vbd-file-icon"><i class="fas fa-file-pdf"></i></div>
                         <div class="vbd-file-details">
-                            <span class="vbd-file-name" id="upd-new-filename" style="font-weight: 500; font-size: 14px;"></span>
-                            <span class="vbd-file-size">Vừa chọn (sẽ ghi đè tệp cũ)</span>
+                            <a id="upd-fileLink" href="#" target="_blank" class="vbd-file-name" id="upd-fileNameSpan"
+                                style="text-decoration: none;">filename.pdf</a>
+                            <span class="vbd-file-size">Đã tải lên trước đó</span>
                         </div>
                     </div>
-                    <i class="fas fa-trash-alt vbd-file-delete" onclick="removeSelectedFileUpd()" title="Bỏ chọn tệp" style="cursor:pointer; color:#666;"></i>
-                </div>
                 </div>
             </div>
+            <div id="upd-noFile" class="no-file-placeholder" style="display: none;">
+                <i class="fas fa-info-circle"></i> Không có tệp đính kèm gốc
+            </div>
         </div>
+
         <div class="modal-footer">
             <button onclick="closeModal('modalCapNhat')" class="btn btn-secondary">Hủy</button>
             <button onclick="saveAndClose('modalCapNhat')" class="btn btn-primary">Lưu</button>
         </div>
     </div>
+</div>
 
-    <!-- Modal Chuyển tiếp -->
-    <div id="modalChuyenTiep" class="modal-container">
-        <div class="modal-header">
-            Chuyển tiếp văn bản
-            <span class="close-btn" onclick="closeModal('modalChuyenTiep')">&times;</span>
+<!-- Modal Chuyển tiếp -->
+<div id="modalChuyenTiep" class="modal-container">
+    <div class="modal-header">
+        Chuyển tiếp văn bản
+        <span class="close-btn" onclick="closeModal('modalChuyenTiep')">&times;</span>
+    </div>
+    <div class="modal-content">
+        <div class="form-group-row">
+            <div class="form-group">
+                <label style="width: 120px;">Số ký hiệu</label>
+                <input type="text" class="form-control" id="fwd-soKyHieu" readonly style="background:#f0f0f0;">
+            </div>
+            <div class="form-group">
+                <label style="width: 120px;">Người nhận (<span class="required">*</span>)</label>
+                <select class="form-control" id="fwd-nguoiNhan" multiple>
+                </select>
+            </div>
         </div>
-        <div class="modal-content">
-            <div class="form-group-row">
-                <div class="form-group">
-                    <label style="width: 120px;">Số ký hiệu</label>
-                    <input type="text" class="form-control" id="fwd-soKyHieu" readonly style="background:#f0f0f0;">
-                </div>
-                <div class="form-group">
-                    <label style="width: 120px;">Người nhận (<span class="required">*</span>)</label>
-                    <select class="form-control" id="fwd-nguoiNhan" multiple placeholder="Chọn người nhận...">
-                        {% for user in users %}
-                        <option value="{{ user.UserID }}">{{ user.HoTen }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+        <div class="form-group full-width" style="margin-top: 15px; flex-direction: column;">
+            <label style="margin-bottom: 5px; font-weight: bold;">Nội dung chuyển tiếp (<span
+                    class="required">*</span>)</label>
+            <textarea class="form-control" id="fwd-noiDung" placeholder="Nhập nội dung chuyển tiếp"
+                style="width: 100%; height: 100px;"></textarea>
+        </div>
+        <div class="vbd-attachment-header">
+            <label>Tài liệu đính kèm</label>
+        </div>
+
+        <div class="attachment-view-container" style="margin-top: 10px;">
+            <div id="fwd-loading" class="no-file-placeholder" style="display: none;">
+                <i class="fas fa-spinner fa-spin"></i> Đang tải thông tin tệp...
             </div>
-            <div class="form-group full-width" style="margin-top: 15px; flex-direction: column;">
-                <label style="margin-bottom: 5px; font-weight: bold;">Nội dung chuyển tiếp (<span
-                        class="required">*</span>)</label>
-                <textarea class="form-control" id="fwd-noiDung" placeholder="Nhập nội dung chuyển tiếp"
-                    style="width: 100%; height: 100px;"></textarea>
-            </div>
-            <div class="form-group full-width" style="margin-top: 20px; flex-direction: column;">
-                <label style="margin-bottom: 10px; font-weight: bold; color: #333;">Tài liệu đính kèm</label>
-                <div class="attachment-view-container">
-                    <div id="fwd-loading" class="no-file-placeholder" style="display: none;">
-                        <i class="fas fa-spinner fa-spin"></i> Đang tải thông tin tệp...
-                    </div>
-                    <div id="fwd-fileCard" class="file-preview-card" style="display: none;">
-                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
-                        <div class="file-info">
-                            <span id="fwd-fileName" class="file-name">filename.pdf</span>
-                            <span class="file-source">Đính kèm từ văn bản gốc</span>
+            <div id="fwd-fileCard" class="vbd-file-list" style="display: none;">
+                <div class="vbd-file-item">
+                    <div class="vbd-file-info">
+                        <div class="vbd-file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="vbd-file-details">
+                            <a id="fwd-fileLink" href="#" target="_blank" class="vbd-file-name" id="fwd-fileName"
+                                style="text-decoration: none;">filename.pdf</a>
+                            <span class="vbd-file-size">Đã tải lên trước đó</span>
                         </div>
-                        <a id="fwd-fileLink" href="#" target="_blank" class="btn-view-file">Xem tệp</a>
-                    </div>
-                    <div id="fwd-noFile" class="no-file-placeholder" style="display: none;">
-                        <i class="fas fa-info-circle"></i> Không có tệp đính kèm
                     </div>
                 </div>
             </div>
+            <div id="fwd-noFile" class="no-file-placeholder" style="display: none;">
+                <i class="fas fa-info-circle"></i> Không có tệp đính kèm gốc
+            </div>
         </div>
-        <div class="modal-footer">
-            <button onclick="closeModal('modalChuyenTiep')" class="btn btn-secondary">Hủy</button>
-            <button onclick="saveAndClose('modalChuyenTiep')" class="btn btn-success">Chuyển tiếp</button>
-        </div>
-    </div>
 
-    <!-- Modal Báo cáo -->
-    <div id="modalBaoCao" class="modal-container">
-        <div class="modal-header">
-            Báo cáo xử lý văn bản không phù hợp
-            <span class="close-btn" onclick="closeModal('modalBaoCao')">&times;</span>
-        </div>
-        <div class="modal-content">
-            <div class="form-group-row">
-                <div class="form-group">
-                    <label style="width: 150px;">Số ký hiệu</label>
-                    <input type="text" class="form-control" id="rep-soKyHieu" readonly style="background:#f0f0f0;">
-                </div>
-                <div class="form-group"></div>
-            </div>
-            <div class="form-group-row" style="margin-bottom: 0;">
-                <div class="form-group">
-                    <label style="width: 150px;">Loại vấn đề (<span class="required">*</span>)</label>
-                    <select class="form-control" id="rep-loaiVanDe">
-                        <option value="">--- Chọn loại vấn đề ---</option>
-                        <option value="v1">Sai sót nội dung</option>
-                        <option value="v2">Chậm trễ xử lý</option>
-                        <option value="v3">Lỗi file đính kèm</option>
-                        <option value="v4">Vấn đề khác</option>
-                    </select>
-                </div>
-                <div class="form-group"></div>
-            </div>
-            <div class="form-group full-width" style="margin-top: 10px; flex-direction: column;">
-                <label style="margin-bottom: 5px; font-weight: bold;">Mô tả chi tiết (<span
-                        class="required">*</span>)</label>
-                <textarea class="form-control" id="rep-moTa" placeholder="Vui lòng mô tả chi tiết vấn đề"
-                    style="width: 100%; height: 80px;"></textarea>
-            </div>
-            <div class="form-group full-width" style="margin-top: 10px; flex-direction: column;">
-                <label style="margin-bottom: 5px; font-weight: bold;">Đề xuất giải pháp</label>
-                <textarea class="form-control" placeholder="Đề xuất cách xử lý"
-                    style="width: 100%; height: 60px;"></textarea>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button onclick="closeModal('modalBaoCao')" class="btn btn-secondary">Hủy</button>
-            <button onclick="saveAndClose('modalBaoCao')" class="btn btn-warning">Gửi báo cáo</button>
-        </div>
+        <input type="hidden" id="fwd-docType">
     </div>
+    <div class="modal-footer">
+        <button onclick="closeModal('modalChuyenTiep')" class="btn btn-secondary">Hủy</button>
+        <button onclick="saveAndClose('modalChuyenTiep')" class="btn btn-success">Chuyển tiếp</button>
+    </div>
+</div>
 
-    <!-- Modal Phân công -->
-    <div id="modalPhanCong" class="modal-container" style="max-width: 900px;">
-        <div class="modal-header">
-            Phân công xử lý văn bản
-            <span class="close-btn" onclick="closeModal('modalPhanCong')">&times;</span>
+<!-- Modal Báo cáo -->
+<div id="modalBaoCao" class="modal-container">
+    <div class="modal-header">
+        Báo cáo xử lý văn bản không phù hợp
+        <span class="close-btn" onclick="closeModal('modalBaoCao')">&times;</span>
+    </div>
+    <div class="modal-content">
+        <div class="form-group-row">
+            <div class="form-group">
+                <label style="width: 150px;">Số ký hiệu</label>
+                <input type="text" class="form-control" id="rep-soKyHieu" readonly style="background:#f0f0f0;">
+            </div>
+            <div class="form-group"></div>
         </div>
-        <div class="modal-content">
-            <div class="form-group-row">
-                <div class="form-group">
-                    <label style="width: 130px;">Trích yếu</label>
-                    <input type="text" class="form-control" id="asn-trichYeu" readonly style="background:#f0f0f0;">
-                </div>
-                <div class="form-group">
-                    <label style="width: 130px;">Người xử lý (<span class="required">*</span>)</label>
-                    <select class="form-control" id="asn-nguoiXuLy" multiple placeholder="Chọn người xử lý...">
-                        {% for user in users %}
-                        <option value="{{ user.UserID }}">{{ user.HoTen }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+        <div class="form-group-row" style="margin-bottom: 0;">
+            <div class="form-group">
+                <label style="width: 150px;">Loại vấn đề (<span class="required">*</span>)</label>
+                <select class="form-control" id="rep-loaiVanDe">
+                    <option value="">--- Chọn loại vấn đề ---</option>
+                    <option value="v1">Sai sót nội dung</option>
+                    <option value="v2">Chậm trễ xử lý</option>
+                    <option value="v3">Lỗi file đính kèm</option>
+                    <option value="v4">Vấn đề khác</option>
+                </select>
             </div>
-            <div class="form-group-row">
-                <div class="form-group">
-                    <label style="width: 130px;">Số ký hiệu</label>
-                    <input type="text" class="form-control" id="asn-soKyHieu" readonly style="background:#f0f0f0;">
-                </div>
-                <div class="form-group">
-                    <label style="width: 130px;">Thời hạn xử lý (<span class="required">*</span>)</label>
-                    <input type="date" class="form-control" id="asn-thoiHan">
-                </div>
+            <div class="form-group"></div>
+        </div>
+        <div class="form-group full-width" style="margin-top: 10px; flex-direction: column;">
+            <label style="margin-bottom: 5px; font-weight: bold;">Mô tả chi tiết (<span
+                    class="required">*</span>)</label>
+            <textarea class="form-control" id="rep-moTa" placeholder="Vui lòng mô tả chi tiết vấn đề"
+                style="width: 100%; height: 80px;"></textarea>
+        </div>
+        <div class="form-group full-width" style="margin-top: 10px; flex-direction: column;">
+            <label style="margin-bottom: 5px; font-weight: bold;">Đề xuất giải pháp</label>
+            <textarea class="form-control" placeholder="Đề xuất cách xử lý"
+                style="width: 100%; height: 60px;"></textarea>
+        </div>
+
+        <div class="vbd-attachment-header" style="margin-top: 15px;">
+            <label>Tài liệu đính kèm</label>
+        </div>
+
+        <div class="attachment-view-container" style="margin-top: 10px;">
+            <div id="rep-loading" class="no-file-placeholder" style="display: none;">
+                <i class="fas fa-spinner fa-spin"></i> Đang tải thông tin tệp...
             </div>
-            <div class="form-group full-width" style="margin-top: 15px; flex-direction: column;">
-                <label style="margin-bottom: 5px; font-weight: bold;">Ghi chú</label>
-                <textarea class="form-control" id="asn-ghiChu" placeholder="Nhập ghi chú nếu có"
-                    style="width: 100%; height: 80px;"></textarea>
-            </div>
-            <div class="form-group full-width" style="margin-top: 20px; flex-direction: column;">
-                <label style="margin-bottom: 10px; font-weight: bold; color: #333;">Tài liệu đính kèm</label>
-                <div class="attachment-view-container">
-                    <div id="asn-loading" class="no-file-placeholder" style="display: none;">
-                        <i class="fas fa-spinner fa-spin"></i> Đang tải thông tin tệp...
-                    </div>
-                    <div id="asn-fileCard" class="file-preview-card" style="display: none;">
-                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
-                        <div class="file-info">
-                            <span id="asn-fileName" class="file-name">filename.pdf</span>
-                            <span class="file-source">Đính kèm từ văn bản gốc</span>
+            <div id="rep-fileCard" class="vbd-file-list" style="display: none;">
+                <div class="vbd-file-item">
+                    <div class="vbd-file-info">
+                        <div class="vbd-file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="vbd-file-details">
+                            <a id="rep-fileLink" href="#" target="_blank" class="vbd-file-name" id="rep-fileName"
+                                style="text-decoration: none;">filename.pdf</a>
+                            <span class="vbd-file-size">Đã tải lên trước đó</span>
                         </div>
-                        <a id="asn-fileLink" href="#" target="_blank" class="btn-view-file">Xem tệp</a>
-                    </div>
-                    <div id="asn-noFile" class="no-file-placeholder" style="display: none;">
-                        <i class="fas fa-info-circle"></i> Không có tệp đính kèm
                     </div>
                 </div>
             </div>
+            <div id="rep-noFile" class="no-file-placeholder" style="display: none;">
+                <i class="fas fa-info-circle"></i> Không có tệp đính kèm gốc
+            </div>
         </div>
-        <div class="modal-footer">
-            <button onclick="closeModal('modalPhanCong')" class="btn btn-secondary">Hủy</button>
-            <button onclick="saveAndClose('modalPhanCong')" class="btn btn-primary">Phân công</button>
+
+        <input type="hidden" id="rep-docType">
+    </div>
+    <div class="modal-footer">
+        <button onclick="closeModal('modalBaoCao')" class="btn btn-secondary">Hủy</button>
+        <button onclick="saveAndClose('modalBaoCao')" class="btn btn-warning">Gửi báo cáo</button>
+    </div>
+</div>
+
+<!-- Modal Phân công -->
+<div id="modalPhanCong" class="modal-container" style="max-width: 900px;">
+    <div class="modal-header">
+        Phân công xử lý văn bản
+        <span class="close-btn" onclick="closeModal('modalPhanCong')">&times;</span>
+    </div>
+    <div class="modal-content">
+        <div class="form-group-row">
+            <div class="form-group">
+                <label style="width: 130px;">Trích yếu</label>
+                <input type="text" class="form-control" id="asn-trichYeu" readonly style="background:#f0f0f0;">
+            </div>
+            <div class="form-group">
+                <label style="width: 130px;">Người xử lý (<span class="required">*</span>)</label>
+                <select class="form-control" id="asn-nguoiXuLy" multiple>
+                </select>
+            </div>
+        </div>
+        <div class="form-group-row">
+            <div class="form-group">
+                <label style="width: 130px;">Số ký hiệu</label>
+                <input type="text" class="form-control" id="asn-soKyHieu" readonly style="background:#f0f0f0;">
+            </div>
+            <div class="form-group">
+                <label style="width: 130px;">Thời hạn xử lý (<span class="required">*</span>)</label>
+                <input type="date" class="form-control" id="asn-thoiHan">
+            </div>
+        </div>
+        <div class="form-group full-width" style="margin-top: 15px; flex-direction: column;">
+            <label style="margin-bottom: 5px; font-weight: bold;">Ghi chú</label>
+            <textarea class="form-control" id="asn-ghiChu" placeholder="Nhập ghi chú nếu có"
+                style="width: 100%; height: 80px;"></textarea>
+            <input type="hidden" id="asn-docType">
+        </div>
+        <div class="vbd-attachment-header">
+            <label>Tài liệu đính kèm</label>
+            <input type="file" id="asn-file" style="display:none;">
+            <button type="button" class="btn-attach" onclick="document.getElementById('asn-file').click()">
+                <i class="fa fa-paperclip"></i> Chọn tập tin
+            </button>
+        </div>
+
+        <div class="attachment-view-container" style="margin-top: 10px;">
+            <div id="asn-loading" class="no-file-placeholder" style="display: none;">
+                <i class="fas fa-spinner fa-spin"></i> Đang tải thông tin tệp...
+            </div>
+            <div id="asn-fileCard" class="vbd-file-list" style="display: none;">
+                <div class="vbd-file-item">
+                    <div class="vbd-file-info">
+                        <div class="vbd-file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="vbd-file-details">
+                            <a id="asn-fileLink" href="#" target="_blank" class="vbd-file-name" id="asn-fileName"
+                                style="text-decoration: none;">filename.pdf</a>
+                            <span class="vbd-file-size">Đã tải lên trước đó</span>
+                        </div>
+                    </div>
+                    <i class="fas fa-trash-alt vbd-file-delete"
+                        onclick="this.closest('.vbd-file-list').style.display='none'" title="Gỡ bỏ"
+                        style="cursor:pointer;"></i>
+                </div>
+            </div>
+            <div id="asn-noFile" class="no-file-placeholder" style="display: none;">
+                <i class="fas fa-info-circle"></i> Không có tệp đính kèm gốc
+            </div>
+        </div>
+
+        <!-- Hiện tệp mới chọn -->
+        <div class="vbd-file-list" id="asn-file-list-new" style="display:none; margin-top: 10px;">
+            <div class="vbd-file-item">
+                <div class="vbd-file-info">
+                    <div class="vbd-file-icon"><i class="fas fa-file-alt"></i></div>
+                    <div class="vbd-file-details">
+                        <span class="vbd-file-name" id="asn-new-filename"
+                            style="font-weight: 500; font-size: 14px;"></span>
+                        <span class="vbd-file-size">Vừa chọn</span>
+                    </div>
+                </div>
+                <i class="fas fa-trash-alt vbd-file-delete" onclick="removeSelectedFileAsn()" title="Bỏ chọn tệp"
+                    style="cursor:pointer; color:#666;"></i>
+            </div>
         </div>
     </div>
+    <div class="modal-footer">
+        <button onclick="closeModal('modalPhanCong')" class="btn btn-secondary">Hủy</button>
+        <button onclick="saveAndClose('modalPhanCong')" class="btn btn-primary">Phân công</button>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}

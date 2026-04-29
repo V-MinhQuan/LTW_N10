@@ -5,7 +5,7 @@
 
 {% block nav_vbdi %}active{% endblock %}
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/pages/van_ban_di.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'css/pages/van_ban_di.css' %}?v=12">
 <style>
     /* CSS cho vùng Nội dung xử lý văn bản */
     .vbd-process-box { margin-top: 25px; border-top: 2px solid #f1f1f1; padding-top: 20px; }
@@ -24,8 +24,8 @@
     .vbd-process-rows::-webkit-scrollbar-track { background: #f1f1f1; }
     .vbd-process-rows::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
     .vbd-process-rows::-webkit-scrollbar-thumb:hover { background: #999; }
-    .vbd-process-row { display: grid; grid-template-columns: 140px 1fr 1fr; padding: 15px; border-bottom: 1px solid #f1f1f1; align-items: flex-start; transition: background 0.2s; }
-    .vbd-process-row:hover { background: #f9f9fb; }
+    .vbd-process-row { display: grid; grid-template-columns: 140px 1fr 1fr; padding: 15px; border-bottom: 1px solid #f1f1f1; align-items: flex-start; transition: all 0.2s; background: #fff; }
+    .vbd-process-row:hover { background: #f0f7ff; }
     .vbd-process-row:last-child { border-bottom: none; }
     
     .vbd-process-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-align: center; min-width: 90px; }
@@ -33,10 +33,10 @@
     .vbd-process-tag-gray { background: #f5f5f5; color: #616161; border: 1px solid #e0e0e0; }
     .vbd-process-tag-green { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
     
-    .vbd-process-user { font-weight: bold; color: #333; margin-bottom: 4px; text-transform: uppercase; font-size: 13.5px; }
-    .vbd-process-info { color: #666; font-size: 13px; }
-    .vbd-process-action { color: #444; font-size: 14px; line-height: 1.5; }
-    .vbd-process-time { display: block; margin-top: 6px; color: #999; font-size: 12px; }
+    .vbd-process-user { font-weight: 700; color: #1e293b; margin-bottom: 4px; text-transform: uppercase; font-size: 13.5px; }
+    .vbd-process-info { color: #475569; font-size: 13px; }
+    .vbd-process-action { color: #1e293b; font-size: 14px; line-height: 1.5; }
+    .vbd-process-time { display: block; margin-top: 6px; color: #64748b; font-size: 12px; }
     
     /* Scrollbar */
     .vbd-process-rows::-webkit-scrollbar { width: 6px; }
@@ -50,9 +50,9 @@
     .vbd-process-tag { min-width: 80px; font-size: 12px; padding: 4px 10px; }
     .vbd-process-personnel { display: flex; flex-direction: column; gap: 2px; }
     .vbd-process-personnel-icon { display: flex; align-items: center; gap: 6px; font-weight: 700; color: #1a73e8; font-size: 13px; text-transform: uppercase; }
-    .vbd-process-personnel-sub { color: #666; font-size: 12px; }
-    .vbd-process-action-box { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 8px 12px; font-size: 13.5px; color: #333; }
-    .vbd-process-time-row { display: flex; align-items: center; gap: 4px; color: #999; font-size: 12px; margin-top: 5px; }
+    .vbd-process-personnel-sub { color: #475569; font-size: 12px; }
+    .vbd-process-action-box { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 15px; font-size: 13.5px; color: #1e293b; font-weight: 500; }
+    .vbd-process-time-row { display: flex; align-items: center; gap: 4px; color: #64748b; font-size: 12px; margin-top: 6px; }
 </style>
 {% endblock %}
 
@@ -155,6 +155,10 @@
             <div class="pagination">
                 {% if paginator.num_pages > 1 %}
                 <button class="page-btn" onclick="goPage(1)">Đầu</button>
+                {% if page_obj.has_previous %}
+                <button class="page-btn" onclick="goPage({{ page_obj.previous_page_number }})">Trước</button>
+                {% endif %}
+
                 {% for num in page_obj.paginator.page_range %}
                     {% if page_obj.number == num %}
                         <button type="button" class="page-btn active">{{ num }}</button>
@@ -162,6 +166,10 @@
                         <button type="button" class="page-btn" onclick="goPage({{ num }})">{{ num }}</button>
                     {% endif %}
                 {% endfor %}
+
+                {% if page_obj.has_next %}
+                <button class="page-btn" onclick="goPage({{ page_obj.next_page_number }})">Sau</button>
+                {% endif %}
                 <button class="page-btn" onclick="goPage({{ paginator.num_pages }})">Cuối</button>
                 {% endif %}
             </div>

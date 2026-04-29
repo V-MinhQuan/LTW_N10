@@ -393,3 +393,22 @@ body.vbd-modal-open {
 .text-center { text-align: center !important; }
 .text-left { text-align: left !important; }
 .text-right { text-align: right !important; }
+
+/* Status Pills */
+.status-pill {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+    text-align: center;
+    min-width: 90px;
+}
+.pill-orange { 
+    background-color: #FFEDD5 !important; 
+    color: #C26844 !important; 
+}
+.pill-green { 
+    background-color: #E8F5E9 !important; 
+    color: #2E7D32 !important; 
+}

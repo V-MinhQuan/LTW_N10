@@ -85,12 +85,18 @@ function checkDonVi() {
     ngoai.disabled = (bh.value !== "");
 }
 
-function _renderFile(section, noFileEl, tepDinhKem) {
+function _renderFile(section, noFileEl, tepDinhKem, showDelete = true) {
     if (tepDinhKem) {
         let fileName = tepDinhKem.split('/').pop();
         let ext = fileName.split('.').pop().toUpperCase();
         section.style.display = 'block';
         noFileEl.style.display = 'none';
+
+        let deleteBtn = showDelete ? `
+            <button type="button" style="background:none;border:none;cursor:pointer;color:#888;font-size:16px;padding:4px 8px;" onclick="xoaFileHienCo()">
+                <i class="fas fa-trash"></i>
+            </button>` : '';
+
         section.innerHTML = `<div class="vbd-file-item">
             <div class="vbd-file-info">
                 <div class="vbd-file-icon">${ext}</div>
@@ -99,9 +105,7 @@ function _renderFile(section, noFileEl, tepDinhKem) {
                     <span class="vbd-file-size"></span>
                 </div>
             </div>
-            <button type="button" style="background:none;border:none;cursor:pointer;color:#888;font-size:16px;padding:4px 8px;" onclick="xoaFileHienCo()">
-                <i class="fas fa-trash"></i>
-            </button>
+            ${deleteBtn}
         </div>`;
     } else {
         section.style.display = 'none';
@@ -139,7 +143,7 @@ function xemChiTiet(btn) {
         document.getElementById("ct_nguoisoan").value = d.nguoi_soan;
         document.getElementById("ct_ngay").value = d.ngay_ban_hanh;
         document.getElementById("ct_trangthai").value = d.trang_thai;
-        _renderFile(document.getElementById('ct_file_section'), document.getElementById('ct_no_file'), d.tep_dinh_kem);
+        _renderFile(document.getElementById('ct_file_section'), document.getElementById('ct_no_file'), d.tep_dinh_kem, false);
 
         // Render lịch sử xử lý
         const historyContainer = document.getElementById('ct_process_history');

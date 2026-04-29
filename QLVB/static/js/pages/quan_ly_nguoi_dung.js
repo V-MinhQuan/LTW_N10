@@ -57,9 +57,24 @@ function openModal(title, mode) {
         inputs.forEach(i => i.disabled = true);
         if (saveBtn) saveBtn.style.display = 'none';
         if (statusBtn) statusBtn.style.display = 'none';
+        
+        const pwdGroup = document.getElementById('passwordGroup');
+        if (pwdGroup) pwdGroup.style.display = 'none';
     } else if (mode === 'edit') {
         inputs.forEach(i => i.disabled = false);
         if (saveBtn) saveBtn.style.display = 'block';
+
+        const statusInput = document.getElementById('userStatus');
+        if (statusInput) statusInput.disabled = false;
+
+        // Hiện ô mật khẩu trong Edit mode
+        const pwdGroup = document.getElementById('passwordGroup');
+        if (pwdGroup) pwdGroup.style.display = 'flex';
+        const pwdInput = document.getElementById('userPassword');
+        if (pwdInput) {
+            pwdInput.value = ''; // Để trống khi edit, chỉ nhập nếu muốn đổi
+            pwdInput.disabled = false;
+        }
 
         // Chỉ hiện nút Vô hiệu hóa nếu user đang ACTIVE
         const currentStatus = (document.getElementById('userStatus').value || '').toString().toUpperCase();
@@ -72,8 +87,20 @@ function openModal(title, mode) {
         inputs.forEach(i => i.value = '');
         if (saveBtn) saveBtn.style.display = 'block';
         if (statusBtn) statusBtn.style.display = 'none';
+        
+        const pwdGroup = document.getElementById('passwordGroup');
+        if (pwdGroup) pwdGroup.style.display = 'flex';
+        const pwdInput = document.getElementById('userPassword');
+        if (pwdInput) {
+            pwdInput.value = '';
+            pwdInput.disabled = false;
+        }
+
         const statusInput = document.getElementById('userStatus');
-        if (statusInput) statusInput.value = 'ACTIVE';
+        if (statusInput) {
+            statusInput.value = 'ACTIVE';
+            statusInput.disabled = true; // Không cho chọn khi thêm mới
+        }
     }
 }
 
@@ -97,8 +124,15 @@ window.loadUsers = function (page = 1) {
             if (res.status === 'success') {
                 renderTable(res.data, res.pagination);
                 renderPagination(res.pagination);
-                const totalElem = document.querySelector('.panel-header .total-count') || document.getElementById('tableTotal');
-                if (totalElem) totalElem.innerText = `Tổng số: ${res.pagination.total_count} người dùng`;
+                const headerTotal = document.querySelector('.panel-header .total-count');
+                if (headerTotal) headerTotal.innerText = `Tổng số: ${res.pagination.total_count} người dùng`;
+                
+                const footerTotal = document.getElementById('tableTotal');
+                if (footerTotal) {
+                    const start = (res.pagination.current_page - 1) * pageSize + 1;
+                    const end = Math.min(res.pagination.current_page * pageSize, res.pagination.total_count);
+                    footerTotal.innerText = `Hiển thị ${res.pagination.total_count > 0 ? start : 0} - ${end} / Tổng số: ${res.pagination.total_count} người dùng`;
+                }
             }
         })
         .catch(err => console.error('Error loading users:', err));
@@ -160,9 +194,13 @@ function renderPagination(pagination) {
 
     if (pagination.total_pages <= 1) return;
 
-    // Luôn hiện Đầu và Trước
+    // Luôn hiện Đầu
     container.appendChild(createPageBtn('Đầu', 1, false));
-    container.appendChild(createPageBtn('Trước', Math.max(1, pagination.current_page - 1), false));
+    
+    // Hiện Trước nếu có
+    if (pagination.current_page > 1) {
+        container.appendChild(createPageBtn('Trước', pagination.current_page - 1, false));
+    }
 
     let startPage = Math.max(1, pagination.current_page - 2);
     let endPage = Math.min(pagination.total_pages, startPage + 4);
@@ -174,8 +212,12 @@ function renderPagination(pagination) {
         container.appendChild(createPageBtn(i, i, i === pagination.current_page));
     }
 
-    // Luôn hiện Sau và Cuối
-    container.appendChild(createPageBtn('Sau', Math.min(pagination.total_pages, pagination.current_page + 1), false));
+    // Hiện Sau nếu có
+    if (pagination.current_page < pagination.total_pages) {
+        container.appendChild(createPageBtn('Sau', pagination.current_page + 1, false));
+    }
+
+    // Luôn hiện Cuối
     container.appendChild(createPageBtn('Cuối', pagination.total_pages, false));
 }
 
@@ -275,11 +317,17 @@ window.saveData = function () {
         phone: document.getElementById('userPhone').value,
         dept: document.getElementById('userDept').value,
         role_id: document.getElementById('userRole').value,
-        status: (currentId === null) ? 'ACTIVE' : document.getElementById('userStatus').value
+        status: (currentId === null) ? 'ACTIVE' : document.getElementById('userStatus').value,
+        password: document.getElementById('userPassword').value
     };
 
     if (!payload.username || !payload.fullname || !payload.email || !payload.dept || !payload.role_id) {
         alert('Vui lòng điền đầy đủ các trường bắt buộc (*)');
+        return;
+    }
+
+    if (currentId === null && !payload.password) {
+        alert('Vui lòng nhập mật khẩu cho người dùng mới');
         return;
     }
 

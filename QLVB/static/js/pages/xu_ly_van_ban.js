@@ -17,49 +17,100 @@ async function fetchDocumentDetails(id, docType, prefix) {
     const fileCard = document.getElementById(`${prefix}-fileCard`);
     const noFile = document.getElementById(`${prefix}-noFile`);
     const loadingDiv = document.getElementById(`${prefix}-loading`);
-    
-    // Reset UI to loading state
+
+    if (loadingDiv) loadingDiv.style.display = 'block';
     if (fileCard) fileCard.style.display = 'none';
     if (noFile) noFile.style.display = 'none';
-    if (loadingDiv) loadingDiv.style.display = 'flex';
-
-    const fileNameElementId = prefix === 'upd' ? 'upd-fileNameSpan' : `${prefix}-fileName`;
-    const fileNameSpan = document.getElementById(fileNameElementId);
-    const fileLink = document.getElementById(`${prefix}-fileLink`);
 
     try {
         const response = await fetch(`/api/xu-ly-van-ban/document-details/?id=${id}&doc_type=${docType}`);
         const result = await response.json();
-        console.log('API Result:', result);
         
         if (loadingDiv) loadingDiv.style.display = 'none';
 
-        if (result.status === 'success') {
-            const data = result.data;
-            
-            if (data.TepDinhKemUrl) {
-                console.log('Found file URL:', data.TepDinhKemUrl);
-                if (fileLink) fileLink.href = data.TepDinhKemUrl;
-                let displayFileName = data.TepDinhKemName;
-                if (displayFileName && displayFileName.includes('/')) {
-                    displayFileName = displayFileName.split('/').pop();
+        if (result.status === 'success' && result.data.TepDinhKemUrl) {
+            if (fileCard) {
+                fileCard.style.display = 'block';
+                const link = document.getElementById(`${prefix}-fileLink`);
+                if (link) {
+                    link.href = result.data.TepDinhKemUrl;
+                    // Lấy phần tên tệp từ đường dẫn
+                    const fullName = result.data.TepDinhKemName || 'Tài liệu đính kèm';
+                    const fileName = fullName.split('/').pop();
+                    link.innerText = fileName;
                 }
-                if (fileNameSpan) fileNameSpan.textContent = displayFileName || 'Tệp đính kèm';
-                if (fileCard) fileCard.style.display = 'flex';
-                if (noFile) noFile.style.display = 'none';
-            } else {
-                console.log('No file URL returned.');
-                if (fileCard) fileCard.style.display = 'none';
-                if (noFile) noFile.style.display = 'flex';
             }
         } else {
-            console.error('Error fetching doc details:', result.message);
-            if (noFile) noFile.style.display = 'flex';
+            if (noFile) noFile.style.display = 'block';
         }
-    } catch (error) {
-        console.error('Fetch error:', error);
+    } catch (e) {
+        console.error(e);
         if (loadingDiv) loadingDiv.style.display = 'none';
-        if (noFile) noFile.style.display = 'flex';
+        if (noFile) noFile.style.display = 'block';
+    }
+}
+
+let choicesInstances = {};
+
+function initChoices(elementId, placeholder) {
+    const el = document.getElementById(elementId);
+    if (el && typeof Choices !== 'undefined' && !choicesInstances[elementId]) {
+        const instance = new Choices(el, {
+            removeItemButton: true,
+            placeholder: true,
+            placeholderValue: placeholder || 'Chọn...',
+            searchPlaceholderValue: 'Tìm kiếm...',
+            itemSelectText: '',
+            noResultsText: 'Không tìm thấy kết quả',
+            noChoicesText: 'Không còn lựa chọn nào'
+        });
+        choicesInstances[elementId] = instance;
+
+        const updatePlaceholder = () => {
+            const selectedCount = instance.getValue(true).length;
+            const container = el.closest('.choices');
+            if (container) {
+                const input = container.querySelector('.choices__input');
+                if (input) {
+                    if (selectedCount > 0) {
+                        input.placeholder = '';
+                        input.style.setProperty('min-width', '20px', 'important');
+                        input.style.width = '20px';
+                    } else {
+                        input.placeholder = placeholder || 'Chọn...';
+                        input.style.setProperty('min-width', '180px', 'important');
+                    }
+                }
+            }
+        };
+
+        el.addEventListener('addItem', () => setTimeout(updatePlaceholder, 50));
+        el.addEventListener('removeItem', () => setTimeout(updatePlaceholder, 50));
+        el.addEventListener('change', () => setTimeout(updatePlaceholder, 50));
+        
+        setTimeout(updatePlaceholder, 200);
+
+        if (elementId === 'asn-nguoiXuLy' || elementId === 'fwd-nguoiNhan') {
+            loadUsersToChoices(instance);
+        }
+    }
+}
+
+async function loadUsersToChoices(instance) {
+    try {
+        const response = await fetch('/api/nguoi-dung/list/?page_size=all');
+        const result = await response.json();
+        if (result.status === 'success') {
+            const choices = result.data.map(u => ({
+                value: u.id,
+                label: u.fullname,
+                selected: false,
+                disabled: u.status === 'INACTIVE'
+            }));
+            instance.setChoices(choices, 'value', 'label', true);
+        }
+    } catch (e) {
+        console.error('Error loading users:', e);
     }
 }
 
@@ -73,7 +124,8 @@ async function openModalC(modalId, docId, soKyHieu, nguoiXuLy, docType, fileUrl)
 
     const newContainer = document.getElementById('upd-file-list-new');
     if (newContainer) newContainer.style.display = 'none';
-    document.getElementById('upd-file').value = '';
+    const fileInput = document.getElementById('upd-file');
+    if (fileInput) fileInput.value = '';
 
     await fetchDocumentDetails(docId, docType, 'upd');
     openModal(modalId);
@@ -85,6 +137,11 @@ async function openModalT(modalId, docId, soKyHieu, docType) {
     if (elSo) elSo.value = soKyHieu;
     if (elType) elType.value = docType;
 
+    initChoices('fwd-nguoiNhan', 'Chọn người nhận');
+
+    const newContainer = document.getElementById('fwd-file-list-new');
+    if (newContainer) newContainer.style.display = 'none';
+
     await fetchDocumentDetails(docId, docType, 'fwd');
     openModal(modalId);
 }
@@ -94,7 +151,11 @@ function openModalB(modalId, docId, soKyHieu, docType) {
     const elType = document.getElementById('rep-docType');
     if (elSo) elSo.value = soKyHieu;
     if (elType) elType.value = docType;
-    
+
+    const newContainer = document.getElementById('rep-file-list-new');
+    if (newContainer) newContainer.style.display = 'none';
+
+    fetchDocumentDetails(docId, docType, 'rep');
     openModal(modalId);
 }
 
@@ -110,7 +171,15 @@ async function openModalP(modalId, docId, soKyHieu, trichYeu, docType) {
     if (dateInput) {
         const today = new Date().toISOString().split('T')[0];
         dateInput.min = today;
+        dateInput.value = today;
     }
+
+    initChoices('asn-nguoiXuLy', 'Chọn người xử lý');
+    
+    const newContainer = document.getElementById('asn-file-list-new');
+    if (newContainer) newContainer.style.display = 'none';
+    const fileInput = document.getElementById('asn-file');
+    if (fileInput) fileInput.value = '';
 
     await fetchDocumentDetails(docId, docType, 'asn');
     openModal(modalId);
@@ -153,88 +222,99 @@ async function saveAndClose(modalId) {
         formData.append('trang_thai', trangThai);
         formData.append('noi_dung', noiDung);
         formData.append('doc_type', docType);
-        if (fileInput.files.length > 0) {
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
             formData.append('tep_dinh_kem', fileInput.files[0]);
         }
     } else if (modalId === 'modalChuyenTiep') {
         url = '/api/xu-ly-van-ban/chuyen-tiep/';
         const userSelect = document.getElementById('fwd-nguoiNhan');
-        const selectedUsers = Array.from(userSelect.selectedOptions).map(opt => opt.value);
-        const data = {
-            so_ky_hieu: document.getElementById('fwd-soKyHieu').value,
-            don_vi_id: selectedUsers,
-            noi_dung: document.getElementById('fwd-noiDung').value,
-            doc_type: document.getElementById('fwd-docType').value
-        };
-        if (selectedUsers.length === 0 || !data.noi_dung) {
+        const selectedUsers = choicesInstances['fwd-nguoiNhan'] ? choicesInstances['fwd-nguoiNhan'].getValue(true) : [];
+        const soKyHieu = document.getElementById('fwd-soKyHieu').value;
+        const noiDung = document.getElementById('fwd-noiDung').value;
+        const docType = document.getElementById('fwd-docType').value;
+        const fileInput = document.getElementById('fwd-file');
+
+        if (selectedUsers.length === 0 || !noiDung) {
             alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
             return;
         }
-        // Giữ nguyên JSON cho các modal chưa yêu cầu file
-        return postJson(url, data, modalId);
 
+        formData.append('so_ky_hieu', soKyHieu);
+        selectedUsers.forEach(id => formData.append('user_id', id));
+        formData.append('noi_dung', noiDung);
+        formData.append('doc_type', docType);
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
+            formData.append('tep_dinh_kem', fileInput.files[0]);
+        }
     } else if (modalId === 'modalBaoCao') {
         url = '/api/xu-ly-van-ban/bao-cao/';
-        const data = {
-            so_ky_hieu: document.getElementById('rep-soKyHieu').value,
-            loai_van_de: document.getElementById('rep-loaiVanDe').value,
-            mo_ta: document.getElementById('rep-moTa').value,
-            doc_type: document.getElementById('rep-docType').value
-        };
-        if (!data.loai_van_de || !data.mo_ta) {
+        const soKyHieu = document.getElementById('rep-soKyHieu').value;
+        const loaiVanDe = document.getElementById('rep-loaiVanDe').value;
+        const moTa = document.getElementById('rep-moTa').value;
+        const docType = document.getElementById('rep-docType').value;
+        const fileInput = document.getElementById('rep-file');
+
+        if (!loaiVanDe || !moTa) {
             alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
             return;
         }
-        return postJson(url, data, modalId);
 
+        formData.append('so_ky_hieu', soKyHieu);
+        formData.append('loai_van_de', loaiVanDe);
+        formData.append('mo_ta', moTa);
+        formData.append('doc_type', docType);
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
+            formData.append('tep_dinh_kem', fileInput.files[0]);
+        }
     } else if (modalId === 'modalPhanCong') {
         url = '/api/xu-ly-van-ban/phan-cong/';
         const userSelect = document.getElementById('asn-nguoiXuLy');
-        const selectedUsers = Array.from(userSelect.selectedOptions).map(opt => opt.value);
-        const data = {
-            so_ky_hieu: document.getElementById('asn-soKyHieu').value,
-            user_id: selectedUsers,
-            han_xu_ly: document.getElementById('asn-thoiHan').value,
-            ghi_chu: document.getElementById('asn-ghiChu').value,
-            doc_type: document.getElementById('asn-docType').value
-        };
-        if (selectedUsers.length === 0 || !data.han_xu_ly) {
+        const selectedUsers = choicesInstances['asn-nguoiXuLy'] ? choicesInstances['asn-nguoiXuLy'].getValue(true) : [];
+        const soKyHieu = document.getElementById('asn-soKyHieu').value;
+        const hanXuLy = document.getElementById('asn-thoiHan').value;
+        const ghiChu = document.getElementById('asn-ghiChu').value;
+        const docType = document.getElementById('asn-docType').value;
+        const fileInput = document.getElementById('asn-file');
+
+        if (selectedUsers.length === 0 || !hanXuLy) {
             alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
             return;
         }
-        const todayStr = new Date().toISOString().split('T')[0];
-        if (data.han_xu_ly < todayStr) {
-            alert('Thời hạn xử lý không được nhỏ hơn ngày hiện tại!');
-            return;
+
+        formData.append('so_ky_hieu', soKyHieu);
+        selectedUsers.forEach(id => formData.append('user_id', id));
+        formData.append('han_xu_ly', hanXuLy);
+        formData.append('ghi_chu', ghiChu);
+        formData.append('doc_type', docType);
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
+            formData.append('tep_dinh_kem', fileInput.files[0]);
         }
-        return postJson(url, data, modalId);
     }
 
     try {
         const response = await fetch(url, {
             method: 'POST',
-            headers: {
-                'X-CSRFToken': csrftoken
-            },
+            headers: { 'X-CSRFToken': csrftoken },
             body: formData
         });
-
         const result = await response.json();
         if (result.status === 'success') {
             closeModal(modalId);
-            App.showSuccess(result.message || 'Thao tác thành công', () => {
+            if (typeof App !== 'undefined' && App.showSuccess) {
+                App.showSuccess(result.message || 'Thao tác thành công', () => location.reload());
+            } else {
+                alert(result.message || 'Thao tác thành công');
                 location.reload();
-            });
+            }
         } else {
             alert('Lỗi: ' + result.message);
         }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Đã có lỗi xảy ra. Vui lòng thử lại!');
+    } catch (e) {
+        console.error(e);
+        alert('Lỗi hệ thống!');
     }
 }
 
-// Hàm bổ trợ gửi JSON
 async function postJson(url, data, modalId) {
     const csrftoken = getCookie('csrftoken');
     try {
@@ -249,63 +329,62 @@ async function postJson(url, data, modalId) {
         const result = await response.json();
         if (result.status === 'success') {
             closeModal(modalId);
-            App.showSuccess(result.message || 'Thao tác thành công', () => {
+            if (typeof App !== 'undefined' && App.showSuccess) {
+                App.showSuccess(result.message || 'Thao tác thành công', () => location.reload());
+            } else {
+                alert(result.message || 'Thao tác thành công');
                 location.reload();
-            });
+            }
         } else {
             alert('Lỗi: ' + result.message);
         }
     } catch (e) { console.error(e); alert('Lỗi hệ thống!'); }
 }
 
+function removeSelectedFileAsn() {
+    const fileInput = document.getElementById('asn-file');
+    if (fileInput) fileInput.value = '';
+    const container = document.getElementById('asn-file-list-new');
+    if (container) container.style.display = 'none';
+}
+
 function removeSelectedFileUpd() {
     const fileInput = document.getElementById('upd-file');
     if (fileInput) fileInput.value = '';
-    const newContainer = document.getElementById('upd-file-list-new');
-    if (newContainer) newContainer.style.display = 'none';
+    const container = document.getElementById('upd-file-list-new');
+    if (container) container.style.display = 'none';
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Khởi tạo Choices.js cho chọn nhiều người
-    const userSelect = document.getElementById('asn-nguoiXuLy');
-    if (userSelect && typeof Choices !== 'undefined') {
-        new Choices(userSelect, {
-            removeItemButton: true,
-            placeholder: true,
-            placeholderValue: 'Chọn người xử lý',
-            searchPlaceholderValue: 'Tìm kiếm người xử lý...'
-        });
-    }
+function removeSelectedFileFwd() {
+    const fileInput = document.getElementById('fwd-file');
+    if (fileInput) fileInput.value = '';
+    const container = document.getElementById('fwd-file-list-new');
+    if (container) container.style.display = 'none';
+}
 
-    // Khởi tạo Choices.js cho chọn nhiều người - Chuyển tiếp
-    const fwdUserSelect = document.getElementById('fwd-nguoiNhan');
-    if (fwdUserSelect && typeof Choices !== 'undefined') {
-        new Choices(fwdUserSelect, {
-            removeItemButton: true,
-            placeholder: true,
-            placeholderValue: 'Chọn người nhận',
-            searchPlaceholderValue: 'Tìm kiếm người nhận...'
-        });
-    }
+function removeSelectedFileRep() {
+    const fileInput = document.getElementById('rep-file');
+    if (fileInput) fileInput.value = '';
+    const container = document.getElementById('rep-file-list-new');
+    if (container) container.style.display = 'none';
+}
 
-    // For Cập nhật modal
-    const fileInputUpd = document.getElementById('upd-file');
-    const newContainer = document.getElementById('upd-file-list-new');
-    const newFilename = document.getElementById('upd-new-filename');
-
-    if (fileInputUpd) {
-        fileInputUpd.addEventListener('change', function() {
-            if (this.files && this.files.length > 0) {
-                if (newFilename) newFilename.textContent = this.files[0].name;
-                if (newContainer) newContainer.style.display = 'block';
-                // Ẩn tệp cũ nếu người dùng chọn tệp mới
-                const existingContainer = document.getElementById('upd-fileCard');
-                if (existingContainer) existingContainer.style.display = 'none';
-                const existingNoFile = document.getElementById('upd-noFile');
-                if (existingNoFile) existingNoFile.style.display = 'none';
-            } else {
-                if (newContainer) newContainer.style.display = 'none';
-            }
-        });
-    }
+document.addEventListener('DOMContentLoaded', () => {
+    const fileInputs = ['asn-file', 'upd-file', 'fwd-file', 'rep-file'];
+    fileInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('change', function() {
+                const prefix = id.split('-')[0];
+                const fileList = document.getElementById(`${prefix}-file-list-new`);
+                const fileNameSpan = document.getElementById(`${prefix}-new-filename`);
+                if (this.files && this.files.length > 0) {
+                    if (fileNameSpan) fileNameSpan.innerText = this.files[0].name;
+                    if (fileList) fileList.style.display = 'block';
+                } else {
+                    if (fileList) fileList.style.display = 'none';
+                }
+            });
+        }
+    });
 });

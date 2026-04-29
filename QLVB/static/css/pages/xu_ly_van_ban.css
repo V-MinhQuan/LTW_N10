@@ -1,10 +1,13 @@
-.btn-assign { background-color: #00adef; }
+.btn-assign {
+    background-color: #00adef;
+}
 
 /* FIX FOR SEARCH BAR INPUTS */
 .search-grid .form-control {
     height: 38px !important;
     padding: 0 12px !important;
-    line-height: 36px !important; /* Ensure vertical centering */
+    line-height: 36px !important;
+    /* Ensure vertical centering */
     color: #333 !important;
     border: 1px solid #ccc !important;
     background-color: #ffffff;
@@ -66,8 +69,10 @@
     display: flex;
     gap: 10px;
     overflow-x: auto;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
     scroll-behavior: smooth;
     padding: 2px 0;
     white-space: nowrap;
@@ -75,7 +80,8 @@
 }
 
 .alert-items-scroll::-webkit-scrollbar {
-    display: none; /* Chrome, Safari and Opera */
+    display: none;
+    /* Chrome, Safari and Opera */
 }
 
 .alert-tag {
@@ -89,6 +95,17 @@
     border: 1px solid #ffecb3;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     height: 28px;
+    text-decoration: none !important;
+    color: inherit !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.alert-tag:hover {
+    background-color: #ffffff;
+    border-color: #ffb74d;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .tag-symbol {
@@ -148,36 +165,83 @@
 }
 
 /* Status Pills */
-.status-pill {
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 700; /* Bolder text for better visibility */
-    color: #fff;
-    display: inline-block;
-    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+/* Status Badges - Flat Pill Style */
+.status-badge {
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-width: 90px;
+    line-height: 1.2;
+    border: none;
+    transition: all 0.2s ease;
+    box-shadow: none !important;
+    text-shadow: none !important;
 }
-.pill-orange { background-color: #ff9800 !important; }
-.pill-gray { background-color: #78909c !important; }
-.pill-red { background-color: #e53935 !important; } /* More vibrant Red */
-.pill-green { background-color: #43a047 !important; }
+
+.status-completed {
+    background-color: #ECFDF5 !important;
+    color: #059669 !important;
+    border: 1px solid #A7F3D0 !important;
+}
+
+.status-processing {
+    background-color: rgba(255, 152, 0, 0.12) !important;
+    color: #e65100 !important;
+}
+
+.status-pending {
+    background-color: #F3F4F6 !important;
+    color: #4B5563 !important;
+    border: 1px solid #E5E7EB !important;
+}
+
+.status-overdue {
+    background-color: rgba(229, 57, 53, 0.12) !important;
+    color: #b71c1c !important;
+}
+
+.status-finished {
+    color: #059669 !important;
+    font-size: 13px;
+    font-style: italic;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.status-finished i {
+    font-size: 14px;
+}
 
 /* Description Badges */
 .desc-item {
     font-size: 13px;
     margin-bottom: 4px;
 }
+
 .desc-label {
     color: #666;
 }
+
 .desc-value {
     color: #333;
     font-weight: 500;
 }
+
 /* Force action text colors */
-.desc-item span.action-text.text-purple { color: #bf24d6 !important; }
-.desc-item span.action-text.text-blue { color: #00adef !important; }
+.desc-item span.action-text.text-purple {
+    color: #bf24d6 !important;
+}
+
+.desc-item span.action-text.text-blue {
+    color: #00adef !important;
+}
 
 .action-text {
     font-weight: 600;
@@ -199,13 +263,23 @@
     transition: transform 0.1s;
     font-size: 15px;
 }
+
 .action-btn:hover {
     transform: scale(1.08);
     opacity: 0.9;
 }
-.btn-update { background-color: #2fb370; }
-.btn-forward { background-color: #bf24d6; }
-.btn-report { background-color: #f7941d; }
+
+.btn-update {
+    background-color: #2fb370;
+}
+
+.btn-forward {
+    background-color: #bf24d6;
+}
+
+.btn-report {
+    background-color: #f7941d;
+}
 
 /* Force Phân công button to be compact, blue and modern */
 .table-responsive table tbody tr td.col-actions .btn-assign-wide,
@@ -213,14 +287,27 @@ button.btn-assign-wide {
     background-color: #00adef !important;
     color: white !important;
     border: none !important;
-    padding: 8px 18px !important;
-    border-radius: 8px !important;
+    padding: 6px 16px !important;
+    border-radius: 10px !important;
     cursor: pointer !important;
     font-weight: 600 !important;
-    font-size: 14px !important;
+    font-size: 13px !important;
     display: inline-flex !important;
     align-items: center !important;
-    appearance: auto !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 4px rgba(0, 173, 239, 0.2) !important;
+}
+
+.btn-assign-wide:hover {
+    background-color: #0099d6 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(0, 173, 239, 0.3) !important;
+}
+
+.btn-assign-wide i {
+    font-size: 14px !important;
+    margin-right: 2px !important;
 }
 
 /* Attachment Redesign matching van_ban_den */
@@ -267,9 +354,10 @@ button.btn-assign-wide {
 }
 
 .vbd-file-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
 }
 
 .vbd-file-info {
@@ -301,7 +389,7 @@ button.btn-assign-wide {
 .vbd-file-name {
     font-size: 15px;
     font-weight: 600;
-    color: #ff5722;
+    color: #333;
 }
 
 .vbd-file-size {
@@ -309,8 +397,17 @@ button.btn-assign-wide {
     color: #999;
 }
 
+.vbd-file-delete {
+    color: #666;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 5px;
+}
+
 .vbd-file-delete:hover {
     color: #d32f2f;
+    transform: scale(1.1);
 }
 
 /* Attachment View Component */
@@ -410,10 +507,59 @@ button.btn-assign-wide {
 .no-file-placeholder i {
     color: #a0aec0;
 }
-}
 
 /* Choices.js Customization */
+.choices {
+    width: 100%;
+    margin-bottom: 0;
+    height: auto !important;
+    /* Đảm bảo không bị áp height cố định */
+}
+
+.choices__inner {
+    min-height: 38px !important;
+    height: auto !important;
+    padding: 3px 10px !important;
+    background-color: #fff !important;
+    border: 1px solid #ccc !important;
+    border-radius: 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap;
+    line-height: normal !important;
+}
+
+.choices__input {
+    background-color: transparent !important;
+    font-size: 14px !important;
+    margin-bottom: 0 !important;
+    padding: 4px 0 !important;
+    color: #333 !important;
+    height: auto !important;
+    line-height: 1.5 !important;
+    flex-grow: 1 !important;
+    width: auto !important;
+    min-width: 180px;
+    /* Đảm bảo placeholder không bị che */
+}
+
 .choices__list--multiple .choices__item {
-    background-color: #004085 !important;
-    border: 1px solid #003366 !important;
+    background-color: #0e64bf !important;
+    /* Blue color for tags */
+    border: 1px solid #0069d9 !important;
+    border-radius: 10px !important;
+    padding: 2px 8px !important;
+    margin: 2px 5px 2px 0 !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+}
+
+.choices__list--multiple .choices__item.is-highlighted {
+    background-color: #0056b3 !important;
+}
+
+.choices__placeholder {
+    opacity: 0.7 !important;
+    color: #666 !important;
+    line-height: 1.5 !important;
 }
