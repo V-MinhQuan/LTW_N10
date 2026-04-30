@@ -217,6 +217,7 @@ def van_ban_den_index(request):
         'page_obj': page_obj,
         'danh_sach': page_obj.object_list,
         'don_vi_ngoai': don_vi_ngoai,
+        'don_vi_trong': don_vi_trong,
         'tong_so': paginator.count,
         'query_string': query_string
     })

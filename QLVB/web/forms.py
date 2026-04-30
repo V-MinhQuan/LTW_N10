@@ -1,14 +1,15 @@
 from django import forms
+from django.utils import timezone
 from .models import VanBanDen, DonViBenNgoai, DonViBenTrong
 from django.contrib.auth.forms import AuthenticationForm
 
 class VanBanDenForm(forms.Form):
     so_ky_hieu = forms.CharField(max_length=50, required=True, error_messages={'required': 'Số ký hiệu là bắt buộc.'})
-    trich_yeu = forms.CharField(max_length=255, required=False)
-    loai_van_ban = forms.CharField(max_length=50, required=False)
-    ngay_ban_hanh = forms.DateField(required=False)
-    ngay_nhan = forms.DateField(required=False)
-    don_vi_ngoai_id = forms.CharField(required=False)
+    trich_yeu = forms.CharField(max_length=255, required=True, error_messages={'required': 'Trích yếu là bắt buộc.'})
+    loai_van_ban = forms.CharField(max_length=50, required=True, error_messages={'required': 'Loại văn bản là bắt buộc.'})
+    ngay_ban_hanh = forms.DateField(required=True, error_messages={'required': 'Ngày ban hành là bắt buộc.'})
+    ngay_nhan = forms.DateField(required=True, error_messages={'required': 'Ngày nhận là bắt buộc.'})
+    don_vi_ngoai_id = forms.CharField(required=True, error_messages={'required': 'Đơn vị gửi là bắt buộc.'})
     don_vi_trong_id = forms.CharField(required=False)
     tep_dinh_kem = forms.FileField(required=False)
     xoa_tep_dinh_kem = forms.CharField(required=False)
@@ -20,14 +21,57 @@ class VanBanDenForm(forms.Form):
 
     def clean_so_ky_hieu(self):
         so_ky_hieu = self.cleaned_data.get('so_ky_hieu')
-        # Check uniqueness, ignore case if needed, but here we do exact match as per Django default
-        query = VanBanDen.objects.filter(SoKyHieu=so_ky_hieu)
+        ngay_nhan = self.cleaned_data.get('ngay_nhan')
+        
+        if not so_ky_hieu or not ngay_nhan:
+            return so_ky_hieu
+
+        # Kiểm tra tính duy nhất trong cùng năm của Ngày nhận
+        year = ngay_nhan.year
+        query = VanBanDen.objects.filter(SoKyHieu=so_ky_hieu, NgayNhan__year=year)
+        
         if self.instance_id:
             query = query.exclude(VanBanDenID=self.instance_id)
             
         if query.exists():
-            raise forms.ValidationError("Số ký hiệu này đã tồn tại trên hệ thống.")
+            raise forms.ValidationError(f"Số ký hiệu '{so_ky_hieu}' đã tồn tại trong năm {year}.")
         return so_ky_hieu
+
+    def clean(self):
+        cleaned_data = super().clean()
+        ngay_ban_hanh = cleaned_data.get('ngay_ban_hanh')
+        ngay_nhan = cleaned_data.get('ngay_nhan')
+        tep_dinh_kem = cleaned_data.get('tep_dinh_kem')
+        xoa_tep_dinh_kem = cleaned_data.get('xoa_tep_dinh_kem')
+
+        # 1. Kiểm tra Ngày ban hành <= Ngày nhận
+        if ngay_ban_hanh and ngay_nhan:
+            if ngay_ban_hanh > ngay_nhan:
+                self.add_error('ngay_ban_hanh', "Ngày ban hành không được lớn hơn ngày nhận.")
+
+        # 2. Kiểm tra Ngày nhận <= Ngày hiện tại
+        if ngay_nhan:
+            if ngay_nhan > timezone.localdate():
+                self.add_error('ngay_nhan', "Ngày nhận không được lớn hơn ngày hiện tại.")
+
+        # 3. Kiểm tra phải có ít nhất một file đính kèm
+        # Nếu thêm mới: phải có file trong tep_dinh_kem
+        # Nếu sửa: 
+        #   - Có file mới (tep_dinh_kem)
+        #   - HOẶC có file cũ và không bị đánh dấu xóa (xoa_tep_dinh_kem != '1')
+        
+        has_file = False
+        if tep_dinh_kem:
+            has_file = True
+        elif self.instance_id:
+            instance = VanBanDen.objects.filter(pk=self.instance_id).first()
+            if instance and instance.TepDinhKem and xoa_tep_dinh_kem != '1':
+                has_file = True
+        
+        if not has_file:
+            self.add_error('tep_dinh_kem', "Văn bản phải có ít nhất một file đính kèm.")
+
+        return cleaned_data
 
     def clean_don_vi_ngoai_id(self):
         don_vi_id = self.cleaned_data.get('don_vi_ngoai_id', '')

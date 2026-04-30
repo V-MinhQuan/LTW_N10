@@ -226,6 +226,10 @@ function suaVBD(id) {
 // Submit Sửa
 function submitEditVBD() {
     const form = document.getElementById('formEditVBD');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
     const id = document.getElementById('edit_id').value;
     const formData = new FormData(form);
     

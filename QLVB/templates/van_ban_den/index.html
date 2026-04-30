@@ -493,33 +493,33 @@
       <table class="data-table">
         <thead>
           <tr>
-            <th width="5%" class="col-stt">STT</th>
-            <th width="12%">Số ký hiệu</th>
-            <th width="10%">Số văn bản</th>
-            <th width="28%">Trích yếu</th>
-            <th width="12%">Ngày nhận</th>
-            <th width="15%">Đơn vị gửi</th>
-            <th width="8%" class="col-status">Trạng thái</th>
-            <th width="10%" class="col-actions">Thao tác</th>
+            <th width="5%" class="text-center">STT</th>
+            <th width="15%" class="text-center">Số ký hiệu</th>
+            <th width="12%" class="text-center">Loại văn bản</th>
+            <th width="28%" class="text-center">Trích yếu</th>
+            <th width="10%" class="text-center">Ngày nhận</th>
+            <th width="15%" class="text-center">Đơn vị gửi</th>
+            <th width="10%" class="text-center">Trạng thái</th>
+            <th width="5%" class="text-center">Thao tác</th>
           </tr>
         </thead>
         <tbody>
           {% for vbd in danh_sach %}
           <tr>
-            <td class="col-stt">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+            <td class="text-left">{{ page_obj.start_index|add:forloop.counter0 }}</td>
             <td class="text-left"><a href="javascript:void(0)" onclick="xemVBD({{ vbd.VanBanDenID }})">{{ vbd.SoKyHieu }}</a></td>
-            <td class="text-center">{{ vbd.VanBanDenID }}</td>
+            <td class="text-left">{{ vbd.LoaiVanBan|default:"" }}</td>
             <td class="text-left" style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ vbd.TrichYeu }}">{{ vbd.TrichYeu|default:"" }}</td>
-            <td class="text-center">{{ vbd.NgayNhan|date:"d/m/Y" }}</td>
+            <td class="text-left">{{ vbd.NgayNhan|date:"d/m/Y" }}</td>
             <td class="text-left">{{ vbd.DonViNgoaiID.TenDonVi|default:"" }}</td>
-            <td class="col-status">
+            <td class="text-center">
               {% if vbd.TrangThai == 'HOAN_THANH' %}
               <span class="status-pill pill-green">Hoàn thành</span>
               {% else %}
               <span class="status-pill pill-orange">Đang xử lý</span>
               {% endif %}
             </td>
-            <td class="col-actions">
+            <td class="text-left" style="white-space: nowrap;">
               <button class="action-btn btn-primary" onclick="xemVBD({{ vbd.VanBanDenID }})" title="Xem"><i class="fas fa-eye"></i></button>
               <button class="action-btn btn-success" onclick="suaVBD({{ vbd.VanBanDenID }})" title="Sửa"><i class="fas fa-edit"></i></button>
             </td>
