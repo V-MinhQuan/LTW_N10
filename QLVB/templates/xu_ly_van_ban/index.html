@@ -7,7 +7,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
-<link rel="stylesheet" href="{% static 'css/pages/xu_ly_van_ban.css' %}?v=11">
+<link rel="stylesheet" href="{% static 'css/pages/xu_ly_van_ban.css' %}?v=12">
 {% endblock %}
 
 {% block content %}
@@ -91,13 +91,15 @@
                 <thead>
                     <tr>
                         <th width="5%" class="col-stt">STT</th>
-                        <th width="12%">Số ký hiệu</th>
+                        <!-- Giảm từ 12% xuống còn 8% -->
+                        <th width="8%">Số ký hiệu</th>
                         <th width="20%">Trích yếu</th>
                         <th width="15%">Đơn vị gửi-Người xử lý</th>
                         <th width="10%">Thời hạn</th>
                         <th width="10%" class="col-status">Trạng thái</th>
-                        <th width="10%">Mô tả</th>
-                        <th width="8%" class="col-actions">Thao tác</th>
+                        <!-- Tăng từ 10% lên 14% để cột này rộng rãi hơn -->
+                        <th width="14%">Mô tả</th>
+                        <th width="10%" class="col-actions">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -151,12 +153,20 @@
                             {% endif %}
                             {% endwith %}
                         </td>
-                        <td class="text-left">
+                        <td class="mo-ta-cell">
                             {% with phan_cong=doc.phancong_set.first %}
-                            {% if phan_cong and phan_cong.GhiChu %}
-                            <div class="desc-item"><span class="desc-label">Ghi chú:</span> <span class="desc-value">{{
-                                    phan_cong.GhiChu }}</span></div>
-                            {% endif %}
+                                {% if phan_cong %}
+                                    <!-- Hiển thị Chuyển tới -->
+                                    {% with ct=doc.chuyentiep_set.last %}
+                                        Chuyển tới: {% if ct %}{{ ct.UserID.HoTen }}{% elif doc.UserID and doc.UserID != phan_cong.UserID %}{{ doc.UserID.HoTen }}{% else %}Ban Giám đốc{% endif %}<br>
+                                    {% endwith %}
+
+                                    <!-- Hiển thị Tag màu (SỬ DỤNG BIẾN doc.last_action_tag) -->
+                                    Thao tác: <span class="mo-ta-action {{ doc.last_action_tag }}">{{ doc.last_action_name }}</span>
+                                {% else %}
+                                    Chuyển tới: —<br>
+                                    Thao tác: <span class="mo-ta-action tag-phan-cong">Phân công</span>
+                                {% endif %}
                             {% endwith %}
                         </td>
                         <td class="col-actions">

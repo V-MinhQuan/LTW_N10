@@ -257,3 +257,46 @@
     justify-content: flex-end;
     gap: 10px;
 }
+/* 1. Định dạng chung cho thẻ hành động */
+.mo-ta-action {
+    padding: 2px 10px !important;
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    font-weight: bold !important;
+    color: white !important;
+    display: inline-block !important;
+    min-width: 85px !important;
+    text-align: center !important;
+    margin-top: 5px !important;
+    line-height: 1.5 !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+}
+
+/* 2. Mã màu chuẩn xác khớp với các nút Thao tác trong Hình 2 */
+
+/* Màu tím cho Chuyển tiếp (Khớp btn-forward) */
+.tag-chuyen-tiep {
+    background-color: #bf24d6 !important;
+}
+
+/* Màu xanh lá cho Cập nhật (Khớp btn-update) */
+.tag-cap-nhat {
+    background-color: #2fb370 !important;
+}
+
+/* Màu cam cho Cảnh báo (Khớp btn-report) */
+.tag-canh-bao {
+    background-color: #f7941d !important;
+}
+
+/* Màu xanh dương cho Phân công (Khớp btn-assign-wide) */
+.tag-phan-cong {
+    background-color: #00adef !important;
+}
+
+/* 3. Đảm bảo text trong cột không bị vỡ dòng */
+.mo-ta-cell {
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+}
