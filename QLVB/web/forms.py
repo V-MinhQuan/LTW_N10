@@ -112,6 +112,10 @@ class VanBanDenForm(forms.Form):
                     
                     setattr(instance, model_field, data[field])
             
+            # Tự động gán phòng ban nếu đang trống
+            if not instance.DonViTrongID and user and hasattr(user, 'PhongBan'):
+                instance.DonViTrongID = user.PhongBan
+
             # Handle files separately
             file_upload = self.files.get('tep_dinh_kem') or data.get('tep_dinh_kem')
             if file_upload:
@@ -125,6 +129,12 @@ class VanBanDenForm(forms.Form):
             return instance
         else:
             file_upload = self.files.get('tep_dinh_kem') or data.get('tep_dinh_kem')
+            
+            # Lấy đơn vị trong từ form hoặc từ phòng ban của user
+            don_vi_trong = data.get('don_vi_trong_id')
+            if not don_vi_trong and user and hasattr(user, 'PhongBan'):
+                don_vi_trong = user.PhongBan
+
             # Create new instance
             vbd = VanBanDen.objects.create(
                 SoKyHieu=data.get('so_ky_hieu'),
@@ -133,7 +143,7 @@ class VanBanDenForm(forms.Form):
                 NgayBanHanh=data.get('ngay_ban_hanh'),
                 NgayNhan=data.get('ngay_nhan'),
                 DonViNgoaiID=data.get('don_vi_ngoai_id'),
-                DonViTrongID=data.get('don_vi_trong_id'),
+                DonViTrongID=don_vi_trong,
                 TepDinhKem=file_upload,
                 TrangThai=data.get('trang_thai', 'DANG_XU_LY'),
                 UserID=user

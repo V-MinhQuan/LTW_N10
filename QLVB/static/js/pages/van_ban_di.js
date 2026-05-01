@@ -46,7 +46,16 @@ function openVBD(id) {
         // Reset form nếu là modal thêm mới
         if (id === 'modalForm') {
             const inputs = modal.querySelectorAll('input, select, textarea');
-            inputs.forEach(i => { if (i.type !== 'button' && i.type !== 'submit') i.value = ''; });
+            inputs.forEach(i => { 
+                if (i.type !== 'button' && i.type !== 'submit') {
+                    i.value = ''; 
+                    if (i.tagName === 'SELECT' && (i.id === 'donViBH' || i.id === 'nguoiSoanThao' || i.id === 'donViNgoai')) {
+                        i.selectedIndex = 0;
+                        if (i.id === 'nguoiSoanThao') i.innerHTML = '<option value="">--- Chọn người xử lý ---</option>';
+                        if (i.id === 'donViBH' || i.id === 'donViNgoai') i.disabled = false;
+                    }
+                }
+            });
             const label = document.getElementById('fileLabel');
             if (label) label.innerHTML = 'Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính';
             
@@ -87,13 +96,7 @@ window.onclick = function(event) {
     }
 }
 
-function checkDonVi() {
-    // Không vô hiệu hóa nữa
-}
 
-function checkEditDonVi() {
-    // Không vô hiệu hóa nữa
-}
 
 function _renderFile(section, noFileEl, tepDinhKem, showDelete = true) {
     if (tepDinhKem) {
@@ -148,7 +151,7 @@ function xemChiTiet(btn) {
         let d = res.data;
         document.getElementById("ct_sokyhieu").value = d.so_ky_hieu;
         document.getElementById("ct_trichyeu").value = d.trich_yeu;
-        document.getElementById("ct_donvi").value = [d.don_vi_ngoai ? d.don_vi_ngoai+' (BN)' : '', d.don_vi_trong ? d.don_vi_trong+' (BT)' : ''].filter(Boolean).join(', ');
+        document.getElementById("ct_donvi").value = d.don_vi_trong ? d.don_vi_trong : 'Chưa xác định';
         document.getElementById("ct_loaivb").value = d.loai_vb;
         document.getElementById("ct_nguoisoan").value = d.nguoi_soan;
         document.getElementById("ct_ngay").value = d.ngay_ban_hanh;
@@ -202,8 +205,9 @@ function _getFormData(trangThai) {
     fd.append('trich_yeu', document.getElementById('trichYeu').value);
     fd.append('loai_vb', document.getElementById('loaiVB').value);
     fd.append('ngay_ban_hanh', document.getElementById('ngayBanHanh').value || '');
-    fd.append('don_vi_ngoai_id', document.getElementById('donViNgoai').value || '');
     fd.append('don_vi_trong_id', document.getElementById('donViBH').value || '');
+    fd.append('don_vi_ngoai_id', document.getElementById('donViNgoai') ? document.getElementById('donViNgoai').value : '');
+    fd.append('nguoi_soan_id', document.getElementById('nguoiSoanThao').value || '');
     fd.append('trang_thai', trangThai);
     let fileInput = document.getElementById('fileInput');
     if (fileInput && fileInput.files[0]) fd.append('tep_dinh_kem', fileInput.files[0]);
@@ -211,12 +215,6 @@ function _getFormData(trangThai) {
 }
 
 function luuDuThao() {
-    let ngoai = document.getElementById('donViNgoai').value;
-    let trong = document.getElementById('donViBH').value;
-    if (!ngoai && !trong) {
-        alert("Vui lòng chọn ít nhất một Đơn vị nhận (Bên ngoài hoặc Bên trong)!");
-        return;
-    }
     apiPostForm('/api/van-ban-di/them-moi/', _getFormData('DU_THAO'), () => {
         App.showSuccess('Lưu dự thảo thành công', () => {
             window.location.reload();
@@ -225,12 +223,6 @@ function luuDuThao() {
 }
 
 function guiPheDuyet() {
-    let ngoai = document.getElementById('donViNgoai').value;
-    let trong = document.getElementById('donViBH').value;
-    if (!ngoai && !trong) {
-        alert("Vui lòng chọn ít nhất một Đơn vị nhận (Bên ngoài hoặc Bên trong)!");
-        return;
-    }
     apiPostForm('/api/van-ban-di/them-moi/', _getFormData('CHO_PHE_DUYET'), () => {
         App.showSuccess('Gửi phê duyệt thành công', () => {
             window.location.reload();
@@ -275,9 +267,12 @@ function suaVanBan(btn) {
         document.getElementById("edit_nguoisoan").value = d.nguoi_soan;
 
         // Set dropdown đơn vị — tìm theo text hoặc id
-        document.getElementById("edit_donViNgoai").value = d.don_vi_ngoai_id || '';
         document.getElementById("edit_donViBH").value = d.don_vi_trong_id || '';
-        // checkEditDonVi();
+        document.getElementById("edit_donViNgoai").value = d.don_vi_ngoai_id || '';
+        if (d.don_vi_trong_id) {
+            loadUsersByDept(d.don_vi_trong_id, 'edit_nguoisoan', d.nguoi_soan_id);
+        }
+
 
         // Map tên hiển thị -> mã
         let ttMap = {'Dự thảo':'DU_THAO','Chờ phê duyệt':'CHO_PHE_DUYET','Đã phê duyệt':'DA_PHE_DUYET','Đã phát hành':'DA_PHAT_HANH'};
@@ -295,10 +290,10 @@ function suaVanBan(btn) {
 function luuCapNhat() {
     if (!_editId) return;
     
-    let ngoai = document.getElementById('edit_donViNgoai').value;
     let trong = document.getElementById('edit_donViBH').value;
-    if (!ngoai && !trong) {
-        alert("Vui lòng chọn ít nhất một Đơn vị nhận (Bên ngoài hoặc Bên trong)!");
+    let ngoai = document.getElementById('edit_donViNgoai').value;
+    if (!trong && !ngoai) {
+        alert("Vui lòng chọn đơn vị nhận văn bản!");
         return;
     }
     
@@ -307,8 +302,9 @@ function luuCapNhat() {
     fd.append('trich_yeu', document.getElementById('edit_trichyeu').value);
     fd.append('loai_vb', document.getElementById('edit_loaivb').value);
     fd.append('ngay_ban_hanh', document.getElementById('edit_ngay').value || '');
-    fd.append('don_vi_ngoai_id', ngoai);
     fd.append('don_vi_trong_id', trong);
+    fd.append('don_vi_ngoai_id', ngoai);
+    fd.append('nguoi_soan_id', document.getElementById('edit_nguoisoan').value || '');
     fd.append('trang_thai', document.getElementById('edit_trangthai').value);
     fd.append('xoa_file', document.getElementById('edit_xoa_file').value);
     let fileInput = document.getElementById('edit_file_input');
@@ -461,24 +457,37 @@ function xacNhanPheDuyet(chap_nhan) {
 let _phatHanhId = null;
 
 function phatHanhVanBan(btn) {
-    let row = btn.closest("tr");
-    _phatHanhId = row.dataset.id;
-    let cells = row.getElementsByTagName("td");
-
-    document.getElementById("ph_trichyeu").value = cells[2].innerText;
-    let ngayRaw = cells[6].innerText.trim();
-    let parts = ngayRaw.split("/");
-    if (parts.length === 3) {
-        document.getElementById("ph_ngay").value = parts[2] + "-" + parts[1] + "-" + parts[0];
-    }
-    openVBD('popupPhatHanh');
+    _phatHanhId = btn.closest("tr").dataset.id;
+    fetch('/api/van-ban-di/' + _phatHanhId + '/chi-tiet/')
+    .then(r => r.json())
+    .then(res => {
+        let d = res.data;
+        document.getElementById("ph_trichyeu").value = d.trich_yeu;
+        if(d.ngay_ban_hanh) {
+            let parts = d.ngay_ban_hanh.split("/");
+            if (parts.length === 3) {
+                document.getElementById("ph_ngay").value = parts[2] + "-" + parts[1] + "-" + parts[0];
+            }
+        }
+        let ph_phongban = document.getElementById("ph_phongban");
+        if (ph_phongban) {
+            ph_phongban.value = d.don_vi_trong_id || '';
+        }
+        openVBD('popupPhatHanh');
+    });
 }
 
 function xacNhanPhatHanh() {
     if (!_phatHanhId) return;
+    let ph_phongban = document.getElementById('ph_phongban');
+    if (ph_phongban && !ph_phongban.value) {
+        alert('Vui lòng chọn phòng ban nhận để phân công!');
+        return;
+    }
     let data = {
         trich_yeu: document.getElementById('ph_trichyeu').value,
         ngay_ban_hanh: document.getElementById('ph_ngay').value || null,
+        don_vi_trong_id: ph_phongban ? ph_phongban.value : null
     };
     apiPost('/api/van-ban-di/' + _phatHanhId + '/phat-hanh/', data, () => {
         App.showSuccess('Phát hành thành công', () => {
@@ -540,43 +549,7 @@ function reloadDonViDropdowns() {
     .then(res => {
         if (res.status !== 'success') return;
 
-        // Helper build options
-        function buildNgoaiOptions(selEl, withLabel) {
-            const cur = selEl.value;
-            selEl.innerHTML = `<option value="">${withLabel}</option>`;
-            res.ngoai.forEach(dv => {
-                const opt = document.createElement('option');
-                opt.value = withLabel.includes('Tất cả') ? dv.ten : dv.id;
-                opt.textContent = dv.ten + (withLabel.includes('Tất cả') ? ' (BN)' : '');
-                if (String(opt.value) === String(cur)) opt.selected = true;
-                selEl.appendChild(opt);
-            });
-        }
-        function buildTrongOptions(selEl, withLabel) {
-            const cur = selEl.value;
-            // Xóa options cũ của đơn vị trong (giữ đơn vị ngoài nếu mixed)
-            Array.from(selEl.options).forEach(o => {
-                if (o.dataset.type === 'trong') selEl.removeChild(o);
-            });
-            res.trong.forEach(dv => {
-                const opt = document.createElement('option');
-                opt.value = withLabel.includes('Tất cả') ? dv.ten : dv.id;
-                opt.textContent = dv.ten + (withLabel.includes('Tất cả') ? ' (BT)' : '');
-                opt.dataset.type = 'trong';
-                if (String(opt.value) === String(cur)) opt.selected = true;
-                selEl.appendChild(opt);
-            });
-        }
-
-        // 1. Thanh tìm kiếm - chỉ đơn vị ngoài
-        const searchDonVi = document.getElementById('search_don_vi');
-        if (searchDonVi) buildNgoaiOptions(searchDonVi, '--- Chọn đơn vị bên ngoài ---');
-
-        // 2. Modal Thêm mới - đơn vị ngoài
-        const donViNgoai = document.getElementById('donViNgoai');
-        if (donViNgoai) buildNgoaiOptions(donViNgoai, '--- Chọn đơn vị bên ngoài ---');
-
-        // 3. Modal Thêm mới - đơn vị trong
+        // 2. Modal Thêm mới - đơn vị trong & ngoài
         const donViBH = document.getElementById('donViBH');
         if (donViBH) {
             const cur = donViBH.value;
@@ -589,32 +562,34 @@ function reloadDonViDropdowns() {
                 donViBH.appendChild(opt);
             });
         }
+        const donViNgoai = document.getElementById('donViNgoai');
+        if (donViNgoai) {
+            const cur = donViNgoai.value;
+            donViNgoai.innerHTML = '<option value="">--- Chọn đơn vị bên ngoài ---</option>';
+            res.ngoai.forEach(dv => {
+                const opt = document.createElement('option');
+                opt.value = dv.id;
+                opt.textContent = dv.ten;
+                if (String(opt.value) === String(cur)) opt.selected = true;
+                donViNgoai.appendChild(opt);
+            });
+        }
 
-        // 4. Bộ lọc - đơn vị ngoài + trong
+        // 4. Bộ lọc - đơn vị trong
         const filterDonVi = document.getElementById('filter_don_vi');
         if (filterDonVi) {
             const cur = filterDonVi.value;
             filterDonVi.innerHTML = '<option value="">--- Tất cả ---</option>';
-            res.ngoai.forEach(dv => {
-                const opt = document.createElement('option');
-                opt.value = dv.ten;
-                opt.textContent = dv.ten + ' (BN)';
-                if (opt.value === cur) opt.selected = true;
-                filterDonVi.appendChild(opt);
-            });
             res.trong.forEach(dv => {
                 const opt = document.createElement('option');
                 opt.value = dv.ten;
-                opt.textContent = dv.ten + ' (BT)';
+                opt.textContent = dv.ten;
                 if (opt.value === cur) opt.selected = true;
                 filterDonVi.appendChild(opt);
             });
         }
 
-        // 5. Modal Sửa - đơn vị ngoài + trong
-        const editDonViNgoai = document.getElementById('edit_donViNgoai');
-        if (editDonViNgoai) buildNgoaiOptions(editDonViNgoai, '--- Chọn đơn vị bên ngoài ---');
-
+        // 5. Modal Sửa - đơn vị trong & ngoài
         const editDonViBH = document.getElementById('edit_donViBH');
         if (editDonViBH) {
             const cur = editDonViBH.value;
@@ -627,8 +602,59 @@ function reloadDonViDropdowns() {
                 editDonViBH.appendChild(opt);
             });
         }
+        const editDonViNgoai = document.getElementById('edit_donViNgoai');
+        if (editDonViNgoai) {
+            const cur = editDonViNgoai.value;
+            editDonViNgoai.innerHTML = '<option value="">--- Chọn đơn vị bên ngoài ---</option>';
+            res.ngoai.forEach(dv => {
+                const opt = document.createElement('option');
+                opt.value = dv.id;
+                opt.textContent = dv.ten;
+                if (String(opt.value) === String(cur)) opt.selected = true;
+                editDonViNgoai.appendChild(opt);
+            });
+        }
     });
 }
 
 // Gọi khi trang load
 document.addEventListener('DOMContentLoaded', reloadDonViDropdowns);
+
+function loadUsersByDept(deptId, targetSelectId, selectedValue = null) {
+    const select = document.getElementById(targetSelectId);
+    if (!select) return;
+    select.innerHTML = '<option value="">--- Chọn người xử lý ---</option>';
+    if (!deptId) return;
+
+    fetch(`/api/nguoi-dung/list/?dept=${deptId}&page_size=all`)
+        .then(r => r.json())
+        .then(res => {
+            if (res.status === 'success' && res.data) {
+                res.data.forEach(user => {
+                    const opt = document.createElement('option');
+                    opt.value = user.id;
+                    opt.textContent = `${user.fullname} (${user.role_name})`;
+                    if (selectedValue && String(user.id) === String(selectedValue)) {
+                        opt.selected = true;
+                    }
+                    select.appendChild(opt);
+                });
+            }
+        });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const donViBH = document.getElementById('donViBH');
+    if (donViBH) {
+        donViBH.addEventListener('change', function() {
+            loadUsersByDept(this.value, 'nguoiSoanThao');
+        });
+    }
+
+    const editDonViBH = document.getElementById('edit_donViBH');
+    if (editDonViBH) {
+        editDonViBH.addEventListener('change', function() {
+            loadUsersByDept(this.value, 'edit_nguoisoan');
+        });
+    }
+});

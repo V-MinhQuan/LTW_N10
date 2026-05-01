@@ -81,24 +81,32 @@ def get_filtered_documents(user, model_class):
     # 2. Trưởng phòng: Xem văn bản của phòng mình
     if is_truong_phong(user):
         if model_class == VanBanDen:
-            # Văn bản đến: Lọc theo phòng nhận
-            return model_class.objects.filter(DonViTrongID=user.PhongBan)
-        else:
-            # Văn bản đi: Lọc theo phòng của người soạn HOẶC phòng nhận nội bộ
+            # Văn bản đến: Lọc theo phòng nhận HOẶC người xử lý thuộc phòng
             return model_class.objects.filter(
+                Q(DonViTrongID=user.PhongBan) | 
+                Q(UserID__PhongBan=user.PhongBan) |
+                Q(phancong__UserID__PhongBan=user.PhongBan)
+            ).distinct()
+        else:
+            # Văn bản đi: Hiện cho phòng gửi, phòng xử lý HOẶC phòng nhận nội bộ
+            return model_class.objects.filter(
+                Q(NguoiGui__PhongBan=user.PhongBan) | 
                 Q(UserID__PhongBan=user.PhongBan) | 
-                Q(DonViTrongID=user.PhongBan)
+                Q(phancong__UserID__PhongBan=user.PhongBan) |
+                Q(DonViTrongID__TenDonVi=user.PhongBan)
             ).distinct()
 
-    # 3. Nhân viên: Chỉ xem văn bản được phân công, chuyển tiếp hoặc mình soạn
+    # 3. Nhân viên: Chỉ xem văn bản mình soạn, được giao xử lý hoặc được phân công/chuyển tiếp
     if model_class == VanBanDen:
         return model_class.objects.filter(
+            Q(UserID=user) |
             Q(phancong__UserID=user) | 
             Q(chuyentiep__UserID=user)
         ).distinct()
     else:
-        # Văn bản đi: Thêm điều kiện người soạn (UserID)
+        # Văn bản đi: Thêm điều kiện người gửi (NguoiGui) và người xử lý (UserID)
         return model_class.objects.filter(
+            Q(NguoiGui=user) |
             Q(UserID=user) | 
             Q(phancong__UserID=user) | 
             Q(chuyentiep__UserID=user)
@@ -499,7 +507,8 @@ def van_ban_di_index(request):
     page_size = 8
 
     from django.db.models import Prefetch
-    vbs = VanBanDi.objects.select_related('DonViNgoaiID', 'DonViTrongID', 'UserID').prefetch_related(
+    # ÁP DỤNG PHÂN QUYỀN LỌC DỮ LIỆU
+    vbs = get_filtered_documents(request.user, VanBanDi).select_related('DonViNgoaiID', 'DonViTrongID', 'UserID').prefetch_related(
         Prefetch('phancong_set', queryset=PhanCong.objects.select_related('UserID').order_by('-NgayPhanCong'),
                  to_attr='ds_phan_cong')
     ).order_by('-VanBanDiID')
@@ -627,6 +636,7 @@ def api_vbdi_chi_tiet(request, pk):
             'don_vi_trong': vb.DonViTrongID.TenDonVi if vb.DonViTrongID else '',
             'don_vi_trong_id': vb.DonViTrongID_id if vb.DonViTrongID else '',
             'nguoi_soan': ", ".join(nguoi_xu_ly_list) if nguoi_xu_ly_list else (vb.UserID.HoTen if vb.UserID else ''),
+            'nguoi_soan_id': vb.UserID_id if vb.UserID else '',
             'ngay_ban_hanh': vb.NgayBanHanh.strftime('%d/%m/%Y') if vb.NgayBanHanh else '',
             'trang_thai': vb.get_TrangThai_display(),
             'tep_dinh_kem': str(vb.TepDinhKem) if vb.TepDinhKem else '',
@@ -664,16 +674,30 @@ def api_vbdi_them_moi(request):
         vb.LoaiVanBan = request.POST.get('loai_vb', '')
         vb.NgayBanHanh = ngay_ban_hanh or None
         
-        don_vi_ngoai_id = request.POST.get('don_vi_ngoai_id')
+        # Xử lý đơn vị: Ưu tiên chọn từ form, nếu không có thì lấy phòng ban của người tạo
         don_vi_trong_id = request.POST.get('don_vi_trong_id')
-        
-        if not don_vi_ngoai_id and not don_vi_trong_id:
-            return JsonResponse({'status': 'error', 'message': 'Vui lòng chọn ít nhất một Đơn vị nhận (Bên ngoài hoặc Bên trong).'}, status=400)
-            
-        if don_vi_ngoai_id:
-            vb.DonViNgoaiID = get_object_or_404(DonViBenNgoai, pk=don_vi_ngoai_id)
+        don_vi_ngoai_id = request.POST.get('don_vi_ngoai_id')
+
         if don_vi_trong_id:
             vb.DonViTrongID = get_object_or_404(DonViBenTrong, pk=don_vi_trong_id)
+        if don_vi_ngoai_id:
+            vb.DonViNgoaiID = get_object_or_404(DonViBenNgoai, pk=don_vi_ngoai_id)
+
+        # Fallback nếu không chọn gì
+        if not vb.DonViTrongID and not vb.DonViNgoaiID:
+            if request.user.PhongBan:
+                vb.DonViTrongID = request.user.PhongBan
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Vui lòng chọn đơn vị nhận văn bản.'}, status=400)
+            
+        nguoi_soan_id = request.POST.get('nguoi_soan_id')
+        if nguoi_soan_id:
+            vb.UserID = get_object_or_404(UserAccount, pk=nguoi_soan_id)
+        else:
+            vb.UserID = request.user
+            
+        # Lưu người gửi (người tạo/người yêu cầu phê duyệt)
+        vb.NguoiGui = request.user
             
         if request.FILES.get('tep_dinh_kem'):
             vb.TepDinhKem = request.FILES['tep_dinh_kem']
@@ -725,8 +749,8 @@ def api_vbdi_cap_nhat(request, pk):
         new_ngoai_id = request.POST.get('don_vi_ngoai_id')
         new_trong_id = request.POST.get('don_vi_trong_id')
 
-        if not new_ngoai_id and not new_trong_id:
-            return JsonResponse({'status': 'error', 'message': 'Vui lòng chọn ít nhất một Đơn vị nhận (Bên ngoài hoặc Bên trong).'}, status=400)
+        if not new_trong_id and not new_ngoai_id:
+            return JsonResponse({'status': 'error', 'message': 'Vui lòng chọn đơn vị nhận văn bản (trong hoặc ngoài).'}, status=400)
 
         # 1. So sánh các trường text
         if new_so_ky_hieu != (vb.SoKyHieu or ''):
@@ -746,15 +770,7 @@ def api_vbdi_cap_nhat(request, pk):
             changes.append(f'Ngày ban hành: "{old_ngay_str or "Trống"}" → "{new_ngay}"')
 
         # 4. So sánh đơn vị
-        if new_ngoai_id:
-            new_ngoai_obj = DonViBenNgoai.objects.filter(pk=new_ngoai_id).first()
-            old_ngoai_name = vb.DonViNgoaiID.TenDonVi if vb.DonViNgoaiID else 'Trống'
-            if new_ngoai_obj and (not vb.DonViNgoaiID or vb.DonViNgoaiID.pk != new_ngoai_obj.pk):
-                changes.append(f'Đơn vị ngoài: "{old_ngoai_name}" → "{new_ngoai_obj.TenDonVi}"')
-                vb.DonViNgoaiID = new_ngoai_obj
-        elif request.POST.get('don_vi_ngoai_id') == '' and vb.DonViNgoaiID:
-            changes.append(f'Đơn vị ngoài: "{vb.DonViNgoaiID.TenDonVi}" → "Trống"')
-            vb.DonViNgoaiID = None
+        new_ngoai_id = request.POST.get('don_vi_ngoai_id')
 
         if new_trong_id:
             new_trong_obj = DonViBenTrong.objects.filter(pk=new_trong_id).first()
@@ -766,12 +782,34 @@ def api_vbdi_cap_nhat(request, pk):
             changes.append(f'Đơn vị trong: "{vb.DonViTrongID.TenDonVi}" → "Trống"')
             vb.DonViTrongID = None
 
+        if new_ngoai_id:
+            new_ngoai_obj = DonViBenNgoai.objects.filter(pk=new_ngoai_id).first()
+            old_ngoai_name = vb.DonViNgoaiID.TenDonVi if vb.DonViNgoaiID else 'Trống'
+            if new_ngoai_obj and (not vb.DonViNgoaiID or vb.DonViNgoaiID.pk != new_ngoai_obj.pk):
+                changes.append(f'Đơn vị ngoài: "{old_ngoai_name}" → "{new_ngoai_obj.TenDonVi}"')
+                vb.DonViNgoaiID = new_ngoai_obj
+        elif request.POST.get('don_vi_ngoai_id') == '' and vb.DonViNgoaiID:
+            changes.append(f'Đơn vị ngoài: "{vb.DonViNgoaiID.TenDonVi}" → "Trống"')
+            vb.DonViNgoaiID = None
+
         # Cập nhật các trường đã check
         vb.SoKyHieu = new_so_ky_hieu
         vb.TrichYeu = new_trich_yeu
         vb.LoaiVanBan = new_loai_vb
         if new_ngay: vb.NgayBanHanh = new_ngay
-        if new_trang_thai: vb.TrangThai = new_trang_thai
+        if new_trang_thai: 
+            vb.TrangThai = new_trang_thai
+            # Nếu chuyển sang chờ phê duyệt, ghi nhận người gửi
+            if new_trang_thai == 'CHO_PHE_DUYET' and not vb.NguoiGui:
+                vb.NguoiGui = request.user
+        
+        new_nguoi_soan_id = request.POST.get('nguoi_soan_id')
+        if new_nguoi_soan_id:
+            new_user = UserAccount.objects.filter(pk=new_nguoi_soan_id).first()
+            if new_user and (not vb.UserID or vb.UserID.pk != new_user.pk):
+                old_name = vb.UserID.HoTen if vb.UserID else 'Trống'
+                changes.append(f'Người xử lý: "{old_name}" → "{new_user.HoTen}"')
+                vb.UserID = new_user
 
         # 5. So sánh file
         if request.FILES.get('tep_dinh_kem'):
@@ -864,6 +902,15 @@ def api_vbdi_phat_hanh(request, pk):
         ph.NgayPhatHanh = data.get('ngay_ban_hanh') or timezone.now()
         ph.TrangThai = 'DA_PHAT_HANH'
         ph.save()
+        
+        don_vi_trong_id = data.get('don_vi_trong_id')
+        if don_vi_trong_id:
+            try:
+                don_vi = DonViBenTrong.objects.get(pk=don_vi_trong_id)
+                vb.DonViTrongID = don_vi
+            except Exception:
+                pass
+
         vb.TrangThai = VanBanDi.TrangThaiChoices.DA_PHAT_HANH
         if data.get('ngay_ban_hanh'):
             vb.NgayBanHanh = data.get('ngay_ban_hanh')
@@ -988,7 +1035,6 @@ def thong_tin_view(request):
 
 # --- API NGƯỜI DÙNG ---
 @login_required
-@permission_required('quan_ly_nguoi_dung')
 def api_nguoi_dung_list(request):
 
     query_username = request.GET.get('username', '')
@@ -1021,7 +1067,10 @@ def api_nguoi_dung_list(request):
     if query_fullname:
         users = users.filter(HoTen__icontains=query_fullname)
     if query_dept:
-        users = users.filter(PhongBan__icontains=query_dept)
+        if query_dept.isdigit():
+            users = users.filter(PhongBan__pk=query_dept)
+        else:
+            users = users.filter(PhongBan__TenDonVi__icontains=query_dept)
     if query_status:
         # Map label lọc sang code DB
         status_db = 'ACTIVE' if query_status == 'Đang hoạt động' else 'INACTIVE'
@@ -1032,7 +1081,6 @@ def api_nguoi_dung_list(request):
 
     user_list = []
     for u in page_obj:
-        # Chốt logic nhãn: ACTIVE -> Đang hoạt động, còn lại -> Vô hiệu hóa
         trang_thai_db = (u.trang_thai or 'ACTIVE').strip().upper()
         is_active = (trang_thai_db == 'ACTIVE')
 
@@ -1042,7 +1090,7 @@ def api_nguoi_dung_list(request):
             'fullname': u.HoTen,
             'email': u.email,
             'phone': u.SoDienThoai,
-            'dept': u.PhongBan,
+            'dept': str(u.PhongBan.TenDonVi) if u.PhongBan else '',
             'role_id': u.VaiTroID.VaiTroID if u.VaiTroID else None,
             'role_name': u.VaiTroID.ChucVu if u.VaiTroID else '',
             'status': trang_thai_db,
@@ -1258,7 +1306,6 @@ def quan_ly_don_vi_ben_trong(request):
 
 
 @login_required
-@permission_required('quan_ly_don_vi')
 def api_don_vi_list(request):
 
     """Trả về danh sách đơn vị bên ngoài và bên trong để JS reload dynamic"""
@@ -1393,8 +1440,7 @@ def xu_ly_van_ban_index(request):
 
     # Xử lý Văn bản đến (Chỉ add nếu chọn 'Tất cả' hoặc 'Văn bản đến')
     if query_loai_xu_ly in ['', 'den']:
-        # Ép lọc theo số ký hiệu CV-DEN như ông muốn
-        for doc in den_qs.filter(SoKyHieu__icontains='CV-DEN').prefetch_related('phancong_set', 'chuyentiep_set'):
+        for doc in den_qs.prefetch_related('phancong_set', 'chuyentiep_set'):
             doc.doc_type = 'den'
             doc.ngay_sort = doc.NgayNhan or now
             # Gán Tag màu
@@ -1412,8 +1458,25 @@ def xu_ly_van_ban_index(request):
 
     # Xử lý Văn bản đi (Chỉ add nếu chọn 'Tất cả' hoặc 'Văn bản đi')
     if query_loai_xu_ly in ['', 'di']:
-        # Ép lọc theo số ký hiệu CV-DI như ông muốn
-        for doc in di_qs.filter(SoKyHieu__icontains='CV-DI').prefetch_related('phancong_set', 'chuyentiep_set'):
+        # Lọc logic nghiệp vụ: 
+        # 1. Văn bản đã phê duyệt/phát hành tới đơn vị mình (và mình là Trưởng phòng)
+        # 2. Hoặc mình là người soạn/gửi (NguoiGui)
+        # 3. Hoặc mình là người được giao xử lý/phân công cụ thể
+        di_tasks = di_qs.filter(
+            Q(DonViTrongID__TenDonVi=user.PhongBan, TrangThai__in=[VanBanDi.TrangThaiChoices.DA_PHE_DUYET, VanBanDi.TrangThaiChoices.DA_PHAT_HANH]) |
+            Q(NguoiGui=user) |
+            Q(UserID=user) |
+            Q(phancong__UserID=user)
+        ).distinct()
+        
+        # Loại bỏ nếu người dùng chính là người đã thực hiện thao tác "Phát hành"
+        # để danh sách "Xử lý" của họ không bị dồn ứ sau khi đã xong việc
+        if not (is_tgd(user) or is_tp_it(user)):
+            from .models import PhatHanh
+            published_ids = PhatHanh.objects.filter(UserID=user).values_list('VanBanDiID_id', flat=True)
+            di_tasks = di_tasks.exclude(VanBanDiID__in=published_ids)
+
+        for doc in di_tasks.prefetch_related('phancong_set', 'chuyentiep_set'):
             doc.doc_type = 'di'
             doc.ngay_sort = doc.NgayBanHanh or now
             # Gán Tag màu

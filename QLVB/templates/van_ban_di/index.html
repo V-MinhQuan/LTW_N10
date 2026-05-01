@@ -11,558 +11,773 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/pages/van_ban_di.css' %}?v=12">
 <style>
-   /* CSS cho vùng Nội dung xử lý văn bản */
-   .vbd-process-box { margin-top: 25px; border-top: 2px solid #f1f1f1; padding-top: 20px; }
-   .vbd-process-title { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 20px; text-transform: uppercase; text-align: center; line-height: 1.2; }
-   .vbd-process-header { display: grid; grid-template-columns: 140px 1fr 1fr; background: #f8f9fa; padding: 12px 15px; font-weight: bold; color: #555; font-size: 13px; border-radius: 4px; border: 1px solid #eee; margin-bottom: 15px; text-align: center; }
-   .vbd-process-rows {
-       display: flex;
-       flex-direction: column;
-       gap: 0;
-       border: 1px solid #eee;
-       border-radius: 4px;
-       max-height: 155px;
-       overflow-y: auto;
-   }
-   .vbd-process-rows::-webkit-scrollbar { width: 6px; }
-   .vbd-process-rows::-webkit-scrollbar-track { background: #f1f1f1; }
-   .vbd-process-rows::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
-   .vbd-process-rows::-webkit-scrollbar-thumb:hover { background: #999; }
-   .vbd-process-row { display: grid; grid-template-columns: 140px 1fr 1fr; padding: 15px; border-bottom: 1px solid #f1f1f1; align-items: flex-start; transition: all 0.2s; background: #fff; }
-   .vbd-process-row:hover { background: #f0f7ff; }
-   .vbd-process-row:last-child { border-bottom: none; }
+  /* CSS cho vùng Nội dung xử lý văn bản */
+  .vbd-process-box {
+    margin-top: 25px;
+    border-top: 2px solid #f1f1f1;
+    padding-top: 20px;
+  }
 
-   .vbd-process-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-align: center; min-width: 90px; }
-   .vbd-process-tag-blue { background: #e3f2fd; color: #1976d2; border: 1px solid #bbdefb; }
-   .vbd-process-tag-gray { background: #f5f5f5; color: #616161; border: 1px solid #e0e0e0; }
-   .vbd-process-tag-green { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+  .vbd-process-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1.2;
+  }
 
-   .vbd-process-user { font-weight: 700; color: #1e293b; margin-bottom: 4px; text-transform: uppercase; font-size: 13.5px; }
-   .vbd-process-info { color: #475569; font-size: 13px; }
-   .vbd-process-action { color: #1e293b; font-size: 14px; line-height: 1.5; }
-   .vbd-process-time { display: block; margin-top: 6px; color: #64748b; font-size: 12px; }
+  .vbd-process-header {
+    display: grid;
+    grid-template-columns: 140px 1fr 1fr;
+    background: #f8f9fa;
+    padding: 12px 15px;
+    font-weight: bold;
+    color: #555;
+    font-size: 13px;
+    border-radius: 4px;
+    border: 1px solid #eee;
+    margin-bottom: 15px;
+    text-align: center;
+  }
 
-   /* Scrollbar */
-   .vbd-process-rows::-webkit-scrollbar { width: 6px; }
-   .vbd-process-rows::-webkit-scrollbar-track { background: #f1f1f1; }
-   .vbd-process-rows::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
-   .vbd-process-rows::-webkit-scrollbar-thumb:hover { background: #999; }
+  .vbd-process-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    max-height: 155px;
+    overflow-y: auto;
+  }
+
+  .vbd-process-rows::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .vbd-process-rows::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+
+  .vbd-process-rows::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+  }
+
+  .vbd-process-rows::-webkit-scrollbar-thumb:hover {
+    background: #999;
+  }
+
+  .vbd-process-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 1fr;
+    padding: 15px;
+    border-bottom: 1px solid #f1f1f1;
+    align-items: flex-start;
+    transition: all 0.2s;
+    background: #fff;
+  }
+
+  .vbd-process-row:hover {
+    background: #f0f7ff;
+  }
+
+  .vbd-process-row:last-child {
+    border-bottom: none;
+  }
+
+  .vbd-process-tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    min-width: 90px;
+  }
+
+  .vbd-process-tag-blue {
+    background: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #bbdefb;
+  }
+
+  .vbd-process-tag-gray {
+    background: #f5f5f5;
+    color: #616161;
+    border: 1px solid #e0e0e0;
+  }
+
+  .vbd-process-tag-green {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+  }
+
+  .vbd-process-user {
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    font-size: 13.5px;
+  }
+
+  .vbd-process-info {
+    color: #475569;
+    font-size: 13px;
+  }
+
+  .vbd-process-action {
+    color: #1e293b;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .vbd-process-time {
+    display: block;
+    margin-top: 6px;
+    color: #64748b;
+    font-size: 12px;
+  }
+
+  /* Scrollbar */
+  .vbd-process-rows::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .vbd-process-rows::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+
+  .vbd-process-rows::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+  }
+
+  .vbd-process-rows::-webkit-scrollbar-thumb:hover {
+    background: #999;
+  }
 
 
-   /* Process row redesign */
-   .vbd-process-header { grid-template-columns: 130px 1fr 1fr; }
-   .vbd-process-row { grid-template-columns: 130px 1fr 1fr; align-items: center; }
-   .vbd-process-tag { min-width: 80px; font-size: 12px; padding: 4px 10px; }
-   .vbd-process-personnel { display: flex; flex-direction: column; gap: 2px; }
-   .vbd-process-personnel-icon { display: flex; align-items: center; gap: 6px; font-weight: 700; color: #1a73e8; font-size: 13px; text-transform: uppercase; }
-   .vbd-process-personnel-sub { color: #475569; font-size: 12px; }
-   .vbd-process-action-box { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 15px; font-size: 13.5px; color: #1e293b; font-weight: 500; }
-   .vbd-process-time-row { display: flex; align-items: center; gap: 4px; color: #64748b; font-size: 12px; margin-top: 6px; }
+  /* Process row redesign */
+  .vbd-process-header {
+    grid-template-columns: 130px 1fr 1fr;
+  }
+
+  .vbd-process-row {
+    grid-template-columns: 130px 1fr 1fr;
+    align-items: center;
+  }
+
+  .vbd-process-tag {
+    min-width: 80px;
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+
+  .vbd-process-personnel {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .vbd-process-personnel-icon {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    color: #1a73e8;
+    font-size: 13px;
+    text-transform: uppercase;
+  }
+
+  .vbd-process-personnel-sub {
+    color: #475569;
+    font-size: 12px;
+  }
+
+  .vbd-process-action-box {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px 15px;
+    font-size: 13.5px;
+    color: #1e293b;
+    font-weight: 500;
+  }
+
+  .vbd-process-time-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #64748b;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  .search-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
 </style>
 {% endblock %}
 
 
 {% block content %}
 <div class="panel">
-   <div class="panel-header header-blue">Tìm kiếm văn bản đi</div>
-   <div class="panel-body">
-       <form method="GET" action="{% url 'vbdi_index' %}">
-           <div class="search-grid">
-               <input type="text" name="so_ky_hieu" class="form-control" placeholder="Nhập Số ký hiệu văn bản" value="{{ so_ky_hieu|default_if_none:'' }}">
-               <input type="text" name="trich_yeu" class="form-control" placeholder="Nhập Trích yếu" value="{{ trich_yeu|default_if_none:'' }}">
-               <select name="loai_vb" id="search_loai_vb" class="form-control">
-                   <option value="">--- Chọn loại văn bản ---</option>
-                   {% for lv in loai_vb_list %}
-                   <option value="{{ lv }}" {% if loai_vb == lv %}selected{% endif %}>{{ lv }}</option>
-                   {% endfor %}
-               </select>
-               <select name="don_vi" id="search_don_vi" class="form-control">
-                   <option value="">--- Chọn đơn vị bên ngoài ---</option>
-                   {% for dv in don_vi_ngoai_list %}
-                   <option value="{{ dv.TenDonVi }}" {% if don_vi == dv.TenDonVi %}selected{% endif %}>{{ dv.TenDonVi }}</option>
-                   {% endfor %}
-               </select>
-           </div>
-           <div class="btn-group">
-               <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>
-               <button type="button" class="btn btn-secondary" onclick="window.location.href='{% url 'vbdi_index' %}'"><i class="fas fa-sync-alt"></i> Làm mới</button>
-               <button type="button" class="btn btn-success" onclick="openVBD('modalForm')"><i class="fa fa-plus"></i> Thêm mới</button>
-               <button type="button" class="btn btn-warning" onclick="openVBD('popupFilter')"><i class="fa fa-filter"></i> Bộ lọc</button>
-           </div>
-       </form>
-   </div>
+  <div class="panel-header header-blue">Tìm kiếm văn bản đi</div>
+  <div class="panel-body">
+    <form method="GET" action="{% url 'vbdi_index' %}">
+      <div class="search-grid">
+        <input type="text" name="so_ky_hieu" class="form-control" placeholder="Nhập Số ký hiệu văn bản"
+          value="{{ so_ky_hieu|default_if_none:'' }}">
+        <input type="text" name="trich_yeu" class="form-control" placeholder="Nhập Trích yếu"
+          value="{{ trich_yeu|default_if_none:'' }}">
+        <select name="loai_vb" id="search_loai_vb" class="form-control">
+          <option value="">--- Chọn loại văn bản ---</option>
+          {% for lv in loai_vb_list %}
+          <option value="{{ lv }}" {% if loai_vb == lv %}selected{% endif %}>{{ lv }}</option>
+          {% endfor %}
+        </select>
+
+      </div>
+      <div class="btn-group">
+        <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>
+        <button type="button" class="btn btn-secondary" onclick="window.location.href='{% url 'vbdi_index' %}'"><i
+            class="fas fa-sync-alt"></i> Làm mới</button>
+        <button type="button" class="btn btn-success" onclick="openVBD('modalForm')"><i class="fa fa-plus"></i> Thêm
+          mới</button>
+        <button type="button" class="btn btn-warning" onclick="openVBD('popupFilter')"><i class="fa fa-filter"></i> Bộ
+          lọc</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 
 <div class="panel">
-   <div class="panel-header header-gray" style="display: flex; justify-content: space-between;">
-       <div>Danh sách văn bản đi</div>
-       <div class="total">Tổng số: {{ paginator.count }} văn bản</div>
-   </div>
-   <div class="panel-body">
-       <div class="table-responsive">
-           <table class="data-table">
-               <thead>
-                   <tr>
-                       <th width="5%" class="col-stt">STT</th>
-                       <th width="12%">Số ký hiệu</th>
-                       <th width="20%">Trích yếu</th>
-                       <th width="15%">Đơn vị nhận</th>
-                       <th width="12%">Loại văn bản</th>
-                       <th width="12%">Người xử lý</th>
-                       <th width="10%">Ngày ban hành</th>
-                       <th width="10%" class="col-status">Trạng thái</th>
-                       <th width="4%" class="col-actions">Thao tác</th>
-                   </tr>
-               </thead>
-               <tbody>
-                   {% for vb in page_obj %}
-                   {% with tt=vb.TrangThai %}
-                   <tr data-id="{{ vb.VanBanDiID }}">
-                       <td class="col-stt">{{ page_obj.start_index|add:forloop.counter0 }}</td>
-                       <td class="text-left"><a href="javascript:void(0)" class="text-blue" onclick="xemChiTiet(this)">{{ vb.SoKyHieu }}</a></td>
-                       <td class="text-left" style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ vb.TrichYeu }}">{{ vb.TrichYeu }}</td>
-                       <td class="text-left">
-                           {% if vb.DonViNgoaiID %}{{ vb.DonViNgoaiID.TenDonVi }} (BN){% endif %}
-                           {% if vb.DonViNgoaiID and vb.DonViTrongID %}<br>{% endif %}
-                           {% if vb.DonViTrongID %}{{ vb.DonViTrongID.TenDonVi }} (BT){% endif %}
-                       </td>
-                       <td class="text-left">{{ vb.LoaiVanBan }}</td>
-                       <td class="text-left">
-                           {% if vb.ds_phan_cong %}
-                               {% for pc in vb.ds_phan_cong %}
-                                   {{ pc.UserID.HoTen }}{% if not forloop.last %}, {% endif %}
-                               {% endfor %}
-                           {% else %}
-                               {{ vb.UserID.HoTen }}
-                           {% endif %}
-                       </td>
-                       <td class="text-center">{% if vb.NgayBanHanh %}{{ vb.NgayBanHanh|date:"d/m/Y" }}{% endif %}</td>
-                       <td class="col-status">
-                           {% if tt == 'DA_PHAT_HANH' %}<span class="status-pill pill-green">Đã phát hành</span>
-                           {% elif tt == 'DA_PHE_DUYET' %}<span class="status-pill pill-blue">Đã phê duyệt</span>
-                           {% elif tt == 'CHO_PHE_DUYET' %}<span class="status-pill pill-orange">Chờ phê duyệt</span>
-                           {% else %}<span class="status-pill pill-gray">Dự thảo</span>{% endif %}
-                       </td>
-                       <td class="col-actions">
-                           <button class="action-btn btn-primary" onclick="xemChiTiet(this)" title="Xem"><i class="fa fa-eye"></i></button>
-                            {% if tt == 'DA_PHE_DUYET' %}
-                                {% can_publish user as publish_perm %}
-                                {% if publish_perm %}
-                                <button class="action-btn btn-info" onclick="phatHanhVanBan(this)" title="Phát hành"><i class="fa fa-paper-plane"></i></button>
-                                {% endif %}
-                            {% endif %}
-                            {% if tt == 'CHO_PHE_DUYET' %}
-                                {% can_approve user as approve_perm %}
-                                {% if approve_perm %}
-                                <button class="action-btn btn-forward" onclick="pheDuyetVanBan(this)" title="Phê duyệt"><i class="fa fa-check"></i></button>
-                                {% endif %}
-                            {% endif %}
-                           {% if tt == 'DU_THAO' %}
-                           <button class="action-btn btn-success" onclick="suaVanBan(this)" title="Sửa"><i class="fas fa-edit"></i></button>
-                           <button class="action-btn btn-danger" onclick="xoaVanBan(this)" title="Xóa"><i class="fas fa-trash-alt"></i></button>
-                           {% endif %}
-                       </td>
-                   </tr>
-                   {% endwith %}
-                   {% empty %}
-                   <tr><td colspan="9" class="text-center" style="padding:20px;color:#999;">Không có dữ liệu</td></tr>
-                   {% endfor %}
-               </tbody>
-           </table>
-       </div>
-       <div class="table-footer">
-           <div>Hiển thị {{ page_obj.start_index }} - {{ page_obj.end_index }} / Tổng số: {{ paginator.count }}</div>
-           <div class="pagination">
-               {% if paginator.num_pages > 1 %}
-               <button class="page-btn" onclick="goPage(1)">Đầu</button>
-               {% if page_obj.has_previous %}
-               <button class="page-btn" onclick="goPage({{ page_obj.previous_page_number }})">Trước</button>
-               {% endif %}
+  <div class="panel-header header-gray" style="display: flex; justify-content: space-between;">
+    <div>Danh sách văn bản đi</div>
+    <div class="total">Tổng số: {{ paginator.count }} văn bản</div>
+  </div>
+  <div class="panel-body">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th width="5%" class="col-stt">STT</th>
+            <th width="12%">Số ký hiệu</th>
+            <th width="20%">Trích yếu</th>
+            <th width="15%">Đơn vị gửi</th>
+            <th width="12%">Loại văn bản</th>
+            <th width="12%">Người xử lý</th>
+            <th width="10%">Ngày ban hành</th>
+            <th width="10%" class="col-status">Trạng thái</th>
+            <th width="4%" class="col-actions">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for vb in page_obj %}
+          {% with tt=vb.TrangThai %}
+          <tr data-id="{{ vb.VanBanDiID }}">
+            <td class="col-stt">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+            <td class="text-left"><a href="javascript:void(0)" class="text-blue" onclick="xemChiTiet(this)">{{ vb.SoKyHieu }}</a></td>
+            <td class="text-left"
+              style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+              title="{{ vb.TrichYeu }}">{{ vb.TrichYeu }}</td>
+            <td class="text-left">
+              {% if not vb.DonViTrongID and not vb.DonViNgoaiID %}<span style="color:#ccc;">Chưa xác định</span>{% endif %}
+
+              {% if vb.DonViTrongID %}{{ vb.DonViTrongID.TenDonVi }} (BT){% endif %}
+              {% if vb.DonViNgoaiID %}{{ vb.DonViNgoaiID.TenDonVi }} (BN){% endif %}
+            </td>
+            <td class="text-left">{{ vb.LoaiVanBan }}</td>
+            <td class="text-left">
+              {% if vb.ds_phan_cong %}
+              {% for pc in vb.ds_phan_cong %}
+              {{ pc.UserID.HoTen }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+              {% else %}
+              {{ vb.UserID.HoTen }}
+              {% endif %}
+            </td>
+            <td class="text-center">{% if vb.NgayBanHanh %}{{ vb.NgayBanHanh|date:"d/m/Y" }}{% endif %}</td>
+            <td class="col-status">
+              {% if tt == 'DA_PHAT_HANH' %}<span class="status-pill pill-green">Đã phát hành</span>
+              {% elif tt == 'DA_PHE_DUYET' %}<span class="status-pill pill-blue">Đã phê duyệt</span>
+              {% elif tt == 'CHO_PHE_DUYET' %}<span class="status-pill pill-orange">Chờ phê duyệt</span>
+              {% else %}<span class="status-pill pill-gray">Dự thảo</span>{% endif %}
+            </td>
+            <td class="col-actions">
+              <button class="action-btn btn-primary" onclick="xemChiTiet(this)" title="Xem"><i
+                  class="fa fa-eye"></i></button>
+              {% if tt == 'DA_PHE_DUYET' %}
+              {% check_perm user 'phat_hanh' vb as publish_perm %}
+              {% if publish_perm %}
+              <button class="action-btn btn-info" onclick="phatHanhVanBan(this)" title="Phát hành"><i
+                  class="fa fa-paper-plane"></i></button>
+              {% endif %}
+              {% endif %}
+              {% if tt == 'CHO_PHE_DUYET' %}
+              {% check_perm user 'phe_duyet' vb as approve_perm %}
+              {% if approve_perm %}
+              <button class="action-btn btn-forward" onclick="pheDuyetVanBan(this)" title="Phê duyệt"><i
+                  class="fa fa-check"></i></button>
+              {% endif %}
+              {% endif %}
+              {% if tt == 'DU_THAO' %}
+              <button class="action-btn btn-success" onclick="suaVanBan(this)" title="Sửa"><i
+                  class="fas fa-edit"></i></button>
+              <button class="action-btn btn-danger" onclick="xoaVanBan(this)" title="Xóa"><i
+                  class="fas fa-trash-alt"></i></button>
+              {% endif %}
+            </td>
+          </tr>
+          {% endwith %}
+          {% empty %}
+          <tr>
+            <td colspan="9" class="text-center" style="padding:20px;color:#999;">Không có dữ liệu</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <div>Hiển thị {{ page_obj.start_index }} - {{ page_obj.end_index }} / Tổng số: {{ paginator.count }}</div>
+      <div class="pagination">
+        {% if paginator.num_pages > 1 %}
+        <button class="page-btn" onclick="goPage(1)">Đầu</button>
+        {% if page_obj.has_previous %}
+        <button class="page-btn" onclick="goPage({{ page_obj.previous_page_number }})">Trước</button>
+        {% endif %}
 
 
-               {% for num in page_obj.paginator.page_range %}
-                   {% if page_obj.number == num %}
-                       <button type="button" class="page-btn active">{{ num }}</button>
-                   {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                       <button type="button" class="page-btn" onclick="goPage({{ num }})">{{ num }}</button>
-                   {% endif %}
-               {% endfor %}
+        {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <button type="button" class="page-btn active">{{ num }}</button>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <button type="button"
+          class="page-btn" onclick="goPage({{ num }})">{{ num }}</button>
+          {% endif %}
+          {% endfor %}
 
 
-               {% if page_obj.has_next %}
-               <button class="page-btn" onclick="goPage({{ page_obj.next_page_number }})">Sau</button>
-               {% endif %}
-               <button class="page-btn" onclick="goPage({{ paginator.num_pages }})">Cuối</button>
-               {% endif %}
-           </div>
-       </div>
-   </div>
+          {% if page_obj.has_next %}
+          <button class="page-btn" onclick="goPage({{ page_obj.next_page_number }})">Sau</button>
+          {% endif %}
+          <button class="page-btn" onclick="goPage({{ paginator.num_pages }})">Cuối</button>
+          {% endif %}
+      </div>
+    </div>
+  </div>
 </div>
 
 
 <!-- POPUPS VĂN BẢN ĐI -->
 <div id="modalForm" class="modal-box">
-   <div class="modal-header">
-       Thêm thông tin văn bản đi
-       <span class="close-btn" style="cursor: pointer; font-size: 20px;" onclick="closeVBD('modalForm')">&times;</span>
-   </div>
-   <div class="modal-body">
-       <div class="form-group full" style="margin-bottom: 15px;">
-           <label style="display: block; margin-bottom: 5px; font-weight: bold;">Trích yếu (<span style="color:red">*</span>)</label>
-           <input type="text" id="trichYeu" class="form-control" style="width: 100%;" placeholder="Nhập trích yếu văn bản">
-       </div>
-       <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
-           <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Loại văn bản (<span style="color:red">*</span>)</label>
-               <input type="text" id="loaiVB" class="form-control" placeholder="Nhập loại văn bản">
-           </div>
-           <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Số ký hiệu (<span style="color:red">*</span>)</label>
-               <input type="text" id="soKyHieu" class="form-control" placeholder="Nhập số ký hiệu">
-           </div>
-       </div>
-       <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
-           <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị bên ngoài <span style="font-weight:normal; font-size:12px; color:#666;"></span></label>
-               <select id="donViNgoai" class="form-control">
-                   <option value="">--- Chọn đơn vị bên ngoài ---</option>
-                   {% for dv in don_vi_ngoai_list %}
-                   <option value="{{ dv.DonViNgoaiID }}">{{ dv.TenDonVi }}</option>
-                   {% endfor %}
-               </select>
-           </div>
-           <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị bên trong <span style="font-weight:normal; font-size:12px; color:#666;"></span></label>
-               <select id="donViBH" class="form-control">
-                   <option value="">--- Chọn đơn vị bên trong ---</option>
-                   {% for dv in don_vi_trong_list %}
-                   <option value="{{ dv.DonViTrongID }}">{{ dv.TenDonVi }}</option>
-                   {% endfor %}
-               </select>
-           </div>
-       </div>
-       <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
-           <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Ngày ban hành (<span style="color:red">*</span>)</label>
-               <input type="date" id="ngayBanHanh" class="form-control">
-           </div>
-           <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Người xử lý</label>
-               <input type="text" id="nguoiSoanThao" class="form-control" placeholder="Nhập tên người xử lý">
-           </div>
-       </div>
-       <div class="form-group full" style="margin-bottom: 15px; flex-direction: column; align-items: flex-start;">
-           <label style="display: block; margin-bottom: 8px; font-weight: bold;">Tài liệu đính kèm (<span style="color:red">*</span>)</label>
-           <div class="vbd-upload-area-new" style="width: 100%; box-sizing: border-box;">
-               <div class="upload-icon">
-                   <i class="fa fa-cloud-upload-alt"></i>
-               </div>
-               <p id="fileLabel">Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính</p>
-               <input type="file" id="fileInput" style="display:none" onchange="document.getElementById('fileLabel').innerHTML = this.files[0] ? this.files[0].name : 'Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính'">
-               <button type="button" class="btn-attach-new" onclick="document.getElementById('fileInput').click()">
-                   <i class="fas fa-paperclip"></i> Đính kèm tập tin
-               </button>
-           </div>
-       </div>
-   </div>
-   <div class="modal-footer" style="padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px;">
-       <button class="btn btn-secondary" onclick="closeVBD('modalForm')">Hủy</button>
-       <button class="btn btn-warning" onclick="luuDuThao()">Lưu dự thảo</button>
-       <button class="btn btn-primary" onclick="guiPheDuyet()">Gửi phê duyệt</button>
-   </div>
+  <div class="modal-header">
+    Thêm thông tin văn bản đi
+    <span class="close-btn" style="cursor: pointer; font-size: 20px;" onclick="closeVBD('modalForm')">&times;</span>
+  </div>
+  <div class="modal-body">
+    <div class="form-group full" style="margin-bottom: 15px;">
+      <label style="display: block; margin-bottom: 5px; font-weight: bold;">Trích yếu (<span
+          style="color:red">*</span>)</label>
+      <input type="text" id="trichYeu" class="form-control" style="width: 100%;" placeholder="Nhập trích yếu văn bản">
+    </div>
+    <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+      <div class="form-group" style="flex: 1;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Loại văn bản (<span
+            style="color:red">*</span>)</label>
+        <input type="text" id="loaiVB" class="form-control" placeholder="Nhập loại văn bản">
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Số ký hiệu (<span
+            style="color:red">*</span>)</label>
+        <input type="text" id="soKyHieu" class="form-control" placeholder="Nhập số ký hiệu">
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom: 15px; display: flex; gap: 20px;">
+      <div class="form-group" style="flex: 1;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị bên trong</label>
+        <select id="donViBH" class="form-control">
+          <option value="">--- Chọn phòng ban ---</option>
+          {% for dv in don_vi_trong_list %}
+          <option value="{{ dv.DonViTrongID }}">{{ dv.TenDonVi }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị bên ngoài</label>
+        <select id="donViNgoai" class="form-control">
+          <option value="">--- Chọn đơn vị bên ngoài ---</option>
+          {% for dv in don_vi_ngoai_list %}
+          <option value="{{ dv.DonViNgoaiID }}">{{ dv.TenDonVi }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+      <div class="form-group" style="flex: 1;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Ngày ban hành (<span
+            style="color:red">*</span>)</label>
+        <input type="date" id="ngayBanHanh" class="form-control">
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Người xử lý</label>
+        <select id="nguoiSoanThao" class="form-control">
+          <option value="">--- Chọn người xử lý ---</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group full" style="margin-bottom: 15px; flex-direction: column; align-items: flex-start;">
+      <label style="display: block; margin-bottom: 8px; font-weight: bold;">Tài liệu đính kèm (<span
+          style="color:red">*</span>)</label>
+      <div class="vbd-upload-area-new" style="width: 100%; box-sizing: border-box;">
+        <div class="upload-icon">
+          <i class="fa fa-cloud-upload-alt"></i>
+        </div>
+        <p id="fileLabel">Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính</p>
+        <input type="file" id="fileInput" style="display:none"
+          onchange="document.getElementById('fileLabel').innerHTML = this.files[0] ? this.files[0].name : 'Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính'">
+        <button type="button" class="btn-attach-new" onclick="document.getElementById('fileInput').click()">
+          <i class="fas fa-paperclip"></i> Đính kèm tập tin
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer"
+    style="padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px;">
+    <button class="btn btn-secondary" onclick="closeVBD('modalForm')">Hủy</button>
+    <button class="btn btn-warning" onclick="luuDuThao()">Lưu dự thảo</button>
+    <button class="btn btn-primary" onclick="guiPheDuyet()">Gửi phê duyệt</button>
+  </div>
 </div>
 
 
 <div id="modalDetail" class="modal-box">
-   <div class="modal-header">
-       Xem thông tin văn bản đi
-       <span class="close-btn" style="cursor: pointer; font-size: 20px;" onclick="closeVBD('modalDetail')">&times;</span>
-   </div>
-   <div class="modal-body">
-       <div class="form-group full" style="margin-bottom: 15px;">
-           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-               <label style="font-weight: bold; margin: 0;">Trích yếu</label>
-               <div style="display: inline-flex; gap: 8px;">
-                   <button type="button" class="btn btn-primary" style="padding: 4px 10px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;" onclick="timDeXuLy()">
-                       <i class="fa fa-search"></i> Tìm để xử lý
-                   </button>
-                   <button type="button" class="btn" style="background: #f8f9fa; border: 1px solid #ced4da; color: #333; padding: 4px 10px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;" onclick="if(_detailId) moLichSu(_detailId)">
-                       <i class="fa fa-history" style="color: #666;"></i> Lịch sử chỉnh sửa
-                   </button>
-               </div>
-           </div>
-           <input type="text" id="ct_trichyeu" class="form-control" style="width: 100%;" readonly>
-       </div>
+  <div class="modal-header">
+    Xem thông tin văn bản đi
+    <span class="close-btn" style="cursor: pointer; font-size: 20px;" onclick="closeVBD('modalDetail')">&times;</span>
+  </div>
+  <div class="modal-body">
+    <div class="form-group full" style="margin-bottom: 15px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+        <label style="font-weight: bold; margin: 0;">Trích yếu</label>
+        <div style="display: inline-flex; gap: 8px;">
+          <button type="button" class="btn btn-primary"
+            style="padding: 4px 10px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;"
+            onclick="timDeXuLy()">
+            <i class="fa fa-search"></i> Tìm để xử lý
+          </button>
+          <button type="button" class="btn"
+            style="background: #f8f9fa; border: 1px solid #ced4da; color: #333; padding: 4px 10px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;"
+            onclick="if(_detailId) moLichSu(_detailId)">
+            <i class="fa fa-history" style="color: #666;"></i> Lịch sử chỉnh sửa
+          </button>
+        </div>
+      </div>
+      <input type="text" id="ct_trichyeu" class="form-control" style="width: 100%;" readonly>
+    </div>
 
 
-       <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
-           <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Loại văn bản</label><input type="text" id="ct_loaivb" class="form-control" readonly></div>
-           <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Số ký hiệu</label><input type="text" id="ct_sokyhieu" class="form-control" readonly></div>
-       </div>
-       <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
-           <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị nhận</label><input type="text" id="ct_donvi" class="form-control" readonly></div>
-           <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Người xử lý</label><input type="text" id="ct_nguoisoan" class="form-control" readonly></div>
-       </div>
-       <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
-           <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Ngày ban hành</label><input type="text" id="ct_ngay" class="form-control" readonly></div>
-           <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Trạng thái</label><input type="text" id="ct_trangthai" class="form-control" readonly></div>
-       </div>
+    <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+      <div class="form-group" style="flex: 1;"><label
+          style="display: block; margin-bottom: 5px; font-weight: bold;">Loại văn bản</label><input type="text"
+          id="ct_loaivb" class="form-control" readonly></div>
+      <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Số
+          ký hiệu</label><input type="text" id="ct_sokyhieu" class="form-control" readonly></div>
+    </div>
+    <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+      <div class="form-group" style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn
+          vị nhận (Nội bộ)</label><input type="text" id="ct_donvi" class="form-control" readonly></div>
+      <div class="form-group" style="flex: 1;"><label
+          style="display: block; margin-bottom: 5px; font-weight: bold;">Người xử lý</label><input type="text"
+          id="ct_nguoisoan" class="form-control" readonly></div>
+    </div>
+    <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+      <div class="form-group" style="flex: 1;"><label
+          style="display: block; margin-bottom: 5px; font-weight: bold;">Ngày ban hành</label><input type="text"
+          id="ct_ngay" class="form-control" readonly></div>
+      <div class="form-group" style="flex: 1;"><label
+          style="display: block; margin-bottom: 5px; font-weight: bold;">Trạng thái</label><input type="text"
+          id="ct_trangthai" class="form-control" readonly></div>
+    </div>
 
 
-       <!-- TÀI LIỆU ĐÍNH KÈM -->
-       <div class="form-group full" style="margin-bottom: 15px; flex-direction: column; align-items: flex-start;">
-           <label style="display: block; margin-bottom: 5px; font-weight: bold;">Tài liệu đính kèm</label>
-           <div id="ct_file_section" class="vbd-file-list" style="width: 100%; box-sizing: border-box; display: none;"></div>
-           <span id="ct_no_file" style="color: #999; font-size: 13px;">Không có tài liệu đính kèm</span>
-       </div>
+    <!-- TÀI LIỆU ĐÍNH KÈM -->
+    <div class="form-group full" style="margin-bottom: 15px; flex-direction: column; align-items: flex-start;">
+      <label style="display: block; margin-bottom: 5px; font-weight: bold;">Tài liệu đính kèm</label>
+      <div id="ct_file_section" class="vbd-file-list" style="width: 100%; box-sizing: border-box; display: none;"></div>
+      <span id="ct_no_file" style="color: #999; font-size: 13px;">Không có tài liệu đính kèm</span>
+    </div>
 
 
-       <!-- NỘI DUNG XỬ LÝ VĂN BẢN -->
-       <div class="vbd-process-box">
-           <h3 class="vbd-process-title">NỘI DUNG XỬ LÝ VĂN BẢN</h3>
-           <div class="vbd-process-header">
-               <div>PHÂN LOẠI</div>
-               <div>NHÂN SỰ THỰC HIỆN</div>
-               <div>THAO TÁC XỬ LÝ</div>
-           </div>
-           <div class="vbd-process-rows" id="ct_process_history">
-               <!-- Data will be loaded via JS -->
-               <div style="padding: 20px; text-align: center; color: #999;">Đang tải nội dung xử lý...</div>
-           </div>
-       </div>
-   </div><!-- end modal-body -->
+    <!-- NỘI DUNG XỬ LÝ VĂN BẢN -->
+    <div class="vbd-process-box">
+      <h3 class="vbd-process-title">NỘI DUNG XỬ LÝ VĂN BẢN</h3>
+      <div class="vbd-process-header">
+        <div>PHÂN LOẠI</div>
+        <div>NHÂN SỰ THỰC HIỆN</div>
+        <div>THAO TÁC XỬ LÝ</div>
+      </div>
+      <div class="vbd-process-rows" id="ct_process_history">
+        <!-- Data will be loaded via JS -->
+        <div style="padding: 20px; text-align: center; color: #999;">Đang tải nội dung xử lý...</div>
+      </div>
+    </div>
+  </div><!-- end modal-body -->
 
 
-   <div class="modal-footer" style="padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; margin-top: auto;">
-       <button class="btn btn-secondary" onclick="closeVBD('modalDetail')">Đóng</button>
-   </div>
+  <div class="modal-footer"
+    style="padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; margin-top: auto;">
+    <button class="btn btn-secondary" onclick="closeVBD('modalDetail')">Đóng</button>
+  </div>
 </div>
 
 
 <div id="modalSuccess" class="modal-box" style="width: 400px; text-align: center; padding: 40px;">
-   <div class="success-box">
-       <i class="fa fa-check-circle success-icon" style="font-size: 60px; color: #2ecc71; margin-bottom: 20px; display: block;"></i>
-       <h2 style="margin-bottom: 20px;">Thao tác thành công</h2>
-       <button class="btn btn-primary" onclick="closeVBD('modalSuccess')">Xong</button>
-   </div>
+  <div class="success-box">
+    <i class="fa fa-check-circle success-icon"
+      style="font-size: 60px; color: #2ecc71; margin-bottom: 20px; display: block;"></i>
+    <h2 style="margin-bottom: 20px;">Thao tác thành công</h2>
+    <button class="btn btn-primary" onclick="closeVBD('modalSuccess')">Xong</button>
+  </div>
 </div>
 
 
 <!-- Modal Cập nhật văn bản đi -->
 <div id="modalEdit" class="modal-box">
-   <div class="modal-header">
-       Cập nhật văn bản đi
-       <span class="close-btn" style="cursor: pointer; font-size: 20px;" onclick="closeVBD('modalEdit')">&times;</span>
-   </div>
-   <div class="modal-body">
-       <div class="form-group full" style="margin-bottom: 15px;">
-           <label style="display: block; margin-bottom: 5px; font-weight: bold;">Trích yếu</label>
-           <input type="text" id="edit_trichyeu" class="form-control" style="width: 100%;">
-       </div>
-       <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
-           <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Loại văn bản</label>
-               <input type="text" id="edit_loaivb" class="form-control" placeholder="Nhập loại văn bản">
-           </div>
-           <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Số ký hiệu</label>
-               <input type="text" id="edit_sokyhieu" class="form-control">
-           </div>
-       </div>
-       <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
-           <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị bên ngoài <span style="font-weight:normal; font-size:12px; color:#666;"></span></label>
-               <select id="edit_donViNgoai" class="form-control">
-                   <option value="">--- Chọn đơn vị bên ngoài ---</option>
-                   {% for dv in don_vi_ngoai_list %}
-                   <option value="{{ dv.DonViNgoaiID }}">{{ dv.TenDonVi }}</option>
-                   {% endfor %}
-               </select>
-           </div>
-           <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị bên trong <span style="font-weight:normal; font-size:12px; color:#666;"></span></label>
-               <select id="edit_donViBH" class="form-control">
-                   <option value="">--- Chọn đơn vị bên trong ---</option>
-                   {% for dv in don_vi_trong_list %}
-                   <option value="{{ dv.DonViTrongID }}">{{ dv.TenDonVi }}</option>
-                   {% endfor %}
-               </select>
-           </div>
-       </div>
-       <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
-           <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Ngày ban hành</label>
-               <input type="date" id="edit_ngay" class="form-control">
-           </div>
-           <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Người xử lý</label>
-               <input type="text" id="edit_nguoisoan" class="form-control">
-           </div>
-       </div>
-       <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
-           <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Trạng thái</label>
-               <select id="edit_trangthai" class="form-control">
-                   <option value="DU_THAO">Dự thảo</option>
-                   <option value="CHO_PHE_DUYET">Chờ phê duyệt</option>
-                   <option value="DA_PHE_DUYET">Đã phê duyệt</option>
-                   <option value="DA_PHAT_HANH">Đã phát hành</option>
-               </select>
-           </div>
-       </div>
-       <div class="form-group full" style="margin-bottom: 15px; flex-direction: column; align-items: flex-start;">
-           <div class="vbd-attachment-header" style="width: 100%; margin-top: 0; margin-bottom: 8px;">
-               <label style="font-weight: bold; margin: 0;">Tài liệu đính kèm</label>
-               <input type="hidden" id="edit_xoa_file" value="0">
-               <input type="file" id="edit_file_input" style="display:none" onchange="previewEditFile(this)">
-               <button type="button" class="btn-attach" onclick="document.getElementById('edit_file_input').click()">
-                   <i class="fa fa-paperclip"></i> Chọn tập tin
-               </button>
-           </div>
-           <div id="edit_file_section" class="vbd-file-list" style="width: 100%; box-sizing: border-box;"></div>
-           <span id="edit_no_file" style="color: #999; font-size: 13px; display:none;">Không có tài liệu đính kèm</span>
-       </div>
-   </div>
-   <div class="modal-footer" style="padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px; margin-top: auto;">
-       <button class="btn btn-secondary" onclick="closeVBD('modalEdit')">Hủy</button>
-       <button class="btn btn-warning" onclick="luuCapNhat()">Lưu</button>
-       <button class="btn btn-primary" onclick="guiPheDuyetCapNhat()">Gửi phê duyệt</button>
-   </div>
+  <div class="modal-header">
+    Cập nhật văn bản đi
+    <span class="close-btn" style="cursor: pointer; font-size: 20px;" onclick="closeVBD('modalEdit')">&times;</span>
+  </div>
+  <div class="modal-body">
+    <div class="form-group full" style="margin-bottom: 15px;">
+      <label style="display: block; margin-bottom: 5px; font-weight: bold;">Trích yếu</label>
+      <input type="text" id="edit_trichyeu" class="form-control" style="width: 100%;">
+    </div>
+    <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+      <div class="form-group" style="flex: 1;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Loại văn bản</label>
+        <input type="text" id="edit_loaivb" class="form-control" placeholder="Nhập loại văn bản">
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Số ký hiệu</label>
+        <input type="text" id="edit_sokyhieu" class="form-control">
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom: 15px; display: flex; gap: 20px;">
+      <div class="form-group" style="flex: 1;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị bên trong</label>
+        <select id="edit_donViBH" class="form-control">
+          <option value="">--- Chọn đơn vị bên trong ---</option>
+          {% for dv in don_vi_trong_list %}
+          <option value="{{ dv.DonViTrongID }}">{{ dv.TenDonVi }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị bên ngoài</label>
+        <select id="edit_donViNgoai" class="form-control">
+          <option value="">--- Chọn đơn vị bên ngoài ---</option>
+          {% for dv in don_vi_ngoai_list %}
+          <option value="{{ dv.DonViNgoaiID }}">{{ dv.TenDonVi }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+      <div class="form-group" style="flex: 1;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Ngày ban hành</label>
+        <input type="date" id="edit_ngay" class="form-control">
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Người xử lý</label>
+        <select id="edit_nguoisoan" class="form-control">
+          <option value="">--- Chọn người xử lý ---</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+      <div class="form-group" style="flex: 1;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Trạng thái</label>
+        <select id="edit_trangthai" class="form-control" disabled style="background-color: #f5f5f5; cursor: not-allowed;">
+          <option value="DU_THAO">Dự thảo</option>
+          <option value="CHO_PHE_DUYET">Chờ phê duyệt</option>
+          <option value="DA_PHE_DUYET">Đã phê duyệt</option>
+          <option value="DA_PHAT_HANH">Đã phát hành</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group full" style="margin-bottom: 15px; flex-direction: column; align-items: flex-start;">
+      <div class="vbd-attachment-header" style="width: 100%; margin-top: 0; margin-bottom: 8px;">
+        <label style="font-weight: bold; margin: 0;">Tài liệu đính kèm</label>
+        <input type="hidden" id="edit_xoa_file" value="0">
+        <input type="file" id="edit_file_input" style="display:none" onchange="previewEditFile(this)">
+        <button type="button" class="btn-attach" onclick="document.getElementById('edit_file_input').click()">
+          <i class="fa fa-paperclip"></i> Chọn tập tin
+        </button>
+      </div>
+      <div id="edit_file_section" class="vbd-file-list" style="width: 100%; box-sizing: border-box;"></div>
+      <span id="edit_no_file" style="color: #999; font-size: 13px; display:none;">Không có tài liệu đính kèm</span>
+    </div>
+  </div>
+  <div class="modal-footer"
+    style="padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px; margin-top: auto;">
+    <button class="btn btn-secondary" onclick="closeVBD('modalEdit')">Hủy</button>
+    <button class="btn btn-warning" onclick="luuCapNhat()">Lưu</button>
+    <button class="btn btn-primary" onclick="guiPheDuyetCapNhat()">Gửi phê duyệt</button>
+  </div>
 </div>
 
 
 <!-- Popup Filter -->
 <div id="popupFilter" class="vbd-popup-overlay">
- <div class="vbd-popup" style="width: 600px;">
-   <div class="vbd-popup-header">
-     <span>Bộ lọc tìm kiếm</span>
-     <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupFilter')"></i>
-   </div>
-   <div class="vbd-popup-body" style="padding: 20px;">
-     <form id="frmFilter" method="GET" action="{% url 'vbdi_index' %}">
-       <input type="hidden" name="so_ky_hieu" value="{{ so_ky_hieu|default_if_none:'' }}">
-       <input type="hidden" name="trich_yeu" value="{{ trich_yeu|default_if_none:'' }}">
-       <div class="vbd-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-         <div class="vbd-field" style="display: flex; align-items: center; gap: 10px;">
-           <label style="margin: 0; min-width: 90px; color:#333; font-weight: 500;">Loại văn bản</label>
-           <select name="loai_vb" id="filter_loai_vb" class="form-control" style="flex: 1;">
-             <option value="">--- Tất cả ---</option>
-             {% for lv in loai_vb_list %}
-             <option value="{{ lv }}" {% if loai_vb == lv %}selected{% endif %}>{{ lv }}</option>
-             {% endfor %}
-           </select>
-         </div>
-         <div class="vbd-field" style="display: flex; align-items: center; gap: 10px;">
-           <label style="margin: 0; min-width: 90px; color:#333; font-weight: 500;">Trạng thái</label>
-           <select name="trang_thai" class="form-control" style="flex: 1;">
-             <option value="">--- Tất cả ---</option>
-             <option value="DU_THAO" {% if trang_thai == "DU_THAO" %}selected{% endif %}>Dự thảo</option>
-             <option value="CHO_PHE_DUYET" {% if trang_thai == "CHO_PHE_DUYET" %}selected{% endif %}>Chờ phê duyệt</option>
-             <option value="DA_PHE_DUYET" {% if trang_thai == "DA_PHE_DUYET" %}selected{% endif %}>Đã phê duyệt</option>
-             <option value="DA_PHAT_HANH" {% if trang_thai == "DA_PHAT_HANH" %}selected{% endif %}>Đã phát hành</option>
-           </select>
-         </div>
-         <div class="vbd-field" style="display: flex; align-items: center; gap: 10px; grid-column: 1 / -1;">
-           <label style="margin: 0; min-width: 90px; color:#333; font-weight: 500;">Đơn vị</label>
-           <select name="don_vi" id="filter_don_vi" class="form-control" style="flex: 1;">
-             <option value="">--- Tất cả ---</option>
-             {% for dv in don_vi_ngoai_list %}
-             <option value="{{ dv.TenDonVi }}" {% if don_vi == dv.TenDonVi %}selected{% endif %}>{{ dv.TenDonVi }} (BN)</option>
-             {% endfor %}
-             {% for dv in don_vi_trong_list %}
-             <option value="{{ dv.TenDonVi }}" {% if don_vi == dv.TenDonVi %}selected{% endif %}>{{ dv.TenDonVi }} (BT)</option>
-             {% endfor %}
-           </select>
-         </div>
-       </div>
-     </form>
-   </div>
-   <div class="vbd-popup-footer">
-     <button class="btn btn-secondary" onclick="closeVBD('popupFilter')">Đóng</button>
-     <button class="btn btn-primary" onclick="document.getElementById('frmFilter').submit()">Áp dụng</button>
-   </div>
- </div>
+  <div class="vbd-popup" style="width: 600px;">
+    <div class="vbd-popup-header">
+      <span>Bộ lọc tìm kiếm</span>
+      <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupFilter')"></i>
+    </div>
+    <div class="vbd-popup-body" style="padding: 20px;">
+      <form id="frmFilter" method="GET" action="{% url 'vbdi_index' %}">
+        <input type="hidden" name="so_ky_hieu" value="{{ so_ky_hieu|default_if_none:'' }}">
+        <input type="hidden" name="trich_yeu" value="{{ trich_yeu|default_if_none:'' }}">
+        <div class="vbd-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div class="vbd-field" style="display: flex; align-items: center; gap: 10px;">
+            <label style="margin: 0; min-width: 90px; color:#333; font-weight: 500;">Loại văn bản</label>
+            <select name="loai_vb" id="filter_loai_vb" class="form-control" style="flex: 1;">
+              <option value="">--- Tất cả ---</option>
+              {% for lv in loai_vb_list %}
+              <option value="{{ lv }}" {% if loai_vb == lv %}selected{% endif %}>{{ lv }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="vbd-field" style="display: flex; align-items: center; gap: 10px;">
+            <label style="margin: 0; min-width: 90px; color:#333; font-weight: 500;">Trạng thái</label>
+            <select name="trang_thai" class="form-control" style="flex: 1;">
+              <option value="">--- Tất cả ---</option>
+              <option value="DU_THAO" {% if trang_thai == "DU_THAO" %}selected{% endif %}>Dự thảo</option>
+              <option value="CHO_PHE_DUYET" {% if trang_thai == "CHO_PHE_DUYET" %}selected{% endif %}>Chờ phê duyệt
+              </option>
+              <option value="DA_PHE_DUYET" {% if trang_thai == "DA_PHE_DUYET" %}selected{% endif %}>Đã phê duyệt</option>
+              <option value="DA_PHAT_HANH" {% if trang_thai == "DA_PHAT_HANH" %}selected{% endif %}>Đã phát hành</option>
+            </select>
+          </div>
+          <div class="vbd-field" style="display: flex; align-items: center; gap: 10px; grid-column: 1 / -1;">
+            <label style="margin: 0; min-width: 90px; color:#333; font-weight: 500;">Đơn vị</label>
+            <select name="don_vi" id="filter_don_vi" class="form-control" style="flex: 1;">
+              <option value="">--- Tất cả ---</option>
+
+              {% for dv in don_vi_trong_list %}
+              <option value="{{ dv.TenDonVi }}" {% if don_vi == dv.TenDonVi %}selected{% endif %}>{{ dv.TenDonVi }} (BT)
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="vbd-popup-footer">
+      <button class="btn btn-secondary" onclick="closeVBD('popupFilter')">Đóng</button>
+      <button class="btn btn-primary" onclick="document.getElementById('frmFilter').submit()">Áp dụng</button>
+    </div>
+  </div>
 </div>
 
 
 <!-- Popup Phát hành văn bản đi -->
 <div id="popupPhatHanh" class="vbd-popup-overlay">
- <div class="vbd-popup" style="width: 550px; max-width: 95%;">
-   <div class="vbd-popup-header">
-     <span>Phát hành văn bản đi</span>
-     <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupPhatHanh')"></i>
-   </div>
-   <div class="vbd-popup-body" style="padding: 25px 30px;">
-     <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
-       <label style="width: 130px; font-weight: 500; flex-shrink: 0;">Trích yếu</label>
-       <input type="text" id="ph_trichyeu" class="form-control" style="flex: 1;" placeholder="Nhập trích yếu">
-     </div>
-     <div style="display: flex; align-items: center; gap: 20px;">
-       <label style="width: 130px; font-weight: 500; flex-shrink: 0;">Ngày ban hành</label>
-       <input type="date" id="ph_ngay" class="form-control" style="flex: 1;">
-     </div>
-   </div>
-   <div class="vbd-popup-footer">
-     <button class="btn btn-secondary" onclick="closeVBD('popupPhatHanh')">Hủy</button>
-     <button class="btn btn-primary" onclick="xacNhanPhatHanh()">Phát hành</button>
-   </div>
- </div>
+  <div class="vbd-popup" style="width: 550px; max-width: 95%;">
+    <div class="vbd-popup-header">
+      <span>Phát hành văn bản đi</span>
+      <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupPhatHanh')"></i>
+    </div>
+    <div class="vbd-popup-body" style="padding: 25px 30px;">
+      <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+        <label style="width: 130px; font-weight: 500; flex-shrink: 0;">Trích yếu</label>
+        <input type="text" id="ph_trichyeu" class="form-control" style="flex: 1;" placeholder="Nhập trích yếu">
+      </div>
+      <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+        <label style="width: 130px; font-weight: 500; flex-shrink: 0;">Phòng ban nhận</label>
+        <select id="ph_phongban" class="form-control" style="flex: 1;">
+          <option value="">--- Chọn phòng ban ---</option>
+          {% for dv in don_vi_trong_list %}
+          <option value="{{ dv.DonViTrongID }}">{{ dv.TenDonVi }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <label style="width: 130px; font-weight: 500; flex-shrink: 0;">Ngày ban hành</label>
+        <input type="date" id="ph_ngay" class="form-control" style="flex: 1;">
+      </div>
+    </div>
+    <div class="vbd-popup-footer">
+      <button class="btn btn-secondary" onclick="closeVBD('popupPhatHanh')">Hủy</button>
+      <button class="btn btn-primary" onclick="xacNhanPhatHanh()">Phát hành</button>
+    </div>
+  </div>
 </div>
 
 
 <!-- Popup Phê duyệt văn bản đi -->
 <div id="popupPheDuyet" class="vbd-popup-overlay">
- <div class="vbd-popup" style="width: 600px; max-width: 95%;">
-   <div class="vbd-popup-header">
-     <span>Phê duyệt văn bản đi</span>
-     <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupPheDuyet')"></i>
-   </div>
-   <div class="vbd-popup-body" style="padding: 25px 30px;">
-     <div style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 20px;">
-       <label style="width: 120px; padding-top: 10px; font-weight: 500; flex-shrink: 0;">Chữ ký số</label>
-       <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
-         <div style="position: relative; border: 1px solid #ddd; border-radius: 6px; background: #fff; line-height: 0;">
-           <canvas id="signature-pad" width="400" height="150" style="width: 100%; cursor: crosshair; touch-action: none;"></canvas>
-           <div id="signature-placeholder" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ccc; pointer-events: none; text-align: center;">
-               <i class="fas fa-signature" style="font-size: 24px; display: block; margin-bottom: 5px;"></i>
-               <span style="font-size: 13px;">Ký tên vào đây</span>
-           </div>
-         </div>
-         <div style="text-align: right;">
-           <button type="button" class="btn" style="padding: 4px 12px; font-size: 12px; background: #f1f1f1; border: 1px solid #ccc; color: #666;" onclick="clearSignature()">
-               <i class="fas fa-eraser"></i> Xóa chữ ký
-           </button>
-         </div>
-       </div>
-     </div>
-     <div style="display: flex; align-items: flex-start; gap: 20px;">
-       <label style="width: 120px; padding-top: 8px; font-weight: 500; flex-shrink: 0;">Ghi chú</label>
-       <textarea id="pd_ghichu" class="form-control" style="flex: 1; height: 100px; resize: vertical; padding-top: 10px" placeholder="Nhập ghi chú (nếu có)..."></textarea>
-     </div>
-   </div>
-   <div class="vbd-popup-footer">
-     <button class="btn btn-secondary" onclick="closeVBD('popupPheDuyet')">Hủy</button>
-     <button class="btn btn-warning" onclick="xacNhanPheDuyet(false)">Từ chối</button>
-     <button class="btn btn-primary" onclick="xacNhanPheDuyet(true)">Phê duyệt</button>
-   </div>
- </div>
+  <div class="vbd-popup" style="width: 600px; max-width: 95%;">
+    <div class="vbd-popup-header">
+      <span>Phê duyệt văn bản đi</span>
+      <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupPheDuyet')"></i>
+    </div>
+    <div class="vbd-popup-body" style="padding: 25px 30px;">
+      <div style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 20px;">
+        <label style="width: 120px; padding-top: 10px; font-weight: 500; flex-shrink: 0;">Chữ ký số</label>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+          <div
+            style="position: relative; border: 1px solid #ddd; border-radius: 6px; background: #fff; line-height: 0;">
+            <canvas id="signature-pad" width="400" height="150"
+              style="width: 100%; cursor: crosshair; touch-action: none;"></canvas>
+            <div id="signature-placeholder"
+              style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ccc; pointer-events: none; text-align: center;">
+              <i class="fas fa-signature" style="font-size: 24px; display: block; margin-bottom: 5px;"></i>
+              <span style="font-size: 13px;">Ký tên vào đây</span>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <button type="button" class="btn"
+              style="padding: 4px 12px; font-size: 12px; background: #f1f1f1; border: 1px solid #ccc; color: #666;"
+              onclick="clearSignature()">
+              <i class="fas fa-eraser"></i> Xóa chữ ký
+            </button>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: flex-start; gap: 20px;">
+        <label style="width: 120px; padding-top: 8px; font-weight: 500; flex-shrink: 0;">Ghi chú</label>
+        <textarea id="pd_ghichu" class="form-control"
+          style="flex: 1; height: 100px; resize: vertical; padding-top: 10px"
+          placeholder="Nhập ghi chú (nếu có)..."></textarea>
+      </div>
+    </div>
+    <div class="vbd-popup-footer">
+      <button class="btn btn-secondary" onclick="closeVBD('popupPheDuyet')">Hủy</button>
+      <button class="btn btn-warning" onclick="xacNhanPheDuyet(false)">Từ chối</button>
+      <button class="btn btn-primary" onclick="xacNhanPheDuyet(true)">Phê duyệt</button>
+    </div>
+  </div>
 </div>
 
 
 <!-- Popup xác nhận xóa -->
 <div id="popupRemoveFile" class="vbd-popup-overlay" style="z-index: 1300;">
- <div class="vbd-popup" style="width: 400px; text-align: center;">
-   <div class="vbd-popup-body" style="padding: 40px 30px;">
-     <i class="fa fa-trash" style="font-size: 48px; color: #d32f2f; margin-bottom: 15px; display: block;"></i>
-     <h3 style="margin-bottom: 10px;">Xác nhận xóa?</h3>
-     <p style="color: #666; margin-bottom: 25px;">Bạn có chắc chắn muốn xóa văn bản này không?</p>
-     <div style="display: flex; gap: 10px; justify-content: center;">
-       <button class="btn btn-secondary" onclick="closeVBD('popupRemoveFile')">Hủy</button>
-       <button class="btn btn-danger" onclick="xacNhanXoaFile()">Xác nhận</button>
-     </div>
-   </div>
- </div>
+  <div class="vbd-popup" style="width: 400px; text-align: center;">
+    <div class="vbd-popup-body" style="padding: 40px 30px;">
+      <i class="fa fa-trash" style="font-size: 48px; color: #d32f2f; margin-bottom: 15px; display: block;"></i>
+      <h3 style="margin-bottom: 10px;">Xác nhận xóa?</h3>
+      <p style="color: #666; margin-bottom: 25px;">Bạn có chắc chắn muốn xóa văn bản này không?</p>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button class="btn btn-secondary" onclick="closeVBD('popupRemoveFile')">Hủy</button>
+        <button class="btn btn-danger" onclick="xacNhanXoaFile()">Xác nhận</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 
@@ -572,96 +787,97 @@
 {% block extra_js %}
 <script src="{% static 'js/pages/van_ban_di.js' %}?v=13"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-   ['modalForm','modalDetail','modalEdit','modalSuccess','popupRemoveFile','popupPheDuyet','popupPhatHanh','historyOverlay','popupFilter'].forEach(function(id) {
-       var el = document.getElementById(id);
-       if (el && el.parentElement !== document.body) document.body.appendChild(el);
-   });
-});
+  document.addEventListener('DOMContentLoaded', function () {
+    ['modalForm', 'modalDetail', 'modalEdit', 'modalSuccess', 'popupRemoveFile', 'popupPheDuyet', 'popupPhatHanh', 'historyOverlay', 'popupFilter'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && el.parentElement !== document.body) document.body.appendChild(el);
+    });
+  });
 </script>
 
 
 <!-- Popup History -->
 <div id="historyOverlay" class="vbd-popup-overlay">
- <div class="vbd-popup" style="width: 1000px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
-   <div class="vbd-popup-header">
-     <span>Lịch sử chỉnh sửa văn bản đi</span>
-     <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('historyOverlay')"></i>
-   </div>
-   <div class="vbd-popup-body">
-<!--      <div class="history-search-grid">-->
-<!--        <div class="search-item">-->
-<!--          <label>Từ ngày - Đến ngày</label>-->
-<!--          <div class="date-range">-->
-<!--            <input type="date" class="form-control" />-->
-<!--            <span>-</span>-->
-<!--            <input type="date" class="form-control" />-->
-<!--          </div>-->
-<!--        </div>-->
-<!--        <div class="search-item">-->
-<!--          <label>Số hiệu/Số văn bản</label>-->
-<!--          <input type="text" class="form-control" placeholder="Nhập số hiệu hoặc số văn bản" />-->
-<!--        </div>-->
-<!--        <div class="search-item">-->
-<!--          <label>Trích yếu</label>-->
-<!--          <input type="text" class="form-control" placeholder="Nhập trích yếu" />-->
-<!--        </div>-->
-<!--      </div>-->
-<!--      <div class="btn-group" style="margin-top: 15px; margin-bottom: 25px;">-->
-<!--        <button class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>-->
-<!--        <button class="btn btn-secondary" onclick="closeVBD('historyOverlay')"><i class="fa fa-sync-alt"></i> Làm mới</button>-->
-<!--      </div>-->
-     <div style="background: #eef7ff; border: 1px solid #d0e7f9; border-radius: 6px; padding: 15px; text-align: center; margin-bottom: 20px;">
-       <span style="font-weight: bold; color: #3b5998; font-size: 16px; text-transform: uppercase;">
-         <i class="fa fa-history" style="margin-right: 8px;"></i> Danh sách lịch sử cập nhật chi tiết
-       </span>
-     </div>
+  <div class="vbd-popup"
+    style="width: 1000px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+    <div class="vbd-popup-header">
+      <span>Lịch sử chỉnh sửa văn bản đi</span>
+      <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('historyOverlay')"></i>
+    </div>
+    <div class="vbd-popup-body">
+      <!--      <div class="history-search-grid">-->
+      <!--        <div class="search-item">-->
+      <!--          <label>Từ ngày - Đến ngày</label>-->
+      <!--          <div class="date-range">-->
+      <!--            <input type="date" class="form-control" />-->
+      <!--            <span>-</span>-->
+      <!--            <input type="date" class="form-control" />-->
+      <!--          </div>-->
+      <!--        </div>-->
+      <!--        <div class="search-item">-->
+      <!--          <label>Số hiệu/Số văn bản</label>-->
+      <!--          <input type="text" class="form-control" placeholder="Nhập số hiệu hoặc số văn bản" />-->
+      <!--        </div>-->
+      <!--        <div class="search-item">-->
+      <!--          <label>Trích yếu</label>-->
+      <!--          <input type="text" class="form-control" placeholder="Nhập trích yếu" />-->
+      <!--        </div>-->
+      <!--      </div>-->
+      <!--      <div class="btn-group" style="margin-top: 15px; margin-bottom: 25px;">-->
+      <!--        <button class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>-->
+      <!--        <button class="btn btn-secondary" onclick="closeVBD('historyOverlay')"><i class="fa fa-sync-alt"></i> Làm mới</button>-->
+      <!--      </div>-->
+      <div
+        style="background: #eef7ff; border: 1px solid #d0e7f9; border-radius: 6px; padding: 15px; text-align: center; margin-bottom: 20px;">
+        <span style="font-weight: bold; color: #3b5998; font-size: 16px; text-transform: uppercase;">
+          <i class="fa fa-history" style="margin-right: 8px;"></i> Danh sách lịch sử cập nhật chi tiết
+        </span>
+      </div>
 
-     <div class="table-responsive history-table-wrapper">
-       <table class="history-table-full">
-         <thead>
-           <tr>
-             <th style="width: 50px;">STT</th>
-             <th style="width: 150px;">Thời gian</th>
-             <th style="width: 150px;">Người thực hiện</th>
-             <th style="width: 120px;">Mã văn bản</th>
-             <th style="width: 250px;">Trích yếu</th>
-             <th>Nội dung thay đổi</th>
-           </tr>
-         </thead>
-         <tbody>
-           <tr>
-             <td class="text-center">1</td>
-             <td class="text-center">01/03/2026 14:30</td>
-             <td>Nguyễn Văn A</td>
-             <td class="text-center">15/CV-SDL</td>
-             <td>Thông báo nghỉ lễ 30/4</td>
-             <td class="text-left"><span class="status-pill pill-blue">Thêm mới</span> văn bản</td>
-           </tr>
-           <tr>
-             <td class="text-center">2</td>
-             <td class="text-center">03/03/2026 09:15</td>
-             <td>Trần Thị B</td>
-             <td class="text-center">15/CV-SDL</td>
-             <td>Thông báo nghỉ lễ 30/4</td>
-             <td class="text-left"><strong>Cập nhật</strong> bộ phận xử lý</td>
-           </tr>
-           <tr>
-             <td class="text-center">3</td>
-             <td class="text-center">05/03/2026 16:45</td>
-             <td>Lê Văn C</td>
-             <td class="text-center">08/HD-CTDL</td>
-             <td>Thông báo nghỉ lễ 30/4</td>
-             <td class="text-left">Thay đổi trạng thái sang <span class="status-pill pill-green">Hoàn thành</span></td>
-           </tr>
-         </tbody>
-       </table>
-     </div>
-   </div>
-   <div class="vbd-popup-footer" style="margin-top: auto;">
-     <button class="btn btn-cancel-gray" onclick="closeVBD('historyOverlay')">Đóng</button>
-   </div>
- </div>
+      <div class="table-responsive history-table-wrapper">
+        <table class="history-table-full">
+          <thead>
+            <tr>
+              <th style="width: 50px;">STT</th>
+              <th style="width: 150px;">Thời gian</th>
+              <th style="width: 150px;">Người thực hiện</th>
+              <th style="width: 120px;">Mã văn bản</th>
+              <th style="width: 250px;">Trích yếu</th>
+              <th>Nội dung thay đổi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-center">1</td>
+              <td class="text-center">01/03/2026 14:30</td>
+              <td>Nguyễn Văn A</td>
+              <td class="text-center">15/CV-SDL</td>
+              <td>Thông báo nghỉ lễ 30/4</td>
+              <td class="text-left"><span class="status-pill pill-blue">Thêm mới</span> văn bản</td>
+            </tr>
+            <tr>
+              <td class="text-center">2</td>
+              <td class="text-center">03/03/2026 09:15</td>
+              <td>Trần Thị B</td>
+              <td class="text-center">15/CV-SDL</td>
+              <td>Thông báo nghỉ lễ 30/4</td>
+              <td class="text-left"><strong>Cập nhật</strong> bộ phận xử lý</td>
+            </tr>
+            <tr>
+              <td class="text-center">3</td>
+              <td class="text-center">05/03/2026 16:45</td>
+              <td>Lê Văn C</td>
+              <td class="text-center">08/HD-CTDL</td>
+              <td>Thông báo nghỉ lễ 30/4</td>
+              <td class="text-left">Thay đổi trạng thái sang <span class="status-pill pill-green">Hoàn thành</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="vbd-popup-footer" style="margin-top: auto;">
+      <button class="btn btn-cancel-gray" onclick="closeVBD('historyOverlay')">Đóng</button>
+    </div>
+  </div>
 </div>
 {% endblock %}
-

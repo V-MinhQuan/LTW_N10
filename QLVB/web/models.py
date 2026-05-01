@@ -4,9 +4,10 @@ from django.contrib.auth.models import AbstractUser
 class VaiTro(models.Model):
     VaiTroID = models.AutoField(primary_key=True)
     ChucVu = models.CharField(max_length=50)
+    PhongBan = models.ForeignKey('DonViBenTrong', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Thuộc phòng ban")
 
     def __str__(self):
-        return self.ChucVu
+        return f"{self.ChucVu} ({self.PhongBan.TenDonVi if self.PhongBan else 'Chưa gán'})"
 
     class Meta:
         verbose_name_plural = "Vai Trò"
@@ -66,13 +67,29 @@ class UserAccount(AbstractUser):
         
         # Nếu thao tác với một đối tượng cụ thể (Văn bản)
         if obj and action in ['xem', 'sua', 'xoa']:
-            # Trưởng phòng: Chỉ được thao tác văn bản thuộc phòng mình
-            if self.is_department_head():
-                if hasattr(obj, 'DonViTrongID') and obj.DonViTrongID:
-                    # So sánh trực tiếp qua ID hoặc Object
-                    if obj.DonViTrongID != self.PhongBan:
-                        return False
-                return True
+            # Trưởng phòng (bao gồm cả IT): Chỉ được thao tác văn bản thuộc phòng mình soạn/xử lý
+            if self.is_department_head() or self.is_it_head():
+                # 1. Kiểm tra đơn vị nhận nội bộ (Chỉ áp dụng cho Văn bản đến)
+                if hasattr(obj, 'VanBanDenID') and hasattr(obj, 'DonViTrongID') and obj.DonViTrongID == self.PhongBan:
+                    return True
+                
+                # 2. Kiểm tra người soạn/người xử lý chính (Cả đến và đi)
+                if hasattr(obj, 'UserID') and obj.UserID and obj.UserID.PhongBan == self.PhongBan:
+                    return True
+                
+                # 3. Kiểm tra người gửi (Chỉ áp dụng cho Văn bản đi)
+                if hasattr(obj, 'VanBanDiID') and hasattr(obj, 'NguoiGui') and obj.NguoiGui and obj.NguoiGui.PhongBan == self.PhongBan:
+                    return True
+                # 4. Kiểm tra nhân viên trong phòng có được phân công/chuyển tiếp không
+                from .models import PhanCong, ChuyenTiep
+                if hasattr(obj, 'VanBanDenID'):
+                    if PhanCong.objects.filter(VanBanDenID=obj, UserID__PhongBan=self.PhongBan).exists(): return True
+                    if ChuyenTiep.objects.filter(VanBanDenID=obj, UserID__PhongBan=self.PhongBan).exists(): return True
+                if hasattr(obj, 'VanBanDiID'):
+                    if PhanCong.objects.filter(VanBanDiID=obj, UserID__PhongBan=self.PhongBan).exists(): return True
+                    if ChuyenTiep.objects.filter(VanBanDiID=obj, UserID__PhongBan=self.PhongBan).exists(): return True
+                
+                return False
 
             # Nhân viên: Chỉ thao tác văn bản của mình tạo hoặc được phân công/chuyển tiếp
             if self.is_nhan_vien():
@@ -92,7 +109,25 @@ class UserAccount(AbstractUser):
                 return is_assigned
 
         if action in ['phe_duyet', 'phat_hanh']:
-            return self.can_approve() and self.can_publish()
+            # 1. Phải có quyền phê duyệt/phát hành chung
+            if not (self.can_approve() and self.can_publish()):
+                return False
+            
+            # 2. Kiểm tra trên đối tượng Văn bản đi cụ thể
+            if obj and hasattr(obj, 'VanBanDiID'):
+                # KHÔNG ĐƯỢC tự phê duyệt văn bản mình tạo (NguoiGui)
+                if hasattr(obj, 'NguoiGui') and obj.NguoiGui == self:
+                    return False
+                
+                # CHỈ "Người xử lý" (UserID) mới có quyền phê duyệt/phát hành văn bản này
+                if hasattr(obj, 'UserID') and obj.UserID != self:
+                    # Tuy nhiên, Giám đốc (TGD) vẫn có quyền duyệt mọi văn bản (đã check ở đầu hàm)
+                    return False
+                
+                return True
+            
+            # Nếu không có đối tượng, trả về True nếu có quyền chung (để hiển thị menu/nút chung nếu cần)
+            return not obj
             
         if action in ['quan_ly_nguoi_dung', 'quan_ly_don_vi']:
             return self.can_manage_users_and_units()
@@ -188,6 +223,7 @@ class VanBanDi(models.Model):
     DonViTrongID = models.ForeignKey(DonViBenTrong, on_delete=models.CASCADE, null=True, blank=True)
     DonViNgoaiID = models.ForeignKey(DonViBenNgoai, on_delete=models.CASCADE, null=True, blank=True)
     UserID = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, null=True, blank=True)
+    NguoiGui = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, null=True, blank=True, related_name='vanbandi_gui_set')
     SoKyHieu = models.CharField(max_length=50, db_index=True)
     NgayBanHanh = models.DateTimeField(null=True, blank=True, db_index=True)
     LoaiVanBan = models.CharField(max_length=50, null=True, blank=True)
