@@ -33,7 +33,11 @@
         <div class="btn-group">
             <button class="btn btn-primary"><i class="fas fa-search"></i> Tìm kiếm</button>
             <button class="btn btn-secondary"><i class="fas fa-sync-alt"></i> Làm mới</button>
-            <button class="btn btn-success" onclick="openModal()"><i class="fas fa-plus"></i> Thêm mới</button>
+
+            <!-- CHỈ HIỆN NÚT THÊM MỚI NẾU LÀ TP IT -->
+            {% if can_edit %}
+                <button class="btn btn-success" onclick="openModal()"><i class="fas fa-plus"></i> Thêm mới</button>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -145,13 +149,25 @@
         </form>
     </div>
     <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
-        <button class="btn btn-red-outline" id="btnUpdateStatus" style="display: none; margin-right: auto;" onclick="toggleUserStatus()"><i class="fas fa-ban" style="margin-right: 5px;"></i> Vô hiệu hóa</button>
-        <button class="btn btn-secondary" onclick="closeModal()">Hủy</button>
-        <button class="btn btn-primary" id="btnSaveUser" onclick="saveData()">Lưu</button>
+        {% if can_edit %}
+            <!-- Dành cho Trưởng phòng IT: Hiện đủ nút thao tác -->
+            <button class="btn btn-red-outline" id="btnUpdateStatus" style="display: none; margin-right: auto;" onclick="toggleUserStatus()">
+                <i class="fas fa-ban" style="margin-right: 5px;"></i> Vô hiệu hóa
+            </button>
+            <button class="btn btn-secondary" onclick="closeModal()">Hủy</button>
+            <button class="btn btn-primary" id="btnSaveUser" onclick="saveData()">Lưu</button>
+        {% else %}
+            <!-- Dành cho Tổng giám đốc: Chỉ để lại duy nhất nút Đóng cho gọn -->
+            <button class="btn btn-secondary" style="min-width: 100px;" onclick="closeModal()">Đóng</button>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<script>
+    // Truyền biến can_edit từ Django vào JS
+    const CAN_EDIT_USER = {{ can_edit|yesno:"true,false" }};
+</script>
 <script src="{% static 'js/pages/quan_ly_nguoi_dung.js' %}?v=1.0.6"></script>
 {% endblock %}

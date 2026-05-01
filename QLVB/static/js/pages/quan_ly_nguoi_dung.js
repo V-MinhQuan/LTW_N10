@@ -153,17 +153,25 @@ function renderTable(users, pagination) {
     users.forEach((user, index) => {
         const tr = document.createElement('tr');
 
-        // Resilience: Handle both backend status code and label
         const s_code = (user.status || '').toString().toUpperCase().trim();
         const s_label = (user.status_label || '').toString().trim();
-        const isActive = (s_code === 'ACTIVE' || s_label === 'Đang hoạt động' || user.status === 'Đang hoạt động');
+        const isActive = (s_code === 'ACTIVE' || s_label === 'Đang hoạt động');
 
         const pillClass = isActive ? 'pill-active-modern' : 'pill-inactive-modern';
         const displayLabel = isActive ? 'Đang hoạt động' : 'Vô hiệu hóa';
 
-        // ACTIVE user: Xem, Sửa
-        // INACTIVE user: Xem, Sửa, Khôi phục (vàng cam)
-        const actionBtnExtra = !isActive
+        // --- PHÂN QUYỀN NÚT THAO TÁC Ở ĐÂY ---
+
+        // 1. Nút Xem: Ai cũng có quyền xem
+        const viewBtn = `<button type="button" class="action-btn btn-primary" onclick="viewUserById(${user.id})" title="Xem"><i class="fas fa-eye"></i></button>`;
+
+        // 2. Nút Sửa: Chỉ hiện nếu có quyền CAN_EDIT_USER (Trưởng phòng IT)
+        const editBtn = CAN_EDIT_USER
+            ? `<button type="button" class="action-btn btn-success" onclick="editUserById(${user.id})" title="Sửa"><i class="fas fa-edit"></i></button>`
+            : '';
+
+        // 3. Nút Khôi phục: Chỉ hiện nếu user đang bị khóa VÀ người đang xem là IT
+        const restoreBtn = (CAN_EDIT_USER && !isActive)
             ? `<button type="button" class="action-btn btn-restore" onclick="toggleUserStatusById(${user.id}, 'ACTIVE')" title="Khôi phục"><i class="fas fa-undo"></i></button>`
             : '';
 
@@ -178,9 +186,9 @@ function renderTable(users, pagination) {
                 <span class="status-pill ${pillClass}">${displayLabel}</span>
             </td>
             <td class="col-actions">
-                <button type="button" class="action-btn btn-primary" onclick="viewUserById(${user.id})" title="Xem"><i class="fas fa-eye"></i></button>
-                <button type="button" class="action-btn btn-success" onclick="editUserById(${user.id})" title="Sửa"><i class="fas fa-edit"></i></button>
-                ${actionBtnExtra}
+                ${viewBtn}
+                ${editBtn}
+                ${restoreBtn}
             </td>
         `;
         tbody.appendChild(tr);
@@ -244,6 +252,10 @@ window.viewUserById = function (id) {
 }
 
 window.editUserById = function (id) {
+    if (!CAN_EDIT_USER) {
+        window.viewUserById(id);
+        return;
+    }
     currentId = id;
     fetch(`/api/nguoi-dung/list/?id=${id}`)
         .then(res => res.json())

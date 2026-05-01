@@ -32,7 +32,9 @@
             <div class="btn-group" style="grid-column: span 4; justify-content: flex-start; margin-top: 0;">
                 <button type="submit" class="btn btn-blue"><i class="fas fa-search"></i> Tìm kiếm</button>
                 <a href="{% url 'qldv_trong' %}" class="btn btn-gray"><i class="fas fa-sync-alt"></i> Làm mới</a>
-                <button type="button" class="btn btn-green"><i class="fas fa-plus"></i> Thêm mới</button>
+                {% if can_edit %}
+                    <button type="button" class="btn btn-green"><i class="fas fa-plus"></i> Thêm mới</button>
+                {% endif %}
             </div>
         </form>
     </div>
@@ -76,24 +78,22 @@
                             {% endif %}
                         </td>
                         <td class="col-actions">
-                            <button class="action-btn btn-primary" onclick="viewUnit(this)" title="Xem"
-                                data-name="{{ unit.TenDonVi }}" data-address="{{ unit.DiaChi|default:'' }}"
-                                data-phone="{{ unit.SoDienThoai|default:'' }}" data-email="{{ unit.Email|default:'' }}"
-                                data-contact="{{ unit.NguoiLienHe|default:'' }}">
+                            <!-- Nút Xem: Luôn hiện -->
+                            <button class="action-btn btn-primary" onclick="viewUnit(this)" title="Xem" ...>
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button class="action-btn btn-success" onclick="editUnit(this)" title="Sửa"
-                                data-id="{{ unit.DonViTrongID }}" data-name="{{ unit.TenDonVi }}"
-                                data-address="{{ unit.DiaChi|default:'' }}"
-                                data-phone="{{ unit.SoDienThoai|default:'' }}" data-email="{{ unit.Email|default:'' }}"
-                                data-contact="{{ unit.NguoiLienHe|default:'' }}" data-status="{{ unit.trang_thai }}">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            {% if unit.trang_thai == 'INACTIVE' %}
-                            <button class="action-btn btn-warning" onclick="confirmReactivate(this)" title="Khôi phục"
-                                data-id="{{ unit.DonViTrongID }}">
-                                <i class="fas fa-rotate-left"></i>
-                            </button>
+
+                            {% if can_edit %}
+                                <!-- Nút Sửa: Chỉ hiện cho IT -->
+                                <button class="action-btn btn-success" onclick="editUnit(this)" title="Sửa" ...>
+                                    <i class="fas fa-edit"></i>
+                                </button>
+
+                                {% if unit.trang_thai == 'INACTIVE' %}
+                                <button class="action-btn btn-warning" onclick="confirmReactivate(this)" title="Khôi phục" ...>
+                                    <i class="fas fa-rotate-left"></i>
+                                </button>
+                                {% endif %}
                             {% endif %}
                         </td>
                     </tr>
@@ -194,5 +194,9 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+    // Truyền quyền từ Django sang JS
+    const CAN_EDIT_UNIT = {{ can_edit|yesno:"true,false" }};
+</script>
 <script src="{% static 'js/pages/quan_ly_don_vi.js' %}?v={% now 'U' %}"></script>
 {% endblock %}

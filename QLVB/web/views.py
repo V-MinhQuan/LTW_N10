@@ -28,44 +28,60 @@ from .models import PhanCong, ChuyenTiep, BaoCao, Butphe
 from .models import VanBanDen, DonViBenNgoai, LichSuHoatDong
 from .models import VanBanDi, PheDuyet, PhatHanh
 
+# ---HỆ THỐNG HELPER PHÂN QUYỀN---
+def is_tgd(user):
+    """Boss: Toàn quyền xem, nhưng không thao tác kỹ thuật/user"""
+    return user.VaiTroID and user.VaiTroID.ChucVu == 'Tổng giám đốc'
 
+def is_tp_it(user):
+    """Admin kỹ thuật: Toàn quyền hệ thống & User"""
+    return user.VaiTroID and user.VaiTroID.ChucVu == 'Trưởng phòng IT'
+
+def is_truong_phong(user):
+    """Quản lý phòng ban: Phân công, Duyệt trong phòng"""
+    return user.VaiTroID and 'Trưởng phòng' in user.VaiTroID.ChucVu
+
+def is_nhan_vien(user):
+    """Nhân viên/Chuyên viên: Thực thi, cập nhật trạng thái cá nhân"""
+    chuc_vu = user.VaiTroID.ChucVu if user.VaiTroID else ""
+    return 'Nhân viên' in chuc_vu or 'Chuyên viên' in chuc_vu or 'CSKH' in chuc_vu
+
+def get_filtered_documents(user, model_class):
+    """Lọc dữ liệu văn bản dựa trên phạm vi chức vụ"""
+    # 1. TGD & TP IT: Xem toàn bộ công ty
+    if is_tgd(user) or is_tp_it(user):
+        return model_class.objects.all()
+
+    # 2. Trưởng phòng: Xem văn bản của phòng mình (dựa trên DonViTrongID hoặc User phòng đó)
+    if is_truong_phong(user):
+        return model_class.objects.filter(DonViTrongID__TenDonVi=user.PhongBan)
+
+    # 3. Nhân viên: Chỉ xem văn bản được phân công hoặc mình soạn
+    if model_class == VanBanDen:
+        return model_class.objects.filter(phancong__UserID=user).distinct()
+    else:
+        return model_class.objects.filter(Q(UserID=user) | Q(phancong__UserID=user)).distinct()
 
 # --- TRANG CHỦ ---
 @login_required
 def index(request):
     """View cho trang Dashboard - Hiển thị số liệu thực tế"""
     now = timezone.now()
-    new_window = now - timedelta(days=7)
+    # Thống kê dành cho quản lý cấp cao
+    if is_tgd(request.user) or is_tp_it(request.user):
+        count_new = VanBanDen.objects.filter(TrangThai='MOI').count()
+        count_processing = PhanCong.objects.filter(Q(TrangThaiXuLy='Đang xử lý') | Q(TrangThaiXuLy='DANG_XU_LY')).count()
+        count_overdue = PhanCong.objects.filter(HanXuLy__lt=now).exclude(TrangThaiXuLy='Hoàn thành').count()
+        count_completed = VanBanDen.objects.filter(TrangThai='HOAN_THANH', NgayHoanThanh__gte=now - timedelta(days=7)).count()
+    else:
+        # Thống kê cá nhân dành cho nhân viên
+        count_new = VanBanDen.objects.filter(TrangThai='MOI', phancong__UserID=request.user).count()
+        count_processing = PhanCong.objects.filter(UserID=request.user, TrangThaiXuLy='Đang xử lý').count()
+        count_overdue = PhanCong.objects.filter(UserID=request.user, HanXuLy__lt=now).exclude(TrangThaiXuLy='Hoàn thành').count()
+        count_completed = VanBanDen.objects.filter(TrangThai='HOAN_THANH', phancong__UserID=request.user, NgayHoanThanh__gte=now - timedelta(days=7)).count()
 
-    # 1. Thống kê số liệu
-    # Văn bản mới: Theo trạng thái 'MOI'
-    count_new = VanBanDen.objects.filter(TrangThai='MOI').count()
-
-    # Đang xử lý: Bao gồm cả trạng thái văn bản và các phân công đang thực hiện
-    # Đếm các phân công có trạng thái 'Đang xử lý'
-    count_processing = PhanCong.objects.filter(
-        Q(TrangThaiXuLy='Đang xử lý') | Q(TrangThaiXuLy='DANG_XU_LY')
-    ).count()
-
-    # Quá hạn: Các phân công chưa hoàn thành và đã quá hạn
-    count_overdue = PhanCong.objects.filter(
-        HanXuLy__lt=now
-    ).exclude(TrangThaiXuLy='Hoàn thành').count()
-
-    # Hoàn thành: Chỉ đếm các văn bản hoàn thành trong 7 ngày qua
-    count_completed = VanBanDen.objects.filter(
-        TrangThai='HOAN_THANH',
-        NgayHoanThanh__gte=now - timedelta(days=7)
-    ).count()
-
-    # 2. Văn bản đến mới nhất (Lấy 5 bản ghi)
-    recent_documents = VanBanDen.objects.select_related('DonViNgoaiID').order_by('-NgayNhan')[:5]
-
-    # 3. Công việc cần làm (Phân công cho user hiện tại, đang xử lý, lấy 2 việc gần nhất)
-    todo_list = PhanCong.objects.filter(
-        UserID=request.user,
-        TrangThaiXuLy__in=['Đang xử lý', 'DANG_XU_LY']
-    ).select_related('VanBanDenID', 'VanBanDiID').order_by('HanXuLy')[:2]
+    recent_documents = get_filtered_documents(request.user, VanBanDen).select_related('DonViNgoaiID').order_by('-NgayNhan')[:5]
+    todo_list = PhanCong.objects.filter(UserID=request.user, TrangThaiXuLy__in=['Đang xử lý', 'DANG_XU_LY']).select_related('VanBanDenID', 'VanBanDiID').order_by('HanXuLy')[:2]
 
     context = {
         'count_new': count_new,
@@ -84,22 +100,11 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
             auth_login(request, user)
-
-            # --- LOGIC GHI NHỚ ĐĂNG NHẬP ---
-            # 'remember_me' là cái 'name' của thẻ input checkbox trong HTML
             if request.POST.get('remember_me'):
-                # Nếu có tích: lấy thời gian trong SESSION_COOKIE_AGE (ví dụ 1 ngày)
                 request.session.set_expiry(None)
-                print("Đã ghi nhớ đăng nhập")
             else:
-                # Nếu không tích: hết hạn khi đóng trình duyệt (0)
                 request.session.set_expiry(0)
-                print("Không ghi nhớ - Thoát khi đóng trình duyệt")
-            # -------------------------------
-
             return redirect('index')
-        else:
-            print(form.errors)
     else:
         form = LoginForm()
     return render(request, 'login/login.html', {'form': form})
@@ -166,7 +171,8 @@ def quen_mat_khau_view(request):
 
 # --- QUẢN LÝ VĂN BẢN ĐẾN ---
 def van_ban_den_index(request):
-    danh_sach = VanBanDen.objects.select_related('DonViNgoaiID', 'DonViTrongID').all().order_by('-VanBanDenID')
+    # CHÈN PHÂN QUYỀN[cite: 1]
+    danh_sach = get_filtered_documents(request.user, VanBanDen).select_related('DonViNgoaiID', 'DonViTrongID').order_by('-VanBanDenID')
     don_vi_ngoai = DonViBenNgoai.objects.filter(trang_thai='ACTIVE')
     don_vi_trong = DonViBenTrong.objects.all()
 
@@ -846,8 +852,13 @@ def _ghi_lich_su(request, loai, doi_tuong_id, hanh_dong, noi_dung, trang_thai_cu
 
 # --- QUẢN LÝ NGƯỜI DÙNG ---
 def quan_ly_nguoi_dung_index(request):
-    total_users = UserAccount.objects.count()
-    return render(request, 'quan_ly_nguoi_dung/index.html', {'total_users': total_users})
+    user = request.user
+    users = UserAccount.objects.all().select_related('VaiTroID').order_by('SoThuTu')
+    return render(request, 'quan_ly_nguoi_dung/index.html', {
+        'users': users,
+        'can_edit': is_tp_it(user),  # Chỉ TP IT mới có nút Sửa/Xóa/Thêm
+        'total_users': users.count()
+    })
 
 
 @login_required
@@ -895,6 +906,7 @@ def thong_tin_view(request):
             return redirect('thong_tin')
 
     return render(request, 'quan_ly_nguoi_dung/thong_tin.html')
+
 
 
 # --- API NGƯỜI DÙNG ---
@@ -971,83 +983,50 @@ def api_nguoi_dung_list(request):
     })
 
 
+@csrf_exempt
+@login_required
 def api_upsert_user(request):
+    """Chốt chặn API: Chỉ TP IT mới được tạo/sửa User"""
+    if not is_tp_it(request.user):
+        return JsonResponse({'status': 'error', 'message': 'Bạn không có quyền thực hiện thao tác này!'},
+                            status=403)
+
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             user_id = data.get('id')
+            user = get_object_or_404(UserAccount, UserID=user_id) if user_id else UserAccount()
 
-            if user_id:
-                user = get_object_or_404(UserAccount, UserID=user_id)
-            else:
-                user = UserAccount()
-                # Tự động gán STT
+            if not user_id:  # Tạo mới
                 max_stt = UserAccount.objects.aggregate(Max('SoThuTu'))['SoThuTu__max'] or 0
                 user.SoThuTu = max_stt + 1
+                user.set_password(data.get('password', '123456'))
 
             user.username = data.get('username')
             user.HoTen = data.get('fullname')
             user.email = data.get('email')
-            user.SoDienThoai = data.get('phone')
             user.PhongBan = data.get('dept')
-
-            # Vai trò
-            role_id = data.get('role_id')
-            if role_id:
-                user.VaiTroID = get_object_or_404(VaiTro, VaiTroID=role_id)
-
-            # Trạng thái
-            status_code = data.get('status')
-            if status_code in ['ACTIVE', 'INACTIVE']:
-                user.trang_thai = status_code
-            else:
-                user.trang_thai = 'ACTIVE' if status_code == 'Đang hoạt động' else 'INACTIVE'
-
-            # Mật khẩu (chỉ set nếu là tạo mới hoặc có nhập pass mới)
-            password = data.get('password')
-            if password:
-                user.set_password(password)
-            elif not user_id:
-                # Nếu tạo mới mà ko nhập pass (mặc định cho demo)
-                user.set_password('123456')
-
+            if data.get('role_id'):
+                user.VaiTroID = get_object_or_404(VaiTro, pk=data.get('role_id'))
+            user.trang_thai = data.get('status', 'ACTIVE')
             user.save()
-            return JsonResponse({'status': 'success', 'message': 'Lưu người dùng thành công!'})
+            return JsonResponse({'status': 'success'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
-
 
 @csrf_exempt
+@login_required
 def api_nguoi_dung_update_status(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            user_id = data.get('id')
-            new_status = data.get('status')  # 'ACTIVE' or 'INACTIVE'
-
-            user = get_object_or_404(UserAccount, UserID=user_id)
-            old_status = user.trang_thai
-            user.trang_thai = new_status
-            user.save()
-
-            # Ghi lịch sử hoạt động
-            action = 'Vô hiệu hóa' if new_status == 'INACTIVE' else 'Khôi phục'
-            msg = f"{action} người dùng: {user.username}"
-            LichSuHoatDong.objects.create(
-                UserID=request.user,
-                LoaiDoiTuong='UserAccount',
-                DoiTuongID=user.UserID,
-                HanhDong=action,
-                NoiDungThayDoi=msg,
-                TrangThaiCu=old_status,
-                TrangThaiMoi=new_status
-            )
-
-            return JsonResponse({'status': 'success', 'message': f'Đã {action.lower()} người dùng thành công!'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+    if not is_tp_it(request.user):
+        return JsonResponse({'status': 'error', 'message': 'Bạn không có quyền thực hiện thao tác này!'}, status=403)
+    try:
+        data = json.loads(request.body)
+        u = get_object_or_404(UserAccount, pk=data.get('id'))
+        u.trang_thai = data.get('status')
+        u.save()
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})
 
 
 def api_vai_tro_list(request):
@@ -1058,6 +1037,7 @@ def api_vai_tro_list(request):
 
 # --- QUẢN LÝ ĐƠN VỊ ---
 def quan_ly_don_vi_ben_ngoai(request):
+    user = request.user
     query_name = request.GET.get('name', '')
     query_address = request.GET.get('address', '')
     query_contact = request.GET.get('contact', '')
@@ -1114,6 +1094,7 @@ def quan_ly_don_vi_ben_ngoai(request):
 
     return render(request, 'quan_ly_don_vi/ben_ngoai.html', {
         'page_obj': page_obj,
+        'can_edit': is_tp_it(user),
         'query_name': query_name,
         'query_address': query_address,
         'query_contact': query_contact,
@@ -1122,6 +1103,7 @@ def quan_ly_don_vi_ben_ngoai(request):
 
 
 def quan_ly_don_vi_ben_trong(request):
+    user = request.user
     query_name = request.GET.get('name', '')
     query_address = request.GET.get('address', '')
     query_contact = request.GET.get('contact', '')
@@ -1182,6 +1164,7 @@ def quan_ly_don_vi_ben_trong(request):
 
     return render(request, 'quan_ly_don_vi/ben_trong.html', {
         'page_obj': page_obj,
+        'can_edit': is_tp_it(user),
         'query_name': query_name,
         'query_address': query_address,
         'query_contact': query_contact,
@@ -1197,6 +1180,8 @@ def api_don_vi_list(request):
 
 
 def api_upsert_don_vi(request):
+    if not is_tp_it(request.user):
+        return JsonResponse({'status': 'error', 'message': 'Bạn không có quyền thực hiện thao tác này!'}, status=403)
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -1234,6 +1219,8 @@ def api_upsert_don_vi(request):
 
 
 def api_delete_don_vi(request):
+    if not is_tp_it(request.user):
+        return JsonResponse({'status': 'error', 'message': 'Bạn không có quyền thực hiện thao tác này!'}, status=403)
     """API xử lý Ngừng hợp tác (Soft Delete) hoặc Xóa thực tế tùy loại"""
     if request.method == 'POST':
         try:
@@ -1277,6 +1264,7 @@ def api_delete_don_vi(request):
 # --- XỬ LÝ VĂN BẢN ĐIỀU HÀNH ---
 @login_required
 def xu_ly_van_ban_index(request):
+    user = request.user
     # 1. Tự động cập nhật các văn bản đã quá thời hạn
     today = timezone.now().date()
     PhanCong.objects.filter(
@@ -1291,8 +1279,8 @@ def xu_ly_van_ban_index(request):
     page_number = request.GET.get('page', 1)
 
     # 3. Khởi tạo QuerySet
-    den_qs = VanBanDen.objects.select_related('DonViNgoaiID', 'UserID').all()
-    di_qs = VanBanDi.objects.select_related('DonViNgoaiID', 'DonViTrongID', 'UserID').all()
+    den_qs = get_filtered_documents(user, VanBanDen).select_related('DonViNgoaiID', 'UserID')
+    di_qs = get_filtered_documents(user, VanBanDi).select_related('DonViNgoaiID', 'DonViTrongID', 'UserID')
 
     # 4. Áp dụng bộ lọc chung
     if query_so_ky_hieu:
@@ -1434,9 +1422,8 @@ def api_phan_cong_xlvb(request):
                 doc_type = request.POST.get('doc_type', 'den')
                 tep_moi = request.FILES.get('tep_dinh_kem')
 
-            if not user_id:
-                return JsonResponse({'status': 'error', 'message': 'Vui lòng chọn ít nhất một người xử lý!'},
-                                    status=400)
+            if not (is_tgd(request.user) or is_tp_it(request.user) or is_truong_phong(request.user)):
+                return JsonResponse({'status': 'error', 'message': 'Bạn không có quyền phân công!'}, status=403)
 
             if not han_xu_ly:
                 return JsonResponse({'status': 'error', 'message': 'Vui lòng nhập thời hạn xử lý!'}, status=400)

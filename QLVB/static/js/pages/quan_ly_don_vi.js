@@ -68,26 +68,27 @@ function renderTable(units, pagination) {
     tbody.innerHTML = '';
     const startSTT = (pagination.current_page - 1) * 5 + 1;
 
-    units.forEach((unit, index) => {
-        const tr = document.createElement('tr');
+units.forEach((unit, index) => {
         const isInactive = unit.status === 'INACTIVE';
-        
-        // Actions: ACTIVE units show View/Edit. INACTIVE units show View/Edit/Restore (Yellow).
-        const restoreBtn = isInactive
+
+        // 1. Nút Xem: Ai cũng thấy[cite: 3]
+        const viewBtn = `<button type="button" class="action-btn btn-primary" onclick="window.viewUnitById(${unit.id})" title="Xem"><i class="fas fa-eye"></i></button>`;
+
+        // 2. Nút Sửa: Chỉ hiện nếu CAN_EDIT_UNIT là true[cite: 3]
+        const editBtn = CAN_EDIT_UNIT
+            ? `<button type="button" class="action-btn btn-success" onclick="window.editUnitById(${unit.id})" title="Sửa"><i class="fas fa-edit"></i></button>`
+            : '';
+
+        // 3. Nút Khôi phục: Chỉ hiện nếu là IT và đơn vị đang ngừng hợp tác[cite: 3]
+        const restoreBtn = (isInactive && CAN_EDIT_UNIT)
             ? `<button type="button" class="action-btn btn-warning" onclick="window.confirmReactivateById(${unit.id})" title="Khôi phục"><i class="fas fa-rotate-left"></i></button>`
             : '';
 
         tr.innerHTML = `
-            <td class="col-stt">${startSTT + index}</td>
-            <td style="text-align: left;"><a href="javascript:void(0)" class="text-blue" onclick="window.viewUnitById(${unit.id})">${unit.name}</a></td>
-            <td class="text-left">${unit.address || ''}</td>
-            <td class="text-left">${unit.phone || ''}</td>
-            <td class="text-left">${unit.email || ''}</td>
-            <td class="text-left">${unit.contact || ''}</td>
-            <td class="col-status">${!isInactive ? '<span class="status-pill pill-green">Đang hợp tác</span>' : '<span class="status-pill pill-gray">Ngừng hợp tác</span>'}</td>
+            ...
             <td class="col-actions">
-                <button type="button" class="action-btn btn-primary" onclick="window.viewUnitById(${unit.id})" title="Xem"><i class="fas fa-eye"></i></button>
-                <button type="button" class="action-btn btn-success" onclick="window.editUnitById(${unit.id})" title="Sửa"><i class="fas fa-edit"></i></button>
+                ${viewBtn}
+                ${editBtn}
                 ${restoreBtn}
             </td>
         `;
@@ -145,6 +146,10 @@ window.viewUnitById = function(id) {
 };
 
 window.editUnitById = function(id) {
+    if (!CAN_EDIT_UNIT) { // Nếu không có quyền, chuyển sang Xem luôn[cite: 3]
+        window.viewUnitById(id);
+        return;
+    }
     currentId = id;
     fetch(`${window.location.pathname}?id=${id}&ajax=1`).then(r => r.json()).then(res => {
         const unit = res.data[0];
@@ -223,6 +228,10 @@ window.viewUnit = function(btn) {
 };
 
 window.editUnit = function(btn) {
+    if (!CAN_EDIT_UNIT) {
+        window.viewUnit(btn);
+        return;
+    }
     const data = btn.dataset;
     currentId = data.id;
     populateModal(data);
@@ -283,7 +292,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const addBtn = document.querySelector('.btn-green');
     if (addBtn) addBtn.onclick = (e) => {
-        e.preventDefault(); currentId = null;
+    addBtn.onclick = (e) => {
+            if (!CAN_EDIT_UNIT) return;
+            e.preventDefault();
         ['unitName', 'unitAddress', 'unitPhone', 'unitEmail', 'unitContact'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('modalUnit').querySelectorAll('input').forEach(i => i.disabled = false);
         document.getElementById('btnSaveUnit').style.display = 'block';
