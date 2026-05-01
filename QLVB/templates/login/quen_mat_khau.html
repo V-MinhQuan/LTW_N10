@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Quên mật khẩu - Vietasia Travel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body {
@@ -24,6 +25,24 @@
         .btn-submit:hover { background: #008ec4; }
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(5px); }
         .modal-content { background: white; padding: 40px; border-radius: 15px; text-align: center; width: 380px; }
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #666;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .back-btn:hover {
+            color: #00adef;
+            transform: translateX(-3px);
+        }
+        /* Cần set position relative cho login-card để icon canh theo box */
+        .login-card {
+            position: relative;
+            /* các thuộc tính cũ giữ nguyên */
+        }
     </style>
 </head>
 <body>
@@ -31,13 +50,17 @@
 
     <div class="login-card">
         <div id="step1" class="step active">
+            <a href="{% url 'login' %}" class="back-btn" title="Quay lại trang đăng nhập">
+                <i class="fas fa-arrow-left"></i>
+            </a>
             <h2 style="margin-bottom: 20px;">Quên mật khẩu</h2>
-            <p>Số điện thoại hoặc Email</p>
+            <p>Nhập email của bạn</p>
             <input type="email" id="email" class="form-input" placeholder="Ví dụ: nhatanh@gmail.com" required>
             <button id="btn-send-otp" class="btn-submit" onclick="handleSendOTP()">Xác nhận</button>
         </div>
 
         <div id="step2" class="step">
+            <i class="fas fa-arrow-left back-btn" onclick="nextStep(1)" title="Quay lại"></i>
             <h2 style="margin-bottom: 20px;">Quên mật khẩu</h2>
             <p>Nhập mã OTP</p>
             <input type="text" id="otp" class="form-input" placeholder="Mã OTP gồm 6 chữ số" maxlength="6">
@@ -45,6 +68,7 @@
         </div>
 
         <div id="step3" class="step">
+            <i class="fas fa-arrow-left back-btn" onclick="nextStep(1)" title="Quay lại"></i>
             <h2 style="margin-bottom: 20px;">Quên mật khẩu</h2>
             <input type="password" id="new_password" placeholder="Mật khẩu mới" class="form-input" required>
             <input type="password" id="confirm_password" placeholder="Xác nhận mật khẩu mới" class="form-input" required>

@@ -3,22 +3,20 @@
 }
 
 /* FIX FOR SEARCH BAR INPUTS */
-.search-grid .form-control {
-    height: 38px !important;
-    padding: 0 12px !important;
-    line-height: 36px !important;
-    /* Ensure vertical centering */
-    color: #333 !important;
-    border: 1px solid #ccc !important;
-    background-color: #ffffff;
-    border-radius: 4px;
-    display: inline-block;
-}
-
+.search-grid .form-control,
 .search-grid select.form-control,
 .search-grid input[readonly].form-control {
-    background-color: #f5f5f5 !important;
+    background-color: #ffffff !important; /* Đổi tất cả về màu trắng */
+    border: 1px solid #ccc !important;
+    color: #333 !important;
+    height: 38px !important;
+    box-sizing: border-box;
+}
+
+/* Fix riêng cho ô select để không bị mất mũi tên trên một số trình duyệt */
+.search-grid select.form-control {
     appearance: auto !important;
+    -webkit-appearance: menulist !important;
 }
 
 .alert-box {

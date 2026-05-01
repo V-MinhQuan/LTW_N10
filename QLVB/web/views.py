@@ -29,6 +29,7 @@ from .models import VanBanDen, DonViBenNgoai, LichSuHoatDong
 from .models import VanBanDi, PheDuyet, PhatHanh
 
 
+
 # --- TRANG CHỦ ---
 @login_required
 def index(request):
@@ -1282,14 +1283,18 @@ def xu_ly_van_ban_index(request):
         HanXuLy__date__lt=today
     ).exclude(TrangThaiXuLy='Hoàn thành').exclude(TrangThaiXuLy='Quá hạn').update(TrangThaiXuLy='Quá hạn')
 
+    # 2. Lấy tham số từ URL
     query_so_ky_hieu = request.GET.get('so_ky_hieu', '')
     query_nguoi_xu_ly = request.GET.get('nguoi_xu_ly', '')
-    query_ngay_nhan = request.GET.get('ngay_nhan', '')
+    query_han_xu_ly = request.GET.get('han_xu_ly', '')
+    query_loai_xu_ly = request.GET.get('loai_xu_ly', '')
     page_number = request.GET.get('page', 1)
 
+    # 3. Khởi tạo QuerySet
     den_qs = VanBanDen.objects.select_related('DonViNgoaiID', 'UserID').all()
     di_qs = VanBanDi.objects.select_related('DonViNgoaiID', 'DonViTrongID', 'UserID').all()
 
+    # 4. Áp dụng bộ lọc chung
     if query_so_ky_hieu:
         den_qs = den_qs.filter(SoKyHieu__icontains=query_so_ky_hieu)
         di_qs = di_qs.filter(SoKyHieu__icontains=query_so_ky_hieu)
@@ -1298,64 +1303,59 @@ def xu_ly_van_ban_index(request):
         den_qs = den_qs.filter(phancong__UserID__HoTen__icontains=query_nguoi_xu_ly).distinct()
         di_qs = di_qs.filter(phancong__UserID__HoTen__icontains=query_nguoi_xu_ly).distinct()
 
-    if query_ngay_nhan:
-        try:
-            day, month, year = query_ngay_nhan.split('/')
-            den_qs = den_qs.filter(NgayNhan__date=f"{year}-{month}-{day}")
-            di_qs = di_qs.filter(NgayBanHanh__date=f"{year}-{month}-{day}")
-        except:
-            pass
+    if query_han_xu_ly:
+        den_qs = den_qs.filter(phancong__HanXuLy__date=query_han_xu_ly).distinct()
+        di_qs = di_qs.filter(phancong__HanXuLy__date=query_han_xu_ly).distinct()
 
-    # 2. Xử lý gộp và gán TAG MÀU
+    # 5. LOGIC QUAN TRỌNG: Gộp danh sách và lọc theo dropdown
     doc_list = []
     now = timezone.now()
 
-    # Duyệt qua Văn bản đến
-    for doc in den_qs.prefetch_related('phancong_set', 'chuyentiep_set'):
-        doc.doc_type = 'den'
-        doc.ngay_sort = doc.NgayNhan or now
-        pc = doc.phancong_set.first()
-        if not pc:
-            doc.last_action_tag = "tag-phan-cong"
-            doc.last_action_name = "Phân công"
-        else:
-            if pc.TrangThaiXuLy == 'Hoàn thành':
-                doc.last_action_tag = "tag-chuyen-tiep"
-                doc.last_action_name = "Chuyển tiếp"
-            elif pc.TrangThaiXuLy == 'Quá hạn':
-                doc.last_action_tag = "tag-canh-bao"
-                doc.last_action_name = "Cảnh báo"
+    # Xử lý Văn bản đến (Chỉ add nếu chọn 'Tất cả' hoặc 'Văn bản đến')
+    if query_loai_xu_ly in ['', 'den']:
+        # Ép lọc theo số ký hiệu CV-DEN như ông muốn
+        for doc in den_qs.filter(SoKyHieu__icontains='CV-DEN').prefetch_related('phancong_set', 'chuyentiep_set'):
+            doc.doc_type = 'den'
+            doc.ngay_sort = doc.NgayNhan or now
+            # Gán Tag màu
+            pc = doc.phancong_set.first()
+            if not pc:
+                doc.last_action_tag, doc.last_action_name = "tag-phan-cong", "Phân công"
             else:
-                doc.last_action_tag = "tag-cap-nhat"
-                doc.last_action_name = "Cập nhật"
-        doc_list.append(doc)
+                if pc.TrangThaiXuLy == 'Hoàn thành':
+                    doc.last_action_tag, doc.last_action_name = "tag-chuyen-tiep", "Chuyển tiếp"
+                elif pc.TrangThaiXuLy == 'Quá hạn':
+                    doc.last_action_tag, doc.last_action_name = "tag-canh-bao", "Cảnh báo"
+                else:
+                    doc.last_action_tag, doc.last_action_name = "tag-cap-nhat", "Cập nhật"
+            doc_list.append(doc)
 
-    # Duyệt qua Văn bản đi
-    for doc in di_qs.prefetch_related('phancong_set', 'chuyentiep_set'):
-        doc.doc_type = 'di'
-        doc.ngay_sort = doc.NgayBanHanh or now
-        pc = doc.phancong_set.first()
-        if not pc:
-            doc.last_action_tag = "tag-phan-cong"
-            doc.last_action_name = "Phân công"
-        else:
-            if pc.TrangThaiXuLy == 'Hoàn thành':
-                doc.last_action_tag = "tag-chuyen-tiep"
-                doc.last_action_name = "Chuyển tiếp"
-            elif pc.TrangThaiXuLy == 'Quá hạn':
-                doc.last_action_tag = "tag-canh-bao"
-                doc.last_action_name = "Cảnh báo"
+    # Xử lý Văn bản đi (Chỉ add nếu chọn 'Tất cả' hoặc 'Văn bản đi')
+    if query_loai_xu_ly in ['', 'di']:
+        # Ép lọc theo số ký hiệu CV-DI như ông muốn
+        for doc in di_qs.filter(SoKyHieu__icontains='CV-DI').prefetch_related('phancong_set', 'chuyentiep_set'):
+            doc.doc_type = 'di'
+            doc.ngay_sort = doc.NgayBanHanh or now
+            # Gán Tag màu
+            pc = doc.phancong_set.first()
+            if not pc:
+                doc.last_action_tag, doc.last_action_name = "tag-phan-cong", "Phân công"
             else:
-                doc.last_action_tag = "tag-cap-nhat"
-                doc.last_action_name = "Cập nhật"
-        doc_list.append(doc)
+                if pc.TrangThaiXuLy == 'Hoàn thành':
+                    doc.last_action_tag, doc.last_action_name = "tag-chuyen-tiep", "Chuyển tiếp"
+                elif pc.TrangThaiXuLy == 'Quá hạn':
+                    doc.last_action_tag, doc.last_action_name = "tag-canh-bao", "Cảnh báo"
+                else:
+                    doc.last_action_tag, doc.last_action_name = "tag-cap-nhat", "Cập nhật"
+            doc_list.append(doc)
 
+    # 6. Sắp xếp và Phân trang
     documents = sorted(doc_list, key=lambda x: x.ngay_sort, reverse=True)
     paginator = Paginator(documents, 10)
     page_obj = paginator.get_page(page_number)
 
-    # 3. Thông tin bổ sung
-    users = UserAccount.objects.only('UserID', 'HoTen').all()
+    # 7. Lấy dữ liệu Alert Box (Cảnh báo)
+    danh_sach_nguoi_dung = UserAccount.objects.only('UserID', 'HoTen').all()
     coming_soon_qs = PhanCong.objects.filter(
         HanXuLy__date__range=[today, today + timedelta(days=5)]
     ).exclude(TrangThaiXuLy='Hoàn thành').select_related('VanBanDenID', 'VanBanDiID')
@@ -1367,8 +1367,7 @@ def xu_ly_van_ban_index(request):
         skh = pc.VanBanDenID.SoKyHieu if pc.VanBanDenID else (pc.VanBanDiID.SoKyHieu if pc.VanBanDiID else '')
         if skh:
             days = (pc.HanXuLy.date() - today).days
-            label = "Hôm nay" if days == 0 else f"còn {days} ngày"
-            coming_soon_groups.setdefault(label, []).append(skh)
+            coming_soon_groups.setdefault("Hôm nay" if days == 0 else f"còn {days} ngày", []).append(skh)
 
     overdue_groups = {}
     for pc in overdue_qs_all.select_related('VanBanDenID', 'VanBanDiID')[:10]:
@@ -1377,12 +1376,14 @@ def xu_ly_van_ban_index(request):
             days = (today - pc.HanXuLy.date()).days
             overdue_groups.setdefault(f"quá hạn {days} ngày", []).append(skh)
 
+    # 8. Context
     context = {
         'page_obj': page_obj,
-        'users': users,
+        'danh_sach_nguoi_dung': danh_sach_nguoi_dung,
         'query_so_ky_hieu': query_so_ky_hieu,
         'query_nguoi_xu_ly': query_nguoi_xu_ly,
-        'query_ngay_nhan': query_ngay_nhan,
+        'query_han_xu_ly': query_han_xu_ly,
+        'query_loai_xu_ly': query_loai_xu_ly,
         'coming_soon_count': coming_soon_qs.count(),
         'overdue_count': overdue_qs_all.count(),
         'coming_soon_groups': coming_soon_groups,

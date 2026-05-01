@@ -22,14 +22,20 @@
                     value="{{ query_so_ky_hieu|default:'' }}">
                 <select name="nguoi_xu_ly" class="form-control">
                     <option value="">--- Chọn người xử lý ---</option>
-                    {% for user in users %}
-                    <option value="{{ user.HoTen }}" {% if query_nguoi_xu_ly == user.HoTen %}selected{% endif %}>{{
-                        user.HoTen }}</option>
+                    {% for u in danh_sach_nguoi_dung %}
+                        <option value="{{ u.HoTen }}" {% if query_nguoi_xu_ly == u.HoTen %}selected{% endif %}>
+                            {{ u.HoTen }}
+                        </option>
                     {% endfor %}
                 </select>
-                <input type="text" name="ngay_nhan" class="form-control" placeholder="dd/mm/yyyy"
-                    value="{{ query_ngay_nhan|default:'' }}">
-                <input type="text" class="form-control" placeholder="Tất cả" readonly>
+                <input type="date" name="han_xu_ly" class="form-control"
+                        value="{{ query_han_xu_ly|default:'' }}"
+                        style="cursor: pointer;">
+                <select name="loai_xu_ly" class="form-control">
+                    <option value="" {% if query_loai_xu_ly == '' %}selected{% endif %}>Tất cả văn bản</option>
+                    <option value="den" {% if query_loai_xu_ly == 'den' %}selected{% endif %}>Văn bản đến</option>
+                    <option value="di" {% if query_loai_xu_ly == 'di' %}selected{% endif %}>Văn bản đi</option>
+                </select>
             </div>
             <div class="btn-group">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Tìm kiếm</button>
@@ -209,33 +215,38 @@
         </div>
         <div class="table-footer">
             <div>Hiển thị {{ page_obj.start_index }} - {{ page_obj.end_index }} / Tổng số: {{ page_obj.paginator.count }}</div>
-            <div class="pagination">
+           <div class="pagination">
                 {% if page_obj.paginator.num_pages > 1 %}
-                <a href="?page=1&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}"
-                    class="page-btn">Đầu</a>
-                
-                {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}"
-                    class="page-btn">Trước</a>
-                {% endif %}
+                    <!-- Nút về trang đầu -->
+                    <a href="?page=1&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&han_xu_ly={{ query_han_xu_ly }}&loai_xu_ly={{ query_loai_xu_ly }}"
+                        class="page-btn">Đầu</a>
 
-                {% for num in page_obj.paginator.page_range %}
-                {% if page_obj.number == num %}
-                <button type="button" class="page-btn active">{{ num }}</button>
-                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <a
-                    href="?page={{ num }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}"
-                    class="page-btn">{{ num }}</a>
+                    <!-- Nút về trang trước -->
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&han_xu_ly={{ query_han_xu_ly }}&loai_xu_ly={{ query_loai_xu_ly }}"
+                        class="page-btn">Trước</a>
                     {% endif %}
+
+                    <!-- Các con số trang -->
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <button type="button" class="page-btn active">{{ num }}</button>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?page={{ num }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&han_xu_ly={{ query_han_xu_ly }}&loai_xu_ly={{ query_loai_xu_ly }}"
+                            class="page-btn">{{ num }}</a>
+                        {% endif %}
                     {% endfor %}
 
+                    <!-- Nút sang trang sau -->
                     {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}"
+                    <a href="?page={{ page_obj.next_page_number }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&han_xu_ly={{ query_han_xu_ly }}&loai_xu_ly={{ query_loai_xu_ly }}"
                         class="page-btn">Sau</a>
                     {% endif %}
 
-                    <a href="?page={{ page_obj.paginator.num_pages }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&ngay_nhan={{ query_ngay_nhan }}"
+                    <!-- Nút đến trang cuối -->
+                    <a href="?page={{ page_obj.paginator.num_pages }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&han_xu_ly={{ query_han_xu_ly }}&loai_xu_ly={{ query_loai_xu_ly }}"
                         class="page-btn">Cuối</a>
-                    {% endif %}
+                {% endif %}
             </div>
         </div>
 
@@ -494,9 +505,6 @@
                             <span class="vbd-file-size">Đã tải lên trước đó</span>
                         </div>
                     </div>
-                    <i class="fas fa-trash-alt vbd-file-delete"
-                        onclick="this.closest('.vbd-file-list').style.display='none'" title="Gỡ bỏ"
-                        style="cursor:pointer;"></i>
                 </div>
             </div>
             <div id="asn-noFile" class="no-file-placeholder" style="display: none;">
