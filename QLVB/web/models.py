@@ -23,7 +23,86 @@ class UserAccount(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     SoThuTu = models.IntegerField(default=0, null=True, blank=True)
-    PhongBan = models.CharField(max_length=100, null=True, blank=True)
+    PhongBan = models.ForeignKey('DonViBenTrong', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Phòng ban")
+
+    @property
+    def role_name(self):
+        return self.VaiTroID.ChucVu if self.VaiTroID else ""
+
+    def is_giam_doc(self):
+        return self.role_name == "Tổng giám đốc"
+
+    def is_it_head(self):
+        return self.role_name == "Trưởng phòng IT"
+
+    def is_department_head(self):
+        return self.role_name and self.role_name.startswith("Trưởng phòng") and not self.is_it_head()
+
+    def is_nhan_vien(self):
+        return self.role_name and self.role_name.startswith("Nhân viên")
+
+    def can_approve(self):
+        # Trưởng phòng IT không có quyền phê duyệt
+        if self.is_it_head():
+            return False
+        return self.is_giam_doc() or self.is_department_head()
+
+    def can_publish(self):
+        # Trưởng phòng IT không có quyền phát hành
+        if self.is_it_head():
+            return False
+        return self.is_giam_doc() or self.is_department_head()
+
+    def can_manage_users_and_units(self):
+        # Trưởng phòng các phòng không có quyền quản lý người dùng, đơn vị
+        if self.is_department_head():
+            return False
+        # Giám đốc và IT Head có quyền này
+        return self.is_giam_doc() or self.is_it_head()
+
+    def can_perform_action(self, action, obj=None):
+        if self.is_giam_doc():
+            return True
+        
+        # Nếu thao tác với một đối tượng cụ thể (Văn bản)
+        if obj and action in ['xem', 'sua', 'xoa']:
+            # Trưởng phòng: Chỉ được thao tác văn bản thuộc phòng mình
+            if self.is_department_head():
+                if hasattr(obj, 'DonViTrongID') and obj.DonViTrongID:
+                    # So sánh trực tiếp qua ID hoặc Object
+                    if obj.DonViTrongID != self.PhongBan:
+                        return False
+                return True
+
+            # Nhân viên: Chỉ thao tác văn bản của mình tạo hoặc được phân công/chuyển tiếp
+            if self.is_nhan_vien():
+                # 1. Kiểm tra người tạo
+                if hasattr(obj, 'UserID') and obj.UserID == self:
+                    return True
+                # 2. Kiểm tra phân công/chuyển tiếp
+                from .models import PhanCong, ChuyenTiep
+                is_assigned = False
+                if hasattr(obj, 'VanBanDenID'):
+                    is_assigned = PhanCong.objects.filter(VanBanDenID=obj, UserID=self).exists() or \
+                                  ChuyenTiep.objects.filter(VanBanDenID=obj, UserID=self).exists()
+                elif hasattr(obj, 'VanBanDiID'):
+                    is_assigned = PhanCong.objects.filter(VanBanDiID=obj, UserID=self).exists() or \
+                                  ChuyenTiep.objects.filter(VanBanDiID=obj, UserID=self).exists()
+                
+                return is_assigned
+
+        if action in ['phe_duyet', 'phat_hanh']:
+            return self.can_approve() and self.can_publish()
+            
+        if action in ['quan_ly_nguoi_dung', 'quan_ly_don_vi']:
+            return self.can_manage_users_and_units()
+            
+        if self.is_nhan_vien():
+            return action in ['xem', 'sua', 'xoa', 'them']
+
+        # Mặc định Trưởng phòng IT và các Trưởng phòng khác có các quyền còn lại (xem, sửa, xóa, thêm)
+        return action in ['xem', 'sua', 'xoa', 'them']
+
 
 
 

@@ -68,24 +68,37 @@ function renderTable(units, pagination) {
     tbody.innerHTML = '';
     const startSTT = (pagination.current_page - 1) * 5 + 1;
 
-units.forEach((unit, index) => {
+    units.forEach((unit, index) => {
+        const tr = document.createElement('tr');
+        tr.dataset.id = unit.id;
+        tr.dataset.type = currentType;
+        
         const isInactive = unit.status === 'INACTIVE';
+        const stt = (pagination.current_page - 1) * 5 + index + 1;
 
-        // 1. Nút Xem: Ai cũng thấy[cite: 3]
+        // 1. Nút Xem: Luôn hiện
         const viewBtn = `<button type="button" class="action-btn btn-primary" onclick="window.viewUnitById(${unit.id})" title="Xem"><i class="fas fa-eye"></i></button>`;
 
-        // 2. Nút Sửa: Chỉ hiện nếu CAN_EDIT_UNIT là true[cite: 3]
+        // 2. Nút Sửa: Chỉ hiện nếu CAN_EDIT_UNIT là true
         const editBtn = CAN_EDIT_UNIT
             ? `<button type="button" class="action-btn btn-success" onclick="window.editUnitById(${unit.id})" title="Sửa"><i class="fas fa-edit"></i></button>`
             : '';
 
-        // 3. Nút Khôi phục: Chỉ hiện nếu là IT và đơn vị đang ngừng hợp tác[cite: 3]
+        // 3. Nút Khôi phục: Chỉ hiện nếu là IT và đơn vị đang ngừng hợp tác
         const restoreBtn = (isInactive && CAN_EDIT_UNIT)
             ? `<button type="button" class="action-btn btn-warning" onclick="window.confirmReactivateById(${unit.id})" title="Khôi phục"><i class="fas fa-rotate-left"></i></button>`
             : '';
 
         tr.innerHTML = `
-            ...
+            <td class="col-stt">${stt}</td>
+            <td style="text-align: left;"><a href="javascript:void(0)" class="text-blue" onclick="window.viewUnitById(${unit.id})">${unit.name}</a></td>
+            <td style="text-align: left;">${unit.address || ''}</td>
+            <td class="text-left">${unit.phone || ''}</td>
+            <td class="text-left">${unit.email || ''}</td>
+            <td class="text-left">${unit.contact || ''}</td>
+            <td class="col-status">
+                <span class="status-pill ${isInactive ? 'pill-gray' : 'pill-green'}">${isInactive ? 'Ngừng hợp tác' : 'Đang hợp tác'}</span>
+            </td>
             <td class="col-actions">
                 ${viewBtn}
                 ${editBtn}
@@ -291,18 +304,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (searchForm) searchForm.onsubmit = (e) => { e.preventDefault(); window.loadUnits(1); };
 
     const addBtn = document.querySelector('.btn-green');
-    if (addBtn) addBtn.onclick = (e) => {
-    addBtn.onclick = (e) => {
+    if (addBtn) {
+        addBtn.onclick = (e) => {
             if (!CAN_EDIT_UNIT) return;
             e.preventDefault();
-        ['unitName', 'unitAddress', 'unitPhone', 'unitEmail', 'unitContact'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('modalUnit').querySelectorAll('input').forEach(i => i.disabled = false);
-        document.getElementById('btnSaveUnit').style.display = 'block';
-        
-        const deactBtn = document.getElementById('btnDeactivateModal');
-        if (deactBtn) deactBtn.style.display = 'none';
-        
-        window.openUnitModal('Thêm mới đơn vị');
+            ['unitName', 'unitAddress', 'unitPhone', 'unitEmail', 'unitContact'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            document.getElementById('modalUnit').querySelectorAll('input').forEach(i => i.disabled = false);
+            document.getElementById('btnSaveUnit').style.display = 'block';
+            
+            const deactBtn = document.getElementById('btnDeactivateModal');
+            if (deactBtn) deactBtn.style.display = 'none';
+            
+            window.openUnitModal('Thêm mới đơn vị');
+        };
     }
 });
 

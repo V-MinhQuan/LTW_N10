@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}403 - Truy cập bị từ chối{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 70vh; text-align: center;">
+    <i class="fas fa-user-shield" style="font-size: 100px; color: #E74C3C; margin-bottom: 20px;"></i>
+    <h1 style="font-size: 36px; color: #1e293b; margin-bottom: 10px;">Truy cập bị từ chối</h1>
+    <p style="font-size: 18px; color: #64748b; max-width: 500px; margin-bottom: 30px;">
+        Xin lỗi, bạn không có quyền truy cập vào trang này. Vui lòng liên hệ quản trị viên nếu bạn cho rằng đây là một sự nhầm lẫn.
+    </p>
+    <a href="{% url 'index' %}" class="btn btn-primary" style="padding: 12px 30px; font-size: 16px;">
+        <i class="fas fa-home"></i> Quay lại trang chủ
+    </a>
+</div>
+{% endblock %}

@@ -9,13 +9,13 @@ from .models import (
 @admin.register(UserAccount)
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
-        ('Thông tin bổ sung', {'fields': ('HoTen', 'SoDienThoai', 'NgaySinh', 'GioiTinh', 'VaiTroID', 'TrangThai')}),
+        ('Thông tin bổ sung', {'fields': ('HoTen', 'PhongBan', 'SoDienThoai', 'NgaySinh', 'GioiTinh', 'VaiTroID', 'TrangThai')}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Thông tin bổ sung', {'fields': ('HoTen', 'SoDienThoai', 'NgaySinh', 'GioiTinh', 'VaiTroID', 'TrangThai')}),
+        ('Thông tin bổ sung', {'fields': ('HoTen', 'PhongBan', 'SoDienThoai', 'NgaySinh', 'GioiTinh', 'VaiTroID', 'TrangThai')}),
     )
     # Thêm NgaySinh vào danh sách hiển thị cho dễ nhìn
-    list_display = ('username', 'HoTen', 'NgaySinh', 'SoDienThoai', 'is_staff')
+    list_display = ('username', 'HoTen', 'PhongBan', 'NgaySinh', 'SoDienThoai')
 
 @admin.register(VaiTro)
 class VaiTroAdmin(admin.ModelAdmin):

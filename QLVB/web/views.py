@@ -21,7 +21,10 @@ from django.shortcuts import render
 
 # IMPORT CHO HỆ THỐNG THÔNG BÁO LỖI (MESSAGES)
 from django.contrib import messages
+from functools import wraps
+from django.core.exceptions import PermissionDenied
 from .forms import LoginForm
+
 from .forms import VanBanDenForm
 from .models import DonViBenTrong, UserAccount, VaiTro
 from .models import PhanCong, ChuyenTiep, BaoCao, Butphe
@@ -46,21 +49,60 @@ def is_nhan_vien(user):
     chuc_vu = user.VaiTroID.ChucVu if user.VaiTroID else ""
     return 'Nhân viên' in chuc_vu or 'Chuyên viên' in chuc_vu or 'CSKH' in chuc_vu
 
+def permission_required(action, model=None):
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped_view(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                return redirect('login')
+            
+            obj = None
+            if model and 'pk' in kwargs:
+                from django.shortcuts import get_object_or_404
+                obj = get_object_or_404(model, pk=kwargs['pk'])
+            
+            # Kiểm tra quyền với tham số obj nếu có
+            if request.user.can_perform_action(action, obj):
+                return view_func(request, *args, **kwargs)
+                
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.path.startswith('/api/'):
+                return JsonResponse({'status': 'error', 'message': 'Bạn không có quyền thực hiện hành động này.'}, status=403)
+            return render(request, '403.html', status=403)
+        return _wrapped_view
+    return decorator
+
+
 def get_filtered_documents(user, model_class):
     """Lọc dữ liệu văn bản dựa trên phạm vi chức vụ"""
-    # 1. TGD & TP IT: Xem toàn bộ công ty
-    if is_tgd(user) or is_tp_it(user):
+    # 1. Tổng giám đốc: Xem toàn bộ công ty
+    if is_tgd(user):
         return model_class.objects.all()
 
-    # 2. Trưởng phòng: Xem văn bản của phòng mình (dựa trên DonViTrongID hoặc User phòng đó)
+    # 2. Trưởng phòng: Xem văn bản của phòng mình
     if is_truong_phong(user):
-        return model_class.objects.filter(DonViTrongID__TenDonVi=user.PhongBan)
+        if model_class == VanBanDen:
+            # Văn bản đến: Lọc theo phòng nhận
+            return model_class.objects.filter(DonViTrongID=user.PhongBan)
+        else:
+            # Văn bản đi: Lọc theo phòng của người soạn HOẶC phòng nhận nội bộ
+            return model_class.objects.filter(
+                Q(UserID__PhongBan=user.PhongBan) | 
+                Q(DonViTrongID=user.PhongBan)
+            ).distinct()
 
-    # 3. Nhân viên: Chỉ xem văn bản được phân công hoặc mình soạn
+    # 3. Nhân viên: Chỉ xem văn bản được phân công, chuyển tiếp hoặc mình soạn
     if model_class == VanBanDen:
-        return model_class.objects.filter(phancong__UserID=user).distinct()
+        return model_class.objects.filter(
+            Q(phancong__UserID=user) | 
+            Q(chuyentiep__UserID=user)
+        ).distinct()
     else:
-        return model_class.objects.filter(Q(UserID=user) | Q(phancong__UserID=user)).distinct()
+        # Văn bản đi: Thêm điều kiện người soạn (UserID)
+        return model_class.objects.filter(
+            Q(UserID=user) | 
+            Q(phancong__UserID=user) | 
+            Q(chuyentiep__UserID=user)
+        ).distinct()
 
 # --- TRANG CHỦ ---
 @login_required
@@ -68,15 +110,22 @@ def index(request):
     """View cho trang Dashboard - Hiển thị số liệu thực tế"""
     now = timezone.now()
     # Thống kê dành cho quản lý cấp cao
-    if is_tgd(request.user) or is_tp_it(request.user):
+    if is_tgd(request.user):
         count_new = VanBanDen.objects.filter(TrangThai='MOI').count()
         count_processing = PhanCong.objects.filter(Q(TrangThaiXuLy='Đang xử lý') | Q(TrangThaiXuLy='DANG_XU_LY')).count()
         count_overdue = PhanCong.objects.filter(HanXuLy__lt=now).exclude(TrangThaiXuLy='Hoàn thành').count()
         count_completed = VanBanDen.objects.filter(TrangThai='HOAN_THANH', NgayHoanThanh__gte=now - timedelta(days=7)).count()
+    elif is_truong_phong(request.user):
+        # Thống kê dành cho Trưởng phòng (chỉ văn bản thuộc phòng mình)
+        dept_docs = VanBanDen.objects.filter(DonViTrongID=request.user.PhongBan)
+        count_new = dept_docs.filter(TrangThai='MOI').count()
+        count_processing = PhanCong.objects.filter(VanBanDenID__in=dept_docs, TrangThaiXuLy__in=['Đang xử lý', 'DANG_XU_LY']).count()
+        count_overdue = PhanCong.objects.filter(VanBanDenID__in=dept_docs, HanXuLy__lt=now).exclude(TrangThaiXuLy='Hoàn thành').count()
+        count_completed = dept_docs.filter(TrangThai='HOAN_THANH', NgayHoanThanh__gte=now - timedelta(days=7)).count()
     else:
         # Thống kê cá nhân dành cho nhân viên
         count_new = VanBanDen.objects.filter(TrangThai='MOI', phancong__UserID=request.user).count()
-        count_processing = PhanCong.objects.filter(UserID=request.user, TrangThaiXuLy='Đang xử lý').count()
+        count_processing = PhanCong.objects.filter(UserID=request.user, TrangThaiXuLy__in=['Đang xử lý', 'DANG_XU_LY']).count()
         count_overdue = PhanCong.objects.filter(UserID=request.user, HanXuLy__lt=now).exclude(TrangThaiXuLy='Hoàn thành').count()
         count_completed = VanBanDen.objects.filter(TrangThai='HOAN_THANH', phancong__UserID=request.user, NgayHoanThanh__gte=now - timedelta(days=7)).count()
 
@@ -231,7 +280,10 @@ def van_ban_den_index(request):
 
 
 @csrf_exempt
+@login_required
+@permission_required('them')
 def van_ban_den_them(request):
+
     if request.method == 'POST':
         try:
             form = VanBanDenForm(request.POST, request.FILES)
@@ -254,6 +306,8 @@ def van_ban_den_them(request):
     return JsonResponse({'status': 'invalid method'})
 
 
+@login_required
+@permission_required('xem', model=VanBanDen)
 def van_ban_den_xem(request, pk):
     from .models import PhanCong, ChuyenTiep, BaoCao
     vbd = VanBanDen.objects.select_related('DonViNgoaiID', 'DonViTrongID').filter(pk=pk).first()
@@ -330,6 +384,8 @@ def van_ban_den_xem(request, pk):
 
 
 @csrf_exempt
+@login_required
+@permission_required('sua', model=VanBanDen)
 def van_ban_den_sua(request, pk):
     if request.method == 'POST':
         vbd = VanBanDen.objects.filter(pk=pk).first()
@@ -399,6 +455,8 @@ def van_ban_den_sua(request, pk):
 
 
 @csrf_exempt
+@login_required
+@permission_required('xoa', model=VanBanDen)
 def van_ban_den_xoa(request, pk):
     return JsonResponse(
         {'status': 'error', 'message': 'Chức năng xóa văn bản đến đã bị vô hiệu hóa bởi quản trị viên.'})
@@ -491,6 +549,8 @@ def van_ban_di_index(request):
     })
 
 
+@login_required
+@permission_required('xem', model=VanBanDi)
 def api_vbdi_chi_tiet(request, pk):
     vb = get_object_or_404(VanBanDi, pk=pk)
 
@@ -575,7 +635,10 @@ def api_vbdi_chi_tiet(request, pk):
     })
 
 
+@login_required
+@permission_required('them', model=VanBanDi)
 def api_vbdi_them_moi(request):
+
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
     try:
@@ -622,6 +685,8 @@ def api_vbdi_them_moi(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
+@login_required
+@permission_required('sua', model=VanBanDi)
 def api_vbdi_cap_nhat(request, pk):
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
@@ -724,6 +789,8 @@ def api_vbdi_cap_nhat(request, pk):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
+@login_required
+@permission_required('xoa', model=VanBanDi)
 def api_vbdi_xoa(request, pk):
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
@@ -738,7 +805,10 @@ def api_vbdi_xoa(request, pk):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
+@login_required
+@permission_required('phe_duyet', model=VanBanDi)
 def api_vbdi_phe_duyet(request, pk):
+
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
     try:
@@ -765,7 +835,10 @@ def api_vbdi_phe_duyet(request, pk):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
+@login_required
+@permission_required('phat_hanh', model=VanBanDi)
 def api_vbdi_phat_hanh(request, pk):
+
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
     try:
@@ -801,6 +874,7 @@ def api_vbdi_phat_hanh(request, pk):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
+@login_required
 def api_vbdi_lich_su(request, pk):
     vb = get_object_or_404(VanBanDi, pk=pk)
     lich_su = LichSuHoatDong.objects.filter(
@@ -851,12 +925,15 @@ def _ghi_lich_su(request, loai, doi_tuong_id, hanh_dong, noi_dung, trang_thai_cu
 
 
 # --- QUẢN LÝ NGƯỜI DÙNG ---
+@login_required
+@permission_required('quan_ly_nguoi_dung')
 def quan_ly_nguoi_dung_index(request):
+
     user = request.user
     users = UserAccount.objects.all().select_related('VaiTroID').order_by('SoThuTu')
     return render(request, 'quan_ly_nguoi_dung/index.html', {
         'users': users,
-        'can_edit': is_tp_it(user),  # Chỉ TP IT mới có nút Sửa/Xóa/Thêm
+        'can_edit': request.user.can_perform_action('quan_ly_nguoi_dung'),  # Chỉ TP IT mới có nút Sửa/Xóa/Thêm
         'total_users': users.count()
     })
 
@@ -910,7 +987,10 @@ def thong_tin_view(request):
 
 
 # --- API NGƯỜI DÙNG ---
+@login_required
+@permission_required('quan_ly_nguoi_dung')
 def api_nguoi_dung_list(request):
+
     query_username = request.GET.get('username', '')
     query_fullname = request.GET.get('fullname', '')
     query_dept = request.GET.get('dept', '')
@@ -985,11 +1065,10 @@ def api_nguoi_dung_list(request):
 
 @csrf_exempt
 @login_required
+@permission_required('quan_ly_nguoi_dung')
 def api_upsert_user(request):
-    """Chốt chặn API: Chỉ TP IT mới được tạo/sửa User"""
-    if not is_tp_it(request.user):
-        return JsonResponse({'status': 'error', 'message': 'Bạn không có quyền thực hiện thao tác này!'},
-                            status=403)
+    """Chốt chặn API: Dựa trên can_perform_action"""
+
 
     if request.method == 'POST':
         try:
@@ -1016,9 +1095,9 @@ def api_upsert_user(request):
 
 @csrf_exempt
 @login_required
+@permission_required('quan_ly_nguoi_dung')
 def api_nguoi_dung_update_status(request):
-    if not is_tp_it(request.user):
-        return JsonResponse({'status': 'error', 'message': 'Bạn không có quyền thực hiện thao tác này!'}, status=403)
+
     try:
         data = json.loads(request.body)
         u = get_object_or_404(UserAccount, pk=data.get('id'))
@@ -1036,7 +1115,10 @@ def api_vai_tro_list(request):
 
 
 # --- QUẢN LÝ ĐƠN VỊ ---
+@login_required
+@permission_required('quan_ly_don_vi')
 def quan_ly_don_vi_ben_ngoai(request):
+
     user = request.user
     query_name = request.GET.get('name', '')
     query_address = request.GET.get('address', '')
@@ -1094,7 +1176,7 @@ def quan_ly_don_vi_ben_ngoai(request):
 
     return render(request, 'quan_ly_don_vi/ben_ngoai.html', {
         'page_obj': page_obj,
-        'can_edit': is_tp_it(user),
+        'can_edit': request.user.can_perform_action('quan_ly_don_vi'),
         'query_name': query_name,
         'query_address': query_address,
         'query_contact': query_contact,
@@ -1102,7 +1184,10 @@ def quan_ly_don_vi_ben_ngoai(request):
     })
 
 
+@login_required
+@permission_required('quan_ly_don_vi')
 def quan_ly_don_vi_ben_trong(request):
+
     user = request.user
     query_name = request.GET.get('name', '')
     query_address = request.GET.get('address', '')
@@ -1164,7 +1249,7 @@ def quan_ly_don_vi_ben_trong(request):
 
     return render(request, 'quan_ly_don_vi/ben_trong.html', {
         'page_obj': page_obj,
-        'can_edit': is_tp_it(user),
+        'can_edit': request.user.can_perform_action('quan_ly_don_vi'),
         'query_name': query_name,
         'query_address': query_address,
         'query_contact': query_contact,
@@ -1172,16 +1257,21 @@ def quan_ly_don_vi_ben_trong(request):
     })
 
 
+@login_required
+@permission_required('quan_ly_don_vi')
 def api_don_vi_list(request):
+
     """Trả về danh sách đơn vị bên ngoài và bên trong để JS reload dynamic"""
     ngoai = [{'id': dv.DonViNgoaiID, 'ten': dv.TenDonVi} for dv in DonViBenNgoai.objects.all().order_by('TenDonVi')]
     trong = [{'id': dv.DonViTrongID, 'ten': dv.TenDonVi} for dv in DonViBenTrong.objects.all().order_by('TenDonVi')]
     return JsonResponse({'status': 'success', 'ngoai': ngoai, 'trong': trong})
 
 
+@login_required
+@csrf_exempt
+@permission_required('quan_ly_don_vi')
 def api_upsert_don_vi(request):
-    if not is_tp_it(request.user):
-        return JsonResponse({'status': 'error', 'message': 'Bạn không có quyền thực hiện thao tác này!'}, status=403)
+
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -1218,9 +1308,11 @@ def api_upsert_don_vi(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
+@login_required
+@csrf_exempt
+@permission_required('quan_ly_don_vi')
 def api_delete_don_vi(request):
-    if not is_tp_it(request.user):
-        return JsonResponse({'status': 'error', 'message': 'Bạn không có quyền thực hiện thao tác này!'}, status=403)
+
     """API xử lý Ngừng hợp tác (Soft Delete) hoặc Xóa thực tế tùy loại"""
     if request.method == 'POST':
         try:

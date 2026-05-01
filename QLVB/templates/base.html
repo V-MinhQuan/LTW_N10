@@ -633,7 +633,7 @@
             </div>
         </div>
     </header>
-    {% block navbar %}
+    {% load auth_extras %}
     <nav class="navbar">
         <ul class="nav-links">
             <li class="{% block nav_home %}{% endblock %}"><a href="{% url 'index' %}">Trang chủ</a></li>
@@ -641,11 +641,14 @@
             <li class="{% block nav_xlvb %}{% endblock %}"><a href="{% url 'xlvb_index' %}">Xử lý văn bản điều hành</a>
             </li>
             <li class="{% block nav_vbdi %}{% endblock %}"><a href="{% url 'vbdi_index' %}">Văn bản đi</a></li>
+            
+            {% can_manage_users user as manage_users %}
+            {% if manage_users %}
             <li class="{% block nav_qldv %}{% endblock %}"><a href="{% url 'qldv_ngoai' %}">Quản lý đơn vị</a></li>
             <li class="{% block nav_qlnd %}{% endblock %}"><a href="{% url 'qlnd_index' %}">Quản lý người dùng</a></li>
+            {% endif %}
         </ul>
     </nav>
-    {% endblock %}
 
     <main class="main-content">
         {% block content %}{% endblock %}

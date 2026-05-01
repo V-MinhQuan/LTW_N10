@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
+{% load auth_extras %}
+
 
 
 {% block title %}Văn bản đi - Vietasia Travel{% endblock %}
@@ -144,12 +146,18 @@
                        </td>
                        <td class="col-actions">
                            <button class="action-btn btn-primary" onclick="xemChiTiet(this)" title="Xem"><i class="fa fa-eye"></i></button>
-                           {% if tt == 'DA_PHE_DUYET' %}
-                           <button class="action-btn btn-info" onclick="phatHanhVanBan(this)" title="Phát hành"><i class="fa fa-paper-plane"></i></button>
-                           {% endif %}
-                           {% if tt == 'CHO_PHE_DUYET' %}
-                           <button class="action-btn btn-forward" onclick="pheDuyetVanBan(this)" title="Phê duyệt"><i class="fa fa-check"></i></button>
-                           {% endif %}
+                            {% if tt == 'DA_PHE_DUYET' %}
+                                {% can_publish user as publish_perm %}
+                                {% if publish_perm %}
+                                <button class="action-btn btn-info" onclick="phatHanhVanBan(this)" title="Phát hành"><i class="fa fa-paper-plane"></i></button>
+                                {% endif %}
+                            {% endif %}
+                            {% if tt == 'CHO_PHE_DUYET' %}
+                                {% can_approve user as approve_perm %}
+                                {% if approve_perm %}
+                                <button class="action-btn btn-forward" onclick="pheDuyetVanBan(this)" title="Phê duyệt"><i class="fa fa-check"></i></button>
+                                {% endif %}
+                            {% endif %}
                            {% if tt == 'DU_THAO' %}
                            <button class="action-btn btn-success" onclick="suaVanBan(this)" title="Sửa"><i class="fas fa-edit"></i></button>
                            <button class="action-btn btn-danger" onclick="xoaVanBan(this)" title="Xóa"><i class="fas fa-trash-alt"></i></button>

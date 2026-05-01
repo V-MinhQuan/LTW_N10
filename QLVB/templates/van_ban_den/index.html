@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
+{% load auth_extras %}
+
 
 {% block title %}Văn bản đến - Vietasia Travel{% endblock %}
 
@@ -476,7 +478,9 @@
       <div class="btn-group">
         <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>
         <a href="{% url 'vbd_index' %}" class="btn btn-secondary"><i class="fa fa-sync-alt"></i> Làm mới</a>
+        {% if user.is_giam_doc or user.is_it_head or user.is_department_head or user.is_nhan_vien %}
         <button type="button" class="btn btn-success" onclick="openVBD('popupAdd')"><i class="fa fa-plus"></i> Thêm mới</button>
+        {% endif %}
         <button type="button" class="btn btn-warning" onclick="openVBD('popupFilter')"><i class="fa fa-filter"></i> Bộ lọc</button>
       </div>
     </form>
@@ -520,8 +524,15 @@
               {% endif %}
             </td>
             <td class="text-left" style="white-space: nowrap;">
+              {% check_perm request.user 'xem' vbd as can_view %}
+              {% if can_view %}
               <button class="action-btn btn-primary" onclick="xemVBD({{ vbd.VanBanDenID }})" title="Xem"><i class="fas fa-eye"></i></button>
+              {% endif %}
+              
+              {% check_perm request.user 'sua' vbd as can_edit %}
+              {% if can_edit %}
               <button class="action-btn btn-success" onclick="suaVBD({{ vbd.VanBanDenID }})" title="Sửa"><i class="fas fa-edit"></i></button>
+              {% endif %}
             </td>
           </tr>
           {% empty %}
