@@ -49,6 +49,15 @@ function openVBD(id) {
             inputs.forEach(i => { if (i.type !== 'button' && i.type !== 'submit') i.value = ''; });
             const label = document.getElementById('fileLabel');
             if (label) label.innerHTML = 'Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính';
+            
+            // Lấy gợi ý số ký hiệu
+            fetch('/api/van-ban-di/goi-y-so-ky-hieu/')
+            .then(r => r.json())
+            .then(res => {
+                if(res.status === 'success') {
+                    document.getElementById('soKyHieu').value = res.suggested;
+                }
+            });
         }
     }
 }
@@ -79,10 +88,11 @@ window.onclick = function(event) {
 }
 
 function checkDonVi() {
-    let ngoai = document.getElementById("donViNgoai");
-    let bh = document.getElementById("donViBH");
-    bh.disabled = (ngoai.value !== "");
-    ngoai.disabled = (bh.value !== "");
+    // Không vô hiệu hóa nữa
+}
+
+function checkEditDonVi() {
+    // Không vô hiệu hóa nữa
 }
 
 function _renderFile(section, noFileEl, tepDinhKem, showDelete = true) {
@@ -201,6 +211,12 @@ function _getFormData(trangThai) {
 }
 
 function luuDuThao() {
+    let ngoai = document.getElementById('donViNgoai').value;
+    let trong = document.getElementById('donViBH').value;
+    if (!ngoai && !trong) {
+        alert("Vui lòng chọn ít nhất một Đơn vị nhận (Bên ngoài hoặc Bên trong)!");
+        return;
+    }
     apiPostForm('/api/van-ban-di/them-moi/', _getFormData('DU_THAO'), () => {
         App.showSuccess('Lưu dự thảo thành công', () => {
             window.location.reload();
@@ -209,6 +225,12 @@ function luuDuThao() {
 }
 
 function guiPheDuyet() {
+    let ngoai = document.getElementById('donViNgoai').value;
+    let trong = document.getElementById('donViBH').value;
+    if (!ngoai && !trong) {
+        alert("Vui lòng chọn ít nhất một Đơn vị nhận (Bên ngoài hoặc Bên trong)!");
+        return;
+    }
     apiPostForm('/api/van-ban-di/them-moi/', _getFormData('CHO_PHE_DUYET'), () => {
         App.showSuccess('Gửi phê duyệt thành công', () => {
             window.location.reload();
@@ -252,11 +274,10 @@ function suaVanBan(btn) {
         document.getElementById("edit_loaivb").value = d.loai_vb;
         document.getElementById("edit_nguoisoan").value = d.nguoi_soan;
 
-        // Set dropdown đơn vị — tìm theo text
-        let selDonViNgoai = document.getElementById("edit_donvi");
-        for (let o of selDonViNgoai.options) {
-            if (o.text.includes(d.don_vi_ngoai) && o.value.startsWith('ngoai_')) { selDonViNgoai.value = o.value; break; }
-        }
+        // Set dropdown đơn vị — tìm theo text hoặc id
+        document.getElementById("edit_donViNgoai").value = d.don_vi_ngoai_id || '';
+        document.getElementById("edit_donViBH").value = d.don_vi_trong_id || '';
+        // checkEditDonVi();
 
         // Map tên hiển thị -> mã
         let ttMap = {'Dự thảo':'DU_THAO','Chờ phê duyệt':'CHO_PHE_DUYET','Đã phê duyệt':'DA_PHE_DUYET','Đã phát hành':'DA_PHAT_HANH'};
@@ -273,12 +294,21 @@ function suaVanBan(btn) {
 
 function luuCapNhat() {
     if (!_editId) return;
+    
+    let ngoai = document.getElementById('edit_donViNgoai').value;
+    let trong = document.getElementById('edit_donViBH').value;
+    if (!ngoai && !trong) {
+        alert("Vui lòng chọn ít nhất một Đơn vị nhận (Bên ngoài hoặc Bên trong)!");
+        return;
+    }
+    
     let fd = new FormData();
     fd.append('so_ky_hieu', document.getElementById('edit_sokyhieu').value);
     fd.append('trich_yeu', document.getElementById('edit_trichyeu').value);
     fd.append('loai_vb', document.getElementById('edit_loaivb').value);
     fd.append('ngay_ban_hanh', document.getElementById('edit_ngay').value || '');
-    fd.append('don_vi_ngoai_id', (document.getElementById('edit_donvi').value || '').replace('ngoai_',''));
+    fd.append('don_vi_ngoai_id', ngoai);
+    fd.append('don_vi_trong_id', trong);
     fd.append('trang_thai', document.getElementById('edit_trangthai').value);
     fd.append('xoa_file', document.getElementById('edit_xoa_file').value);
     let fileInput = document.getElementById('edit_file_input');
@@ -582,23 +612,19 @@ function reloadDonViDropdowns() {
         }
 
         // 5. Modal Sửa - đơn vị ngoài + trong
-        const editDonVi = document.getElementById('edit_donvi');
-        if (editDonVi) {
-            const cur = editDonVi.value;
-            editDonVi.innerHTML = '<option value="">--- Chọn đơn vị ---</option>';
-            res.ngoai.forEach(dv => {
-                const opt = document.createElement('option');
-                opt.value = 'ngoai_' + dv.id;
-                opt.textContent = dv.ten + ' (BN)';
-                if (opt.value === cur) opt.selected = true;
-                editDonVi.appendChild(opt);
-            });
+        const editDonViNgoai = document.getElementById('edit_donViNgoai');
+        if (editDonViNgoai) buildNgoaiOptions(editDonViNgoai, '--- Chọn đơn vị bên ngoài ---');
+
+        const editDonViBH = document.getElementById('edit_donViBH');
+        if (editDonViBH) {
+            const cur = editDonViBH.value;
+            editDonViBH.innerHTML = '<option value="">--- Chọn đơn vị bên trong ---</option>';
             res.trong.forEach(dv => {
                 const opt = document.createElement('option');
-                opt.value = 'trong_' + dv.id;
-                opt.textContent = dv.ten + ' (BT)';
-                if (opt.value === cur) opt.selected = true;
-                editDonVi.appendChild(opt);
+                opt.value = dv.id;
+                opt.textContent = dv.ten;
+                if (String(opt.value) === String(cur)) opt.selected = true;
+                editDonViBH.appendChild(opt);
             });
         }
     });

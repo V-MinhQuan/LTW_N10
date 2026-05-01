@@ -216,7 +216,7 @@
        </div>
        <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
            <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị bên ngoài (<span style="color:red">*</span>)</label>
+               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị bên ngoài <span style="font-weight:normal; font-size:12px; color:#666;"></span></label>
                <select id="donViNgoai" class="form-control">
                    <option value="">--- Chọn đơn vị bên ngoài ---</option>
                    {% for dv in don_vi_ngoai_list %}
@@ -225,7 +225,7 @@
                </select>
            </div>
            <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị bên trong (<span style="color:red">*</span>)</label>
+               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị bên trong <span style="font-weight:normal; font-size:12px; color:#666;"></span></label>
                <select id="donViBH" class="form-control">
                    <option value="">--- Chọn đơn vị bên trong ---</option>
                    {% for dv in don_vi_trong_list %}
@@ -355,10 +355,7 @@
        <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
            <div class="form-group" style="flex: 1;">
                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Loại văn bản</label>
-               <select id="edit_loaivb" class="form-control">
-                   <option>Công văn</option><option>Thông báo</option><option>Báo cáo</option>
-                   <option>Tờ trình</option><option>Kế hoạch</option>
-               </select>
+               <input type="text" id="edit_loaivb" class="form-control" placeholder="Nhập loại văn bản">
            </div>
            <div class="form-group" style="flex: 1;">
                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Số ký hiệu</label>
@@ -367,20 +364,22 @@
        </div>
        <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
            <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị nhận</label>
-               <select id="edit_donvi" class="form-control">
-                   <option value="">--- Chọn đơn vị ---</option>
+               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị bên ngoài <span style="font-weight:normal; font-size:12px; color:#666;"></span></label>
+               <select id="edit_donViNgoai" class="form-control">
+                   <option value="">--- Chọn đơn vị bên ngoài ---</option>
                    {% for dv in don_vi_ngoai_list %}
-                   <option value="ngoai_{{ dv.DonViNgoaiID }}">{{ dv.TenDonVi }} (BN)</option>
-                   {% endfor %}
-                   {% for dv in don_vi_trong_list %}
-                   <option value="trong_{{ dv.DonViTrongID }}">{{ dv.TenDonVi }} (BT)</option>
+                   <option value="{{ dv.DonViNgoaiID }}">{{ dv.TenDonVi }}</option>
                    {% endfor %}
                </select>
            </div>
            <div class="form-group" style="flex: 1;">
-               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Người xử lý</label>
-               <input type="text" id="edit_nguoisoan" class="form-control">
+               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Đơn vị bên trong <span style="font-weight:normal; font-size:12px; color:#666;"></span></label>
+               <select id="edit_donViBH" class="form-control">
+                   <option value="">--- Chọn đơn vị bên trong ---</option>
+                   {% for dv in don_vi_trong_list %}
+                   <option value="{{ dv.DonViTrongID }}">{{ dv.TenDonVi }}</option>
+                   {% endfor %}
+               </select>
            </div>
        </div>
        <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
@@ -388,6 +387,12 @@
                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Ngày ban hành</label>
                <input type="date" id="edit_ngay" class="form-control">
            </div>
+           <div class="form-group" style="flex: 1;">
+               <label style="display: block; margin-bottom: 5px; font-weight: bold;">Người xử lý</label>
+               <input type="text" id="edit_nguoisoan" class="form-control">
+           </div>
+       </div>
+       <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
            <div class="form-group" style="flex: 1;">
                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Trạng thái</label>
                <select id="edit_trangthai" class="form-control">
@@ -557,7 +562,7 @@
 
 
 {% block extra_js %}
-<script src="{% static 'js/pages/van_ban_di.js' %}?v=11"></script>
+<script src="{% static 'js/pages/van_ban_di.js' %}?v=13"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
    ['modalForm','modalDetail','modalEdit','modalSuccess','popupRemoveFile','popupPheDuyet','popupPhatHanh','historyOverlay','popupFilter'].forEach(function(id) {

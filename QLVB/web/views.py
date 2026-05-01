@@ -556,7 +556,9 @@ def api_vbdi_chi_tiet(request, pk):
             'trich_yeu': vb.TrichYeu or '',
             'loai_vb': vb.LoaiVanBan or '',
             'don_vi_ngoai': vb.DonViNgoaiID.TenDonVi if vb.DonViNgoaiID else '',
+            'don_vi_ngoai_id': vb.DonViNgoaiID_id if vb.DonViNgoaiID else '',
             'don_vi_trong': vb.DonViTrongID.TenDonVi if vb.DonViTrongID else '',
+            'don_vi_trong_id': vb.DonViTrongID_id if vb.DonViTrongID else '',
             'nguoi_soan': ", ".join(nguoi_xu_ly_list) if nguoi_xu_ly_list else (vb.UserID.HoTen if vb.UserID else ''),
             'ngay_ban_hanh': vb.NgayBanHanh.strftime('%d/%m/%Y') if vb.NgayBanHanh else '',
             'trang_thai': vb.get_TrangThai_display(),
@@ -572,16 +574,37 @@ def api_vbdi_them_moi(request):
     try:
         # Nhận cả form data lẫn file
         vb = VanBanDi()
-        vb.SoKyHieu = request.POST.get('so_ky_hieu', '')
+        so_ky_hieu = request.POST.get('so_ky_hieu', '').strip()
+        if so_ky_hieu and VanBanDi.objects.filter(SoKyHieu=so_ky_hieu).exists():
+            return JsonResponse({'status': 'error', 'message': 'Số ký hiệu đã tồn tại trong hệ thống.'}, status=400)
+            
+        ngay_ban_hanh = request.POST.get('ngay_ban_hanh')
+        if ngay_ban_hanh:
+            from datetime import datetime
+            from django.utils import timezone
+            try:
+                ngay_ban_hanh_date = datetime.strptime(ngay_ban_hanh, '%Y-%m-%d').date()
+                if ngay_ban_hanh_date < timezone.now().date():
+                    return JsonResponse({'status': 'error', 'message': 'Ngày ban hành phải lớn hơn hoặc bằng ngày hiện tại.'}, status=400)
+            except ValueError:
+                return JsonResponse({'status': 'error', 'message': 'Ngày ban hành không hợp lệ.'}, status=400)
+        
+        vb.SoKyHieu = so_ky_hieu
         vb.TrichYeu = request.POST.get('trich_yeu', '')
         vb.LoaiVanBan = request.POST.get('loai_vb', '')
-        vb.NgayBanHanh = request.POST.get('ngay_ban_hanh') or None
+        vb.NgayBanHanh = ngay_ban_hanh or None
+        
         don_vi_ngoai_id = request.POST.get('don_vi_ngoai_id')
         don_vi_trong_id = request.POST.get('don_vi_trong_id')
+        
+        if not don_vi_ngoai_id and not don_vi_trong_id:
+            return JsonResponse({'status': 'error', 'message': 'Vui lòng chọn ít nhất một Đơn vị nhận (Bên ngoài hoặc Bên trong).'}, status=400)
+            
         if don_vi_ngoai_id:
             vb.DonViNgoaiID = get_object_or_404(DonViBenNgoai, pk=don_vi_ngoai_id)
         if don_vi_trong_id:
             vb.DonViTrongID = get_object_or_404(DonViBenTrong, pk=don_vi_trong_id)
+            
         if request.FILES.get('tep_dinh_kem'):
             vb.TepDinhKem = request.FILES['tep_dinh_kem']
         vb.TrangThai = request.POST.get('trang_thai', VanBanDi.TrangThaiChoices.DU_THAO)
@@ -602,15 +625,36 @@ def api_vbdi_cap_nhat(request, pk):
             'DU_THAO': 'Dự thảo', 'CHO_PHE_DUYET': 'Chờ phê duyệt',
             'DA_PHE_DUYET': 'Đã phê duyệt', 'DA_PHAT_HANH': 'Đã phát hành',
         }
+        
+        new_so_ky_hieu = request.POST.get('so_ky_hieu', '').strip()
+        if not new_so_ky_hieu:
+            new_so_ky_hieu = vb.SoKyHieu
+            
+        if new_so_ky_hieu and new_so_ky_hieu != vb.SoKyHieu:
+            if VanBanDi.objects.filter(SoKyHieu=new_so_ky_hieu).exclude(pk=pk).exists():
+                return JsonResponse({'status': 'error', 'message': 'Số ký hiệu đã tồn tại trong hệ thống.'}, status=400)
+                
+        new_ngay = request.POST.get('ngay_ban_hanh')
+        if new_ngay and new_ngay != (vb.NgayBanHanh.strftime('%Y-%m-%d') if vb.NgayBanHanh else None):
+            from datetime import datetime
+            from django.utils import timezone
+            try:
+                ngay_ban_hanh_date = datetime.strptime(new_ngay, '%Y-%m-%d').date()
+                if ngay_ban_hanh_date < timezone.now().date():
+                    return JsonResponse({'status': 'error', 'message': 'Ngày ban hành phải lớn hơn hoặc bằng ngày hiện tại.'}, status=400)
+            except ValueError:
+                return JsonResponse({'status': 'error', 'message': 'Ngày ban hành không hợp lệ.'}, status=400)
+
         # So sánh nội dung trước và sau
         changes = []
-        new_so_ky_hieu = request.POST.get('so_ky_hieu', vb.SoKyHieu)
         new_trich_yeu = request.POST.get('trich_yeu', vb.TrichYeu)
         new_loai_vb = request.POST.get('loai_vb', vb.LoaiVanBan)
         new_trang_thai = request.POST.get('trang_thai')
-        new_ngay = request.POST.get('ngay_ban_hanh')
         new_ngoai_id = request.POST.get('don_vi_ngoai_id')
         new_trong_id = request.POST.get('don_vi_trong_id')
+
+        if not new_ngoai_id and not new_trong_id:
+            return JsonResponse({'status': 'error', 'message': 'Vui lòng chọn ít nhất một Đơn vị nhận (Bên ngoài hoặc Bên trong).'}, status=400)
 
         # 1. So sánh các trường text
         if new_so_ky_hieu != (vb.SoKyHieu or ''):
@@ -721,6 +765,18 @@ def api_vbdi_phat_hanh(request, pk):
         vb = get_object_or_404(VanBanDi, pk=pk)
         data = json.loads(request.body)
         cu = vb.TrangThai
+        
+        ngay_ban_hanh_str = data.get('ngay_ban_hanh')
+        if ngay_ban_hanh_str and ngay_ban_hanh_str != (vb.NgayBanHanh.strftime('%Y-%m-%d') if vb.NgayBanHanh else None):
+            from datetime import datetime
+            from django.utils import timezone
+            try:
+                ngay_ban_hanh_date = datetime.strptime(ngay_ban_hanh_str, '%Y-%m-%d').date()
+                if ngay_ban_hanh_date < timezone.now().date():
+                    return JsonResponse({'status': 'error', 'message': 'Ngày ban hành phải lớn hơn hoặc bằng ngày hiện tại.'}, status=400)
+            except ValueError:
+                return JsonResponse({'status': 'error', 'message': 'Ngày ban hành không hợp lệ.'}, status=400)
+                
         ph = PhatHanh()
         ph.VanBanDiID = vb
         ph.UserID = request.user if request.user.is_authenticated else None
@@ -757,6 +813,19 @@ def api_vbdi_lich_su(request, pk):
         'trang_thai_moi': tt_map.get(ls.TrangThaiMoi or '', ls.TrangThaiMoi or ''),
     } for ls in lich_su]
     return JsonResponse({'status': 'success', 'data': data})
+
+def api_vbdi_goi_y_so_ky_hieu(request):
+    try:
+        last_vb = VanBanDi.objects.exclude(SoKyHieu__isnull=True).exclude(SoKyHieu='').order_by('-VanBanDiID').first()
+        next_number = 1
+        if last_vb and last_vb.SoKyHieu:
+            import re
+            match = re.match(r'^(\d+)', last_vb.SoKyHieu)
+            if match:
+                next_number = int(match.group(1)) + 1
+        return JsonResponse({'status': 'success', 'suggested': f'{next_number}/VBD'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
 def _ghi_lich_su(request, loai, doi_tuong_id, hanh_dong, noi_dung, trang_thai_cu, trang_thai_moi):
@@ -1418,10 +1487,11 @@ def api_phan_cong_xlvb(request):
 
             # Cập nhật trạng thái văn bản gốc
             if doc_type == 'di':
-                vb.TrangThai = VanBanDi.TrangThaiChoices.CHO_PHE_DUYET
+                # Giữ nguyên trạng thái hiện tại theo yêu cầu
+                pass
             else:
                 vb.TrangThai = VanBanDen.TrangThaiChoices.DANG_XU_LY
-            vb.save()
+                vb.save()
 
             # Ghi lịch sử hoạt động
             msg_history = f"Phân công cho {len(user_ids)} người xử lý. Hạn: {han_xu_ly}"

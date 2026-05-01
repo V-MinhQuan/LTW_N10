@@ -29,6 +29,7 @@ urlpatterns = [
 
     # --- Văn bản đi ---
     path('van-ban-di/', views.van_ban_di_index, name='vbdi_index'),
+    path('api/van-ban-di/goi-y-so-ky-hieu/', views.api_vbdi_goi_y_so_ky_hieu, name='api_vbdi_goi_y_so_ky_hieu'),
     path('api/van-ban-di/them-moi/', views.api_vbdi_them_moi, name='api_vbdi_them_moi'),
     path('api/van-ban-di/<int:pk>/chi-tiet/', views.api_vbdi_chi_tiet, name='api_vbdi_chi_tiet'),
     path('api/van-ban-di/<int:pk>/cap-nhat/', views.api_vbdi_cap_nhat, name='api_vbdi_cap_nhat'),
