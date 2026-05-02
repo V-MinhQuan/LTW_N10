@@ -120,23 +120,26 @@
                             {% with phan_cong=doc.phancong_set.first %}
                             {% if phan_cong %}
                             {{ phan_cong.UserID.HoTen }}<br>
-                            <small class="text-muted">
-                                {% if doc.doc_type == 'den' %}
-                                Từ: {{ doc.DonViNgoaiID.TenDonVi }}
-                                {% else %}
-                                Đến: {{ doc.DonViNgoaiID.TenDonVi }}
-                                {% endif %}
-                            </small>
                             {% else %}
                             <span class="text-muted">Chưa phân công</span><br>
+                            {% endif %}
                             <small class="text-muted">
                                 {% if doc.doc_type == 'den' %}
-                                Từ: {{ doc.DonViNgoaiID.TenDonVi }}
+                                Từ: 
+                                {% if doc.DonViNgoaiID %}{{ doc.DonViNgoaiID.TenDonVi }}{% endif %}
+                                {% if doc.DonViNgoaiID and doc.DonViTrongID %} - {% endif %}
+                                {% if doc.DonViTrongID %}{{ doc.DonViTrongID.TenDonVi }}{% endif %}
                                 {% else %}
-                                Đến: {{ doc.DonViNgoaiID.TenDonVi }}
+                                Đến: 
+                                {% if not doc.DonViTrongID and not doc.DonViNgoaiID and doc.TrangThai == 'DA_PHAT_HANH' %}
+                                Tất cả
+                                {% else %}
+                                {% if doc.DonViTrongID %}{{ doc.DonViTrongID.TenDonVi }}{% endif %}
+                                {% if doc.DonViTrongID and doc.DonViNgoaiID %} - {% endif %}
+                                {% if doc.DonViNgoaiID %}{{ doc.DonViNgoaiID.TenDonVi }}{% endif %}
+                                {% endif %}
                                 {% endif %}
                             </small>
-                            {% endif %}
                             {% endwith %}
                         </td>
                         <td class="text-center">

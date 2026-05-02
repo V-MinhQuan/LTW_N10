@@ -26,8 +26,8 @@
                 value="{{ query_contact }}">
             <select name="status" class="form-control">
                 <option value="ALL" {% if query_status == 'ALL' %}selected{% endif %}>Tất cả trạng thái</option>
-                <option value="ACTIVE" {% if query_status == 'ACTIVE' %}selected{% endif %}>Đang hợp tác</option>
-                <option value="INACTIVE" {% if query_status == 'INACTIVE' %}selected{% endif %}>Ngừng hợp tác</option>
+                <option value="ACTIVE" {% if query_status == 'ACTIVE' %}selected{% endif %}>Đang hoạt động</option>
+                <option value="INACTIVE" {% if query_status == 'INACTIVE' %}selected{% endif %}>Ngừng hoạt động</option>
             </select>
             <div class="btn-group" style="grid-column: span 4; justify-content: flex-start; margin-top: 0;">
                 <button type="submit" class="btn btn-blue"><i class="fas fa-search"></i> Tìm kiếm</button>
@@ -72,9 +72,9 @@
                         <td class="text-left">{{ unit.NguoiLienHe|default:"" }}</td>
                         <td class="col-status">
                             {% if unit.trang_thai == 'ACTIVE' %}
-                            <span class="status-pill pill-green">Đang hợp tác</span>
+                            <span class="status-pill pill-green">Đang hoạt động</span>
                             {% else %}
-                            <span class="status-pill pill-gray">Ngừng hợp tác</span>
+                            <span class="status-pill pill-gray">Ngừng hoạt động</span>
                             {% endif %}
                         </td>
                         <td class="col-actions">
@@ -187,7 +187,7 @@
         <button class="btn" id="btnDeactivateModal"
             style="background: #fff5f5; color: #e74c3c; border: 1px solid #ffcfcf; margin-right: auto; display: none;"
             onclick="handleDeactivateFromModal()">
-            <i class="fas fa-ban"></i> Ngừng hợp tác
+            <i class="fas fa-ban"></i> Ngừng hoạt động
         </button>
         <button class="btn btn-secondary" onclick="closeUnitModal()">Hủy</button>
         <button class="btn btn-primary" id="btnSaveUnit" onclick="saveUnit()">Lưu</button>

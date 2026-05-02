@@ -315,22 +315,28 @@
                 <div class="info-row">
                     <span class="info-label">Họ và tên</span>
                     <span class="info-value-text">{{ user.HoTen|default:"---" }}</span>
+                    {% if can_edit_all %}
                     <input type="text" name="HoTen" class="info-input" value="{{ user.HoTen|default:'' }}">
+                    {% endif %}
                 </div>
                 <div class="info-row">
                     <span class="info-label">Ngày sinh</span>
                     <span class="info-value-text">{{ user.NgaySinh|date:"d/m/Y"|default:"---" }}</span>
+                    {% if can_edit_all %}
                     <input type="date" name="NgaySinh" class="info-input" value="{{ user.NgaySinh|date:'Y-m-d' }}">
+                    {% endif %}
                 </div>
                 <div class="info-row">
                     <span class="info-label">Giới tính</span>
                     <span class="info-value-text">{{ user.GioiTinh|default:"---" }}</span>
+                    {% if can_edit_all %}
                     <select name="GioiTinh" class="info-input">
                         <option value="" {% if not user.GioiTinh %}selected{% endif %}>--- Chọn ---</option>
                         <option value="Nam" {% if user.GioiTinh == 'Nam' %}selected{% endif %}>Nam</option>
                         <option value="Nữ" {% if user.GioiTinh == 'Nữ' %}selected{% endif %}>Nữ</option>
                         <option value="Khác" {% if user.GioiTinh == 'Khác' %}selected{% endif %}>Khác</option>
                     </select>
+                    {% endif %}
                 </div>
                 <div class="info-row">
                     <span class="info-label">Email</span>
@@ -449,8 +455,17 @@
             btnEnableEdit.onclick = () => {
                 btnEnableEdit.style.display = 'none';
                 actionButtons.style.display = 'flex';
-                valueTexts.forEach(t => t.style.display = 'none');
-                inputs.forEach(i => i.style.display = 'block');
+                
+                // Chỉ ẩn text và hiện input cho các dòng có input
+                const rows = document.querySelectorAll('.info-row');
+                rows.forEach(row => {
+                    const input = row.querySelector('.info-input');
+                    const text = row.querySelector('.info-value-text');
+                    if (input) {
+                        if (text) text.style.display = 'none';
+                        input.style.display = 'block';
+                    }
+                });
             };
         }
     });

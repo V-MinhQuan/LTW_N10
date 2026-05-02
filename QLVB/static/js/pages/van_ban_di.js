@@ -215,6 +215,11 @@ function _getFormData(trangThai) {
 }
 
 function luuDuThao() {
+    let fileInput = document.getElementById('fileInput');
+    if (!fileInput || !fileInput.files[0]) {
+        alert('Vui lòng đính kèm tài liệu!');
+        return;
+    }
     apiPostForm('/api/van-ban-di/them-moi/', _getFormData('DU_THAO'), () => {
         App.showSuccess('Lưu dự thảo thành công', () => {
             window.location.reload();
@@ -223,6 +228,11 @@ function luuDuThao() {
 }
 
 function guiPheDuyet() {
+    let fileInput = document.getElementById('fileInput');
+    if (!fileInput || !fileInput.files[0]) {
+        alert('Vui lòng đính kèm tài liệu!');
+        return;
+    }
     apiPostForm('/api/van-ban-di/them-moi/', _getFormData('CHO_PHE_DUYET'), () => {
         App.showSuccess('Gửi phê duyệt thành công', () => {
             window.location.reload();
@@ -488,14 +498,29 @@ function phatHanhVanBan(btn) {
 
 function xacNhanPhatHanh() {
     if (!_phatHanhId) return;
+    
+    let trichYeu = document.getElementById('ph_trichyeu').value.trim();
+    let ngayBanHanh = document.getElementById('ph_ngay').value;
     let ph_phongban = document.getElementById('ph_phongban');
+    
+    if (!trichYeu) {
+        alert('Vui lòng nhập trích yếu!');
+        return;
+    }
+    
     if (ph_phongban && !ph_phongban.value) {
         alert('Vui lòng chọn phòng ban nhận để phân công!');
         return;
     }
+    
+    if (!ngayBanHanh) {
+        alert('Vui lòng chọn ngày ban hành!');
+        return;
+    }
+    
     let data = {
-        trich_yeu: document.getElementById('ph_trichyeu').value,
-        ngay_ban_hanh: document.getElementById('ph_ngay').value || null,
+        trich_yeu: trichYeu,
+        ngay_ban_hanh: ngayBanHanh,
         don_vi_trong_id: ph_phongban ? ph_phongban.value : null
     };
     apiPost('/api/van-ban-di/' + _phatHanhId + '/phat-hanh/', data, () => {

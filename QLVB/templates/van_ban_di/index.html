@@ -261,7 +261,7 @@
             <th width="5%" class="col-stt">STT</th>
             <th width="12%">Số ký hiệu</th>
             <th width="20%">Trích yếu</th>
-            <th width="15%">Đơn vị gửi</th>
+            <th width="15%">Đơn vị nhận</th>
             <th width="12%">Loại văn bản</th>
             <th width="12%">Người xử lý</th>
             <th width="10%">Ngày ban hành</th>
@@ -279,7 +279,13 @@
               style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
               title="{{ vb.TrichYeu }}">{{ vb.TrichYeu }}</td>
             <td class="text-left">
-              {% if not vb.DonViTrongID and not vb.DonViNgoaiID %}<span style="color:#ccc;">Chưa xác định</span>{% endif %}
+              {% if not vb.DonViTrongID and not vb.DonViNgoaiID %}
+                {% if tt == 'DA_PHAT_HANH' %}
+                  <span style="color:#007bff; font-weight: 500;">Tất cả</span>
+                {% else %}
+                  <span style="color:#ccc;">Chưa xác định</span>
+                {% endif %}
+              {% endif %}
 
               {% if vb.DonViTrongID %}{{ vb.DonViTrongID.TenDonVi }} (BT){% endif %}
               {% if vb.DonViNgoaiID %}{{ vb.DonViNgoaiID.TenDonVi }} (BN){% endif %}
@@ -665,27 +671,28 @@
 
 <!-- Popup Phát hành văn bản đi -->
 <div id="popupPhatHanh" class="vbd-popup-overlay">
-  <div class="vbd-popup" style="width: 550px; max-width: 95%;">
+  <div class="vbd-popup" style="width: 650px; max-width: 95%;">
     <div class="vbd-popup-header">
       <span>Phát hành văn bản đi</span>
       <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupPhatHanh')"></i>
     </div>
     <div class="vbd-popup-body" style="padding: 25px 30px;">
       <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
-        <label style="width: 130px; font-weight: 500; flex-shrink: 0;">Trích yếu</label>
+        <label style="width: 150px; font-weight: 500; flex-shrink: 0;">Trích yếu (<span style="color:red">*</span>)</label>
         <input type="text" id="ph_trichyeu" class="form-control" style="flex: 1;" placeholder="Nhập trích yếu">
       </div>
       <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
-        <label style="width: 130px; font-weight: 500; flex-shrink: 0;">Phòng ban nhận</label>
+        <label style="width: 150px; font-weight: 500; flex-shrink: 0;">Phòng ban nhận (<span style="color:red">*</span>)</label>
         <select id="ph_phongban" class="form-control" style="flex: 1;">
           <option value="">--- Chọn phòng ban ---</option>
+          <option value="all">Tất cả</option>
           {% for dv in don_vi_trong_list %}
           <option value="{{ dv.DonViTrongID }}">{{ dv.TenDonVi }}</option>
           {% endfor %}
         </select>
       </div>
       <div style="display: flex; align-items: center; gap: 20px;">
-        <label style="width: 130px; font-weight: 500; flex-shrink: 0;">Ngày ban hành</label>
+        <label style="width: 150px; font-weight: 500; flex-shrink: 0;">Ngày ban hành (<span style="color:red">*</span>)</label>
         <input type="date" id="ph_ngay" class="form-control" style="flex: 1;">
       </div>
     </div>

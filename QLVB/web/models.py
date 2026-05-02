@@ -62,6 +62,12 @@ class UserAccount(AbstractUser):
         return self.is_giam_doc() or self.is_it_head()
 
     def can_perform_action(self, action, obj=None):
+        # Kiểm tra cực kỳ nghiêm ngặt: Chỉ người phụ trách (UserID) mới có quyền duyệt/phát hành văn bản đi cụ thể.
+        # Kể cả Giám đốc cũng không được duyệt thay nếu văn bản đã giao cho người khác (trừ khi Giám đốc tự giao cho mình).
+        if obj and hasattr(obj, 'VanBanDiID') and action in ['phe_duyet', 'phat_hanh']:
+            if hasattr(obj, 'UserID') and obj.UserID != self:
+                return False
+
         if self.is_giam_doc():
             return True
         
@@ -115,15 +121,10 @@ class UserAccount(AbstractUser):
             
             # 2. Kiểm tra trên đối tượng Văn bản đi cụ thể
             if obj and hasattr(obj, 'VanBanDiID'):
-                # Quy tắc: Không được tự phê duyệt văn bản mình tạo (NguoiGui)
-                # NGOẠI LỆ: Trưởng phòng vẫn được tự duyệt nếu họ chính là người được giao xử lý (UserID)
+                # Quy tắc: Không được tự phê duyệt văn bản mình tạo (NguoiGui) trừ khi mình chính là người được giao (UserID)
                 if hasattr(obj, 'NguoiGui') and obj.NguoiGui == self:
-                    if self.is_department_head() and hasattr(obj, 'UserID') and obj.UserID == self:
+                    if hasattr(obj, 'UserID') and obj.UserID == self:
                         return True
-                    return False
-                
-                # CHỈ "Người xử lý" (UserID) mới có quyền phê duyệt/phát hành văn bản này
-                if hasattr(obj, 'UserID') and obj.UserID != self:
                     return False
                 
                 return True

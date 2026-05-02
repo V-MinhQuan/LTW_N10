@@ -89,6 +89,9 @@ function renderTable(units, pagination) {
             ? `<button type="button" class="action-btn btn-warning" onclick="window.confirmReactivateById(${unit.id})" title="Khôi phục"><i class="fas fa-rotate-left"></i></button>`
             : '';
 
+        const activeLabel = currentType === 'trong' ? 'Đang hoạt động' : 'Đang hợp tác';
+        const inactiveLabel = currentType === 'trong' ? 'Ngừng hoạt động' : 'Ngừng hợp tác';
+
         tr.innerHTML = `
             <td class="col-stt">${stt}</td>
             <td style="text-align: left;"><a href="javascript:void(0)" class="text-blue" onclick="window.viewUnitById(${unit.id})">${unit.name}</a></td>
@@ -97,7 +100,7 @@ function renderTable(units, pagination) {
             <td class="text-left">${unit.email || ''}</td>
             <td class="text-left">${unit.contact || ''}</td>
             <td class="col-status">
-                <span class="status-pill ${isInactive ? 'pill-gray' : 'pill-green'}">${isInactive ? 'Ngừng hợp tác' : 'Đang hợp tác'}</span>
+                <span class="status-pill ${isInactive ? 'pill-gray' : 'pill-green'}">${isInactive ? inactiveLabel : activeLabel}</span>
             </td>
             <td class="col-actions">
                 ${viewBtn}
@@ -188,9 +191,13 @@ window.handleDeactivateFromModal = function() {
 window.confirmDeactivateById = function(id) {
     console.log('Action: confirmDeactivateById', id);
     if (window.App && window.App.confirm) {
+        const title = currentType === 'trong' ? "Xác nhận ngừng hoạt động" : "Xác nhận ngừng hợp tác";
+        const message = currentType === 'trong' 
+            ? "Bạn có chắc muốn ngừng hoạt động đơn vị này? Dữ liệu vẫn được giữ lại."
+            : "Bạn có chắc muốn ngừng hợp tác với đơn vị này? Dữ liệu vẫn được giữ lại.";
         window.App.confirm({
-            title: "Xác nhận ngừng hợp tác",
-            message: "Bạn có chắc muốn ngừng hợp tác với đơn vị này? Dữ liệu vẫn được giữ lại.",
+            title: title,
+            message: message,
             type: "danger", icon: "fa-ban",
             onConfirm: () => {
                 updateUnitStatus(id, 'deactivate');
@@ -228,7 +235,16 @@ function updateUnitStatus(id, action) {
     .then(r => r.json()).then(data => {
         if (data.status === 'success') {
             window.App.showSuccess(data.message, () => window.loadUnits(currentPage));
+        } else {
+            if (window.App && window.App.showAlert) {
+                window.App.showAlert(data.message);
+            } else {
+                alert(data.message);
+            }
         }
+    }).catch(err => {
+        console.error(err);
+        if (window.App && window.App.showAlert) window.App.showAlert("Có lỗi xảy ra, vui lòng thử lại sau.");
     });
 }
 
@@ -294,7 +310,16 @@ window.saveUnit = function() {
     }).then(r => r.json()).then(data => {
         if (data.status === 'success') {
             window.App.showSuccess(data.message, () => { window.closeUnitModal(); window.loadUnits(currentPage); });
+        } else {
+            if (window.App && window.App.showAlert) {
+                window.App.showAlert(data.message);
+            } else {
+                alert(data.message);
+            }
         }
+    }).catch(err => {
+        console.error(err);
+        if (window.App && window.App.showAlert) window.App.showAlert("Có lỗi xảy ra, vui lòng thử lại sau.");
     });
 }
 

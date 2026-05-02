@@ -654,7 +654,7 @@ def api_vbdi_chi_tiet(request, pk):
             'loai_vb': vb.LoaiVanBan or '',
             'don_vi_ngoai': vb.DonViNgoaiID.TenDonVi if vb.DonViNgoaiID else '',
             'don_vi_ngoai_id': vb.DonViNgoaiID_id if vb.DonViNgoaiID else '',
-            'don_vi_trong': vb.DonViTrongID.TenDonVi if vb.DonViTrongID else '',
+            'don_vi_trong': 'Tất cả' if (vb.TrangThai == 'DA_PHAT_HANH' and not vb.DonViTrongID and not vb.DonViNgoaiID) else (vb.DonViTrongID.TenDonVi if vb.DonViTrongID else ''),
             'don_vi_trong_id': vb.DonViTrongID_id if vb.DonViTrongID else '',
             'nguoi_soan': ", ".join(nguoi_xu_ly_list) if nguoi_xu_ly_list else (vb.UserID.HoTen if vb.UserID else ''),
             'nguoi_soan_id': vb.UserID_id if vb.UserID else '',
@@ -886,6 +886,11 @@ def api_vbdi_phe_duyet(request, pk):
         return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
     try:
         vb = get_object_or_404(VanBanDi, pk=pk)
+        if request.user != vb.UserID:
+            return JsonResponse({'status': 'error', 'message': 'Chỉ người phụ trách xử lý mới có quyền phê duyệt văn bản này.'}, status=403)
+        if vb.TrangThai != VanBanDi.TrangThaiChoices.CHO_PHE_DUYET:
+            return JsonResponse({'status': 'error', 'message': 'Văn bản không ở trạng thái chờ phê duyệt.'}, status=400)
+            
         data = json.loads(request.body)
         cu = vb.TrangThai
         chap_nhan = data.get('chap_nhan', True)
@@ -916,6 +921,11 @@ def api_vbdi_phat_hanh(request, pk):
         return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
     try:
         vb = get_object_or_404(VanBanDi, pk=pk)
+        if request.user != vb.UserID:
+            return JsonResponse({'status': 'error', 'message': 'Chỉ người phụ trách xử lý mới có quyền phát hành văn bản này.'}, status=403)
+        if vb.TrangThai != VanBanDi.TrangThaiChoices.DA_PHE_DUYET:
+            return JsonResponse({'status': 'error', 'message': 'Văn bản chưa được phê duyệt.'}, status=400)
+            
         data = json.loads(request.body)
         cu = vb.TrangThai
         
@@ -939,7 +949,13 @@ def api_vbdi_phat_hanh(request, pk):
         ph.save()
         
         don_vi_trong_id = data.get('don_vi_trong_id')
-        if don_vi_trong_id:
+        
+        if not don_vi_trong_id:
+            return JsonResponse({'status': 'error', 'message': 'Vui lòng chọn Phòng ban nhận.'}, status=400)
+            
+        if don_vi_trong_id == 'all':
+            vb.DonViTrongID = None
+        else:
             try:
                 don_vi = DonViBenTrong.objects.get(pk=don_vi_trong_id)
                 vb.DonViTrongID = don_vi
@@ -1037,18 +1053,25 @@ def quan_ly_nguoi_dung_index(request):
 
 @login_required
 def thong_tin_view(request):
+    user = request.user
+    can_edit_all = user.is_giam_doc() or user.is_it_head()
+    
     if request.method == 'POST':
         action = request.POST.get('action')
 
         if action == 'update_profile':
-            request.user.HoTen = request.POST.get('HoTen')
-            ngay_sinh = request.POST.get('NgaySinh')
-            if ngay_sinh:
-                request.user.NgaySinh = ngay_sinh
-            request.user.GioiTinh = request.POST.get('GioiTinh')
-            request.user.email = request.POST.get('email')
-            request.user.SoDienThoai = request.POST.get('SoDienThoai')
-            request.user.save()
+            # Nếu là Giám đốc hoặc TP IT thì mới cho sửa các thông tin cơ bản
+            if can_edit_all:
+                user.HoTen = request.POST.get('HoTen')
+                ngay_sinh = request.POST.get('NgaySinh')
+                if ngay_sinh:
+                    user.NgaySinh = ngay_sinh
+                user.GioiTinh = request.POST.get('GioiTinh')
+            
+            # Email và Số điện thoại thì ai cũng được sửa (hoặc theo yêu cầu: Nhân viên được sửa 2 cái này)
+            user.email = request.POST.get('email')
+            user.SoDienThoai = request.POST.get('SoDienThoai')
+            user.save()
             messages.success(request, "Cập nhật thông tin thành công!")
             return redirect('thong_tin')
 
@@ -1079,7 +1102,7 @@ def thong_tin_view(request):
             messages.success(request, "Đổi mật khẩu thành công!")
             return redirect('thong_tin')
 
-    return render(request, 'quan_ly_nguoi_dung/thong_tin.html')
+    return render(request, 'quan_ly_nguoi_dung/thong_tin.html', {'can_edit_all': can_edit_all})
 
 
 
@@ -1185,9 +1208,17 @@ def api_upsert_user(request):
             user.PhongBan = data.get('dept')
             if data.get('role_id'):
                 user.VaiTroID = get_object_or_404(VaiTro, pk=data.get('role_id'))
-            user.trang_thai = data.get('status', 'ACTIVE')
+            new_status = data.get('status', 'ACTIVE')
+            if new_status == 'INACTIVE' and user_id:
+                from .models import PhanCong
+                is_processing = PhanCong.objects.filter(UserID=user).exclude(TrangThaiXuLy='Hoàn thành').exists()
+                if is_processing:
+                    return JsonResponse({'status': 'error', 'message': 'Người dùng đang xử lý văn bản, không thể vô hiệu hóa'}, status=400)
+            
+            user.trang_thai = new_status
             user.save()
-            return JsonResponse({'status': 'success'})
+            msg = "Cập nhật người dùng thành công!" if user_id else "Thêm người dùng mới thành công!"
+            return JsonResponse({'status': 'success', 'message': msg})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
@@ -1195,15 +1226,25 @@ def api_upsert_user(request):
 @login_required
 @permission_required('quan_ly_nguoi_dung')
 def api_nguoi_dung_update_status(request):
-
     try:
         data = json.loads(request.body)
-        u = get_object_or_404(UserAccount, pk=data.get('id'))
-        u.trang_thai = data.get('status')
+        user_id = data.get('id')
+        new_status = data.get('status')
+        u = get_object_or_404(UserAccount, pk=user_id)
+        
+        if new_status == 'INACTIVE':
+            from .models import PhanCong
+            # Kiểm tra xem người dùng có đang xử lý văn bản nào không
+            is_processing = PhanCong.objects.filter(UserID=u).exclude(TrangThaiXuLy='Hoàn thành').exists()
+            if is_processing:
+                return JsonResponse({'status': 'error', 'message': 'Người dùng đang xử lý văn bản, không thể vô hiệu hóa'}, status=400)
+        
+        u.trang_thai = new_status
         u.save()
-        return JsonResponse({'status': 'success'})
+        msg = "Vô hiệu hóa người dùng thành công!" if new_status == 'INACTIVE' else "Kích hoạt lại người dùng thành công!"
+        return JsonResponse({'status': 'success', 'message': msg})
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
 def api_vai_tro_list(request):
@@ -1420,6 +1461,13 @@ def api_delete_don_vi(request):
 
             if unit_type == 'ngoai':
                 unit = get_object_or_404(DonViBenNgoai, DonViNgoaiID=unit_id)
+                if action in ['deactivate', 'delete']:
+                    # Check if processing
+                    is_processing = VanBanDen.objects.filter(DonViNgoaiID=unit, TrangThai__in=['MOI', 'DANG_XU_LY']).exists() or \
+                                    VanBanDi.objects.filter(DonViNgoaiID=unit, TrangThai__in=['DU_THAO', 'CHO_PHE_DUYET', 'DA_PHE_DUYET']).exists()
+                    if is_processing:
+                        return JsonResponse({'status': 'error', 'message': 'Đơn vị bên ngoài đang xử lý công việc, không thể vô hiệu hóa'}, status=400)
+                        
                 if action == 'deactivate':
                     unit.trang_thai = 'INACTIVE'
                     unit.save()
@@ -1433,14 +1481,21 @@ def api_delete_don_vi(request):
                     return JsonResponse({'status': 'success', 'message': 'Xóa thành công!'})
             else:
                 unit = get_object_or_404(DonViBenTrong, DonViTrongID=unit_id)
+                if action in ['deactivate', 'delete']:
+                    # Check if processing
+                    is_processing = VanBanDen.objects.filter(DonViTrongID=unit, TrangThai__in=['MOI', 'DANG_XU_LY']).exists() or \
+                                    VanBanDi.objects.filter(DonViTrongID=unit, TrangThai__in=['DU_THAO', 'CHO_PHE_DUYET', 'DA_PHE_DUYET']).exists()
+                    if is_processing:
+                        return JsonResponse({'status': 'error', 'message': 'Đơn vị bên trong đang xử lý công việc, không thể vô hiệu hóa'}, status=400)
+                        
                 if action == 'deactivate':
                     unit.trang_thai = 'INACTIVE'
                     unit.save()
-                    return JsonResponse({'status': 'success', 'message': 'Đã chuyển sang ngừng hợp tác!'})
+                    return JsonResponse({'status': 'success', 'message': 'Đã chuyển sang ngừng hoạt động!'})
                 elif action == 'reactivate':
                     unit.trang_thai = 'ACTIVE'
                     unit.save()
-                    return JsonResponse({'status': 'success', 'message': 'Đã kích hoạt lại thành công!'})
+                    return JsonResponse({'status': 'success', 'message': 'Đã kích hoạt hoạt động trở lại!'})
                 else:
                     unit.delete()
                     return JsonResponse({'status': 'success', 'message': 'Xóa thành công!'})
@@ -1513,17 +1568,20 @@ def xu_ly_van_ban_index(request):
         # 2. Hoặc mình là người soạn/gửi (NguoiGui)
         # 3. Hoặc mình là người được giao xử lý/phân công cụ thể
         di_tasks = di_qs.filter(
-            Q(DonViTrongID__TenDonVi=user.PhongBan, TrangThai__in=[VanBanDi.TrangThaiChoices.DA_PHE_DUYET, VanBanDi.TrangThaiChoices.DA_PHAT_HANH]) |
-            Q(NguoiGui=user) |
+            Q(DonViTrongID__isnull=True) |
+            Q(DonViTrongID__TenDonVi=user.PhongBan) |
             Q(UserID=user) |
             Q(phancong__UserID=user)
-        ).distinct()
+        ).filter(TrangThai=VanBanDi.TrangThaiChoices.DA_PHAT_HANH).distinct()
         
         # Loại bỏ nếu người dùng chính là người đã thực hiện thao tác "Phát hành"
         # để danh sách "Xử lý" của họ không bị dồn ứ sau khi đã xong việc
         if not (is_tgd(user) or is_tp_it(user)):
             from .models import PhatHanh
-            published_ids = PhatHanh.objects.filter(UserID=user).values_list('VanBanDiID_id', flat=True)
+            published_ids = PhatHanh.objects.filter(
+                UserID=user,
+                VanBanDiID__DonViTrongID__isnull=False
+            ).values_list('VanBanDiID_id', flat=True)
             di_tasks = di_tasks.exclude(VanBanDiID__in=published_ids)
 
         for doc in di_tasks.prefetch_related('phancong_set', 'chuyentiep_set'):
