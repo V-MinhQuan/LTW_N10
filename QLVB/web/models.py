@@ -194,6 +194,7 @@ class VanBanDen(models.Model):
         MOI = 'MOI', 'Mới'
         HOAN_THANH = 'HOAN_THANH', 'Hoàn thành'
         DANG_XU_LY = 'DANG_XU_LY', 'Đang xử lý'
+        CAN_XU_LY_LAI = 'CAN_XU_LY_LAI', 'Cần xử lý lại'
 
     VanBanDenID = models.AutoField(primary_key=True)
     DonViNgoaiID = models.ForeignKey(DonViBenNgoai, on_delete=models.CASCADE, null=True, blank=True)
@@ -221,6 +222,8 @@ class VanBanDi(models.Model):
         CHO_PHE_DUYET = 'CHO_PHE_DUYET', 'Chờ phê duyệt'
         DA_PHE_DUYET = 'DA_PHE_DUYET', 'Đã phê duyệt'
         DA_PHAT_HANH = 'DA_PHAT_HANH', 'Đã phát hành'
+        CAN_SUA_DOI = 'CAN_SUA_DOI', 'Cần sửa đổi'
+        CAN_XU_LY_LAI = 'CAN_XU_LY_LAI', 'Cần xử lý lại'
 
     VanBanDiID = models.AutoField(primary_key=True)
     DonViTrongID = models.ForeignKey(DonViBenTrong, on_delete=models.CASCADE, null=True, blank=True)
@@ -287,18 +290,31 @@ class LichSuHoatDong(models.Model):
         verbose_name_plural = "Lịch sử hoạt động"
 
 class BaoCao(models.Model):
-    class LoaiBaoCaoChoices(models.TextChoices):
-        TUAN = 'TUAN', 'Báo cáo tuần'
-        THANG = 'THANG', 'Báo cáo tháng'
-        PHAN_HOI = 'PHAN_HOI', 'Phản hồi'
+    class TrangThaiChoices(models.TextChoices):
+        CHUA_XEM = 'CHUA_XEM', 'Chưa xem'
+        DANG_XU_LY = 'DANG_XU_LY', 'Đang xử lý'
+        DA_GIAI_QUYET = 'DA_GIAI_QUYET', 'Đã giải quyết'
+
+    class HuongXuLyChoices(models.TextChoices):
+        SUA = 'SUA', 'Sửa văn bản'
+        CHUYEN = 'CHUYEN', 'Chuyển người xử lý'
+        TU_CHOI = 'TU_CHOI', 'Từ chối báo cáo'
 
     PhanHoiID = models.AutoField(primary_key=True)
     VanBanDiID = models.ForeignKey(VanBanDi, on_delete=models.CASCADE, null=True, blank=True)
     VanBanDenID = models.ForeignKey(VanBanDen, on_delete=models.CASCADE, null=True, blank=True)
-    UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE)
-    NgayBaoCao = models.DateTimeField(null=True, blank=True)
-    LoaiBaoCao = models.CharField(max_length=50, choices=LoaiBaoCaoChoices.choices, null=True, blank=True)
+    UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE, related_name='baocao_gui_set')
+    RecipientID = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, null=True, blank=True, related_name='baocao_nhan_set')
+    NgayBaoCao = models.DateTimeField(auto_now_add=True)
+    LoaiBaoCao = models.CharField(max_length=50, null=True, blank=True)
     GhiChu = models.CharField(max_length=255, null=True, blank=True)
+    
+    # Các trường xử lý
+    TrangThai = models.CharField(max_length=50, choices=TrangThaiChoices.choices, default=TrangThaiChoices.CHUA_XEM)
+    HuongXuLy = models.CharField(max_length=50, choices=HuongXuLyChoices.choices, null=True, blank=True)
+    NoiDungXuLy = models.TextField(null=True, blank=True)
+    TrangThaiVBCu = models.CharField(max_length=50, null=True, blank=True)
+    ResolvedAt = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name_plural = "Báo cáo / Phản hồi"

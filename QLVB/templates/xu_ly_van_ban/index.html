@@ -20,17 +20,16 @@
             <div class="search-grid">
                 <input type="text" name="so_ky_hieu" class="form-control" placeholder="Nhập số ký hiệu"
                     value="{{ query_so_ky_hieu|default:'' }}">
-                <input type="text" name="nguoi_xu_ly" id="search-nguoiXuLy" class="form-control" 
+                <input type="text" name="nguoi_xu_ly" id="search-nguoiXuLy" class="form-control"
                     placeholder="Nhập tên người xử lý..." list="nguoiXuLyList"
                     value="{{ query_nguoi_xu_ly|default:'' }}" autocomplete="off">
                 <datalist id="nguoiXuLyList">
                     {% for u in danh_sach_nguoi_dung %}
-                        <option value="{{ u.HoTen }}">
-                    {% endfor %}
+                    <option value="{{ u.HoTen }}">
+                        {% endfor %}
                 </datalist>
-                <input type="date" name="han_xu_ly" class="form-control"
-                        value="{{ query_han_xu_ly|default:'' }}"
-                        style="cursor: pointer;">
+                <input type="date" name="han_xu_ly" class="form-control" value="{{ query_han_xu_ly|default:'' }}"
+                    style="cursor: pointer;">
                 <select name="loai_xu_ly" class="form-control">
                     <option value="" {% if query_loai_xu_ly == '' %}selected{% endif %}>Tất cả văn bản</option>
                     <option value="den" {% if query_loai_xu_ly == 'den' %}selected{% endif %}>Văn bản đến</option>
@@ -40,7 +39,39 @@
             <div class="btn-group">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Tìm kiếm</button>
                 <a href="{% url 'xlvb_index' %}" class="btn btn-secondary"><i class="fas fa-sync-alt"></i> Làm mới</a>
+                <button type="button" class="btn btn-warning" onclick="openModalListReports()"
+                    style="position: relative; display: flex; align-items: center; gap: 8px;">
+                    <div style="position: relative; display: inline-flex;">
+                        <i class="fas fa-bell"></i>
+                        {% if report_count > 0 %}
+                        <span class="report-badge-bell">{{ report_count }}</span>
+                        {% endif %}
+                    </div>
+                    <span>Xử lý báo cáo</span>
+                </button>
             </div>
+
+            <style>
+                .report-badge-bell {
+                    position: absolute;
+                    top: -6px;
+                    right: -6px;
+                    background: #ff3b30;
+                    color: white;
+                    font-size: 9px;
+                    font-weight: bold;
+                    min-width: 10px;
+                    height: 15px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border: 1px solid #ffc107;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+                    padding: 0;
+                    z-index: 10;
+                }
+            </style>
         </form>
     </div>
 </div>
@@ -148,6 +179,9 @@
                             {% endwith %}
                         </td>
                         <td class="col-status">
+                            {% if doc.TrangThai == 'CAN_XU_LY_LAI' %}
+                            <span class="status-badge" style="background: #ff9800; color: white;">Cần xử lý lại</span>
+                            {% else %}
                             {% with phan_cong=doc.phancong_set.first %}
                             {% if phan_cong %}
                             {% if phan_cong.TrangThaiXuLy == 'Hoàn thành' %}
@@ -161,21 +195,22 @@
                             <span class="status-badge status-pending">Chưa phân công</span>
                             {% endif %}
                             {% endwith %}
+                            {% endif %}
                         </td>
                         <td class="mo-ta-cell">
                             {% with phan_cong=doc.phancong_set.first %}
-                                {% if phan_cong %}
-                                    <!-- Hiển thị Chuyển tới -->
-                                    {% with ct=doc.chuyentiep_set.last %}
-                                        Chuyển tới: {% if ct %}{{ ct.UserID.HoTen }}{% elif doc.UserID and doc.UserID != phan_cong.UserID %}{{ doc.UserID.HoTen }}{% else %}Ban Giám đốc{% endif %}<br>
-                                    {% endwith %}
+                            {% if phan_cong %}
+                            <!-- Hiển thị Chuyển tới -->
+                            {% with ct=doc.chuyentiep_set.last %}
+                            Chuyển tới: {% if ct %}{{ ct.UserID.HoTen }}{% elif doc.UserID and doc.UserID != phan_cong.UserID %}{{ doc.UserID.HoTen }}{% else %}Ban Giám đốc{% endif %}<br>
+                            {% endwith %}
 
-                                    <!-- Hiển thị Tag màu (SỬ DỤNG BIẾN doc.last_action_tag) -->
-                                    Thao tác: <span class="mo-ta-action {{ doc.last_action_tag }}">{{ doc.last_action_name }}</span>
-                                {% else %}
-                                    Chuyển tới: —<br>
-                                    Thao tác: <span class="mo-ta-action tag-phan-cong">Phân công</span>
-                                {% endif %}
+                            <!-- Hiển thị Tag màu (SỬ DỤNG BIẾN doc.last_action_tag) -->
+                            Thao tác: <span class="mo-ta-action {{ doc.last_action_tag }}">{{ doc.last_action_name }}</span>
+                            {% else %}
+                            Chuyển tới: —<br>
+                            Thao tác: <span class="mo-ta-action tag-phan-cong">Phân công</span>
+                            {% endif %}
                             {% endwith %}
                         </td>
                         <td class="col-actions">
@@ -218,26 +253,26 @@
         </div>
         <div class="table-footer">
             <div>Hiển thị {{ page_obj.start_index }} - {{ page_obj.end_index }} / Tổng số: {{ page_obj.paginator.count }}</div>
-           <div class="pagination">
+            <div class="pagination">
                 {% if page_obj.paginator.num_pages > 1 %}
-                    <!-- Nút về trang đầu -->
-                    <a href="?page=1&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&han_xu_ly={{ query_han_xu_ly }}&loai_xu_ly={{ query_loai_xu_ly }}"
-                        class="page-btn">Đầu</a>
+                <!-- Nút về trang đầu -->
+                <a href="?page=1&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&han_xu_ly={{ query_han_xu_ly }}&loai_xu_ly={{ query_loai_xu_ly }}"
+                    class="page-btn">Đầu</a>
 
-                    <!-- Nút về trang trước -->
-                    {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&han_xu_ly={{ query_han_xu_ly }}&loai_xu_ly={{ query_loai_xu_ly }}"
-                        class="page-btn">Trước</a>
+                <!-- Nút về trang trước -->
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&han_xu_ly={{ query_han_xu_ly }}&loai_xu_ly={{ query_loai_xu_ly }}"
+                    class="page-btn">Trước</a>
+                {% endif %}
+
+                <!-- Các con số trang -->
+                {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <button type="button" class="page-btn active">{{ num }}</button>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <a
+                    href="?page={{ num }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&han_xu_ly={{ query_han_xu_ly }}&loai_xu_ly={{ query_loai_xu_ly }}"
+                    class="page-btn">{{ num }}</a>
                     {% endif %}
-
-                    <!-- Các con số trang -->
-                    {% for num in page_obj.paginator.page_range %}
-                        {% if page_obj.number == num %}
-                            <button type="button" class="page-btn active">{{ num }}</button>
-                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                            <a href="?page={{ num }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&han_xu_ly={{ query_han_xu_ly }}&loai_xu_ly={{ query_loai_xu_ly }}"
-                            class="page-btn">{{ num }}</a>
-                        {% endif %}
                     {% endfor %}
 
                     <!-- Nút sang trang sau -->
@@ -249,7 +284,7 @@
                     <!-- Nút đến trang cuối -->
                     <a href="?page={{ page_obj.paginator.num_pages }}&so_ky_hieu={{ query_so_ky_hieu }}&nguoi_xu_ly={{ query_nguoi_xu_ly }}&han_xu_ly={{ query_han_xu_ly }}&loai_xu_ly={{ query_loai_xu_ly }}"
                         class="page-btn">Cuối</a>
-                {% endif %}
+                    {% endif %}
             </div>
         </div>
 
@@ -392,7 +427,15 @@
                 <label style="width: 150px;">Số ký hiệu</label>
                 <input type="text" class="form-control" id="rep-soKyHieu" readonly style="background:#f0f0f0;">
             </div>
-            <div class="form-group"></div>
+            <div class="form-group">
+                <label style="width: 150px;">Người nhận (<span class="required">*</span>)</label>
+                <select class="form-control" id="rep-nguoiNhan">
+                    <option value="">--- Chọn người nhận ---</option>
+                    {% for u in danh_sach_nguoi_dung %}
+                    <option value="{{ u.UserID }}">{{ u.HoTen }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
         <div class="form-group-row" style="margin-bottom: 0;">
             <div class="form-group">
@@ -534,6 +577,79 @@
     <div class="modal-footer">
         <button onclick="closeModal('modalPhanCong')" class="btn btn-secondary">Hủy</button>
         <button onclick="saveAndClose('modalPhanCong')" class="btn btn-primary">Phân công</button>
+    </div>
+</div>
+
+<!-- Modal Danh sách báo cáo -->
+<div id="modalDanhSachBaoCao" class="modal-container" style="max-width: 1000px;">
+    <div class="modal-header">
+        Danh sách văn bản bị báo cáo lỗi
+        <span class="close-btn" onclick="closeModal('modalDanhSachBaoCao')">&times;</span>
+    </div>
+    <div class="modal-content">
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Người báo cáo</th>
+                        <th>Văn bản</th>
+                        <th>Loại vấn đề</th>
+                        <th>Thời gian</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="report-list-body">
+                    <!-- Data loaded via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thực hiện Xử lý Báo cáo -->
+<div id="modalThucHienXuLyBaoCao" class="modal-container">
+    <div class="modal-header">
+        Xử lý phản hồi báo cáo
+        <span class="close-btn" onclick="closeModal('modalThucHienXuLyBaoCao')">&times;</span>
+    </div>
+    <div class="modal-content">
+        <div class="report-info-box"
+            style="background: #f9f9f9; padding: 10px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #ff9800;">
+            <p><strong>Văn bản:</strong> <span id="xl-soKyHieu"></span></p>
+            <p><strong>Nội dung báo cáo:</strong> <span id="xl-ghiChu"></span></p>
+        </div>
+
+        <div class="form-group">
+            <label>Hướng xử lý (<span class="required">*</span>)</label>
+            <select class="form-control" id="xl-huongXuLy" onchange="toggleRecipientSelect()">
+                <option value="SUA">Chấp nhận & Yêu cầu sửa đổi</option>
+                <option value="CHUYEN">Chuyển cho người khác xử lý</option>
+                <option value="TU_CHOI">Từ chối (Báo cáo sai/Không hợp lệ)</option>
+            </select>
+        </div>
+
+        <div id="div-new-recipient" class="form-group" style="display: none; margin-top: 10px;">
+            <label>Chọn người nhận mới (<span class="required">*</span>)</label>
+            <select class="form-control" id="xl-newRecipient">
+                <option value="">--- Chọn người nhận ---</option>
+                {% for u in danh_sach_nguoi_dung %}
+                <option value="{{ u.UserID }}">{{ u.HoTen }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group" style="margin-top: 10px;">
+            <label>Nội dung phản hồi xử lý (<span class="required">*</span>)</label>
+            <textarea class="form-control" id="xl-noiDungXuLy" style="height: 100px;"
+                placeholder="Nhập kết quả xử lý hoặc lý do từ chối..."></textarea>
+        </div>
+
+        <input type="hidden" id="xl-reportId">
+    </div>
+    <div class="modal-footer">
+        <button onclick="closeModal('modalThucHienXuLyBaoCao')" class="btn btn-secondary">Hủy</button>
+        <button onclick="rejectReport()" class="btn btn-danger">Từ chối xử lý</button>
+        <button onclick="confirmXuLyBaoCao()" class="btn btn-primary">Xác nhận xử lý</button>
     </div>
 </div>
 {% endblock %}

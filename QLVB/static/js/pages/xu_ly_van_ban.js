@@ -252,10 +252,11 @@ async function saveAndClose(modalId) {
         const loaiVanDe = document.getElementById('rep-loaiVanDe').value;
         const moTa = document.getElementById('rep-moTa').value;
         const docType = document.getElementById('rep-docType').value;
+        const recipientId = document.getElementById('rep-nguoiNhan').value;
         const fileInput = document.getElementById('rep-file');
 
-        if (!loaiVanDe || !moTa) {
-            alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
+        if (!loaiVanDe || !moTa || !recipientId) {
+            alert('Vui lòng nhập đầy đủ thông tin bắt buộc (Loại vấn đề, Mô tả, Người nhận)!');
             return;
         }
 
@@ -263,6 +264,7 @@ async function saveAndClose(modalId) {
         formData.append('loai_van_de', loaiVanDe);
         formData.append('mo_ta', moTa);
         formData.append('doc_type', docType);
+        formData.append('recipient_id', recipientId);
         if (fileInput && fileInput.files && fileInput.files.length > 0) {
             formData.append('tep_dinh_kem', fileInput.files[0]);
         }
@@ -388,3 +390,100 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// --- Logic xử lý báo cáo mới ---
+
+async function openModalListReports() {
+    try {
+        const response = await fetch('/api/xu-ly-van-ban/danh-sach-bao-cao/');
+        const result = await response.json();
+        if (result.status === 'success') {
+            const body = document.getElementById('report-list-body');
+            body.innerHTML = '';
+            if (result.data.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" class="text-center">Không có báo cáo nào cần xử lý.</td></tr>';
+            } else {
+                result.data.forEach(r => {
+                    const row = `
+                        <tr>
+                            <td>${r.nguoi_bao_cao}</td>
+                            <td><b>${r.so_ky_hieu}</b><br><small>${r.trich_yeu}</small></td>
+                            <td>${r.loai_bao_cao}</td>
+                            <td>${r.ngay_bao_cao}</td>
+                            <td>
+                                <button class="btn btn-primary btn-sm" onclick='openModalHandlingReport(${JSON.stringify(r)})'>
+                                    Xử lý
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    body.insertAdjacentHTML('beforeend', row);
+                });
+            }
+            openModal('modalDanhSachBaoCao');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Không thể tải danh sách báo cáo!');
+    }
+}
+
+function openModalHandlingReport(r) {
+    // Đóng modal danh sách trước
+    closeModal('modalDanhSachBaoCao');
+    
+    document.getElementById('xl-reportId').value = r.id;
+    document.getElementById('xl-soKyHieu').innerText = r.so_ky_hieu;
+    document.getElementById('xl-ghiChu').innerText = r.ghi_chu;
+    document.getElementById('xl-noiDungXuLy').value = '';
+    document.getElementById('xl-huongXuLy').value = 'SUA';
+    toggleRecipientSelect();
+    
+    openModal('modalThucHienXuLyBaoCao');
+}
+
+function toggleRecipientSelect() {
+    const action = document.getElementById('xl-huongXuLy').value;
+    const div = document.getElementById('div-new-recipient');
+    if (action === 'CHUYEN') {
+        div.style.display = 'block';
+    } else {
+        div.style.display = 'none';
+    }
+}
+
+async function confirmXuLyBaoCao() {
+    const reportId = document.getElementById('xl-reportId').value;
+    const action = document.getElementById('xl-huongXuLy').value;
+    const noiDung = document.getElementById('xl-noiDungXuLy').value;
+    const newRecipientId = document.getElementById('xl-newRecipient').value;
+    
+    if (!noiDung) {
+        alert('Vui lòng nhập nội dung phản hồi xử lý!');
+        return;
+    }
+    
+    if (action === 'CHUYEN' && !newRecipientId) {
+        alert('Vui lòng chọn người nhận mới để chuyển tiếp báo cáo!');
+        return;
+    }
+    
+    const data = {
+        report_id: reportId,
+        action: action,
+        noi_dung: noiDung,
+        new_recipient_id: newRecipientId
+    };
+    
+    await postJson('/api/xu-ly-van-ban/thuc-hien-xu-ly-bao-cao/', data, 'modalThucHienXuLyBaoCao');
+}
+
+function rejectReport() {
+    const noiDung = document.getElementById('xl-noiDungXuLy').value;
+    if (!noiDung) {
+        alert('Vui lòng nhập lý do từ chối vào ô nội dung phản hồi!');
+        return;
+    }
+    document.getElementById('xl-huongXuLy').value = 'TU_CHOI';
+    confirmXuLyBaoCao();
+}

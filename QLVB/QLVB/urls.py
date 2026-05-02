@@ -73,5 +73,7 @@ urlpatterns = [
     path('api/send-otp/', views.api_send_otp, name='api_send_otp'),
     path('api/reset-password/', views.api_confirm_reset, name='api_confirm_reset'),
     path('api/xu-ly-van-ban/document-details/', views.api_get_document_details, name='api_get_document_details'),
+    path('api/xu-ly-van-ban/danh-sach-bao-cao/', views.api_lay_danh_sach_bao_cao, name='api_lay_danh_sach_bao_cao'),
+    path('api/xu-ly-van-ban/thuc-hien-xu-ly-bao-cao/', views.api_xu_ly_bao_cao_action, name='api_xu_ly_bao_cao_action'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
