@@ -698,14 +698,14 @@
             },
             showSuccess: function (message, onDone) {
                 const overlay = document.getElementById('appPopupOverlay');
+                if (!overlay) return;
                 overlay.style.display = 'flex';
                 overlay.innerHTML = `
                     <div class="app-popup">
                         <i class="fas fa-check-circle app-popup-icon success"></i>
-                        <div class="app-popup-title" style="display:none;">Thành công</div>
-                        <div class="app-popup-message" style="font-size: 20px; font-weight: 700; color: #1e293b;">${message}</div>
-                        <div class="app-popup-buttons" style="margin-top: 20px;">
-                            <button class="app-btn app-btn-blue" id="appSuccessBtn">Xong</button>
+                        <div class="app-popup-message" style="font-size: 20px; font-weight: 700; color: #1e293b; margin-top: 20px;">${message}</div>
+                        <div class="app-popup-buttons" style="margin-top: 25px;">
+                            <button class="app-btn app-btn-blue" id="appSuccessBtn" style="width: 100px; height: 38px;">Xong</button>
                         </div>
                     </div>
                 `;
@@ -728,20 +728,23 @@
                     </div>
                 `;
             },
-            showError: function(message) {
+            showError: function(message, onDone) {
                 const overlay = document.getElementById('appPopupOverlay');
+                if (!overlay) return;
                 overlay.style.display = 'flex';
                 overlay.innerHTML = `
                     <div class="app-popup">
-                        <i class="fas fa-exclamation-circle app-popup-icon danger"></i>
-                        <div class="app-popup-title">Thất bại</div>
-                        <div class="app-popup-message">${message}</div>
-                        <div class="app-popup-buttons">
-                            <button class="app-btn app-btn-blue" id="appErrorBtn">Đóng</button>
+                        <i class="fas fa-exclamation-triangle" style="font-size: 50px; color: #E74C3C; margin-bottom: 15px;"></i>
+                        <div class="app-popup-message" style="font-size: 20px; font-weight: 700; color: #1e293b;">${message}</div>
+                        <div class="app-popup-buttons" style="margin-top: 25px;">
+                            <button class="app-btn" id="appErrorBtn" style="background: #E16666; color: white; width: 100px; height: 38px; border:none; border-radius: 5px; cursor:pointer;">Xong</button>
                         </div>
                     </div>
                 `;
-                document.getElementById('appErrorBtn').onclick = () => App.closePopup();
+                document.getElementById('appErrorBtn').onclick = () => {
+                    App.closePopup();
+                    if (onDone) onDone();
+                };
             },
             closePopup: function() {
                 document.getElementById('appPopupOverlay').style.display = 'none';

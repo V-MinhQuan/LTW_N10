@@ -115,13 +115,15 @@ class UserAccount(AbstractUser):
             
             # 2. Kiểm tra trên đối tượng Văn bản đi cụ thể
             if obj and hasattr(obj, 'VanBanDiID'):
-                # KHÔNG ĐƯỢC tự phê duyệt văn bản mình tạo (NguoiGui)
+                # Quy tắc: Không được tự phê duyệt văn bản mình tạo (NguoiGui)
+                # NGOẠI LỆ: Trưởng phòng vẫn được tự duyệt nếu họ chính là người được giao xử lý (UserID)
                 if hasattr(obj, 'NguoiGui') and obj.NguoiGui == self:
+                    if self.is_department_head() and hasattr(obj, 'UserID') and obj.UserID == self:
+                        return True
                     return False
                 
                 # CHỈ "Người xử lý" (UserID) mới có quyền phê duyệt/phát hành văn bản này
                 if hasattr(obj, 'UserID') and obj.UserID != self:
-                    # Tuy nhiên, Giám đốc (TGD) vẫn có quyền duyệt mọi văn bản (đã check ở đầu hàm)
                     return False
                 
                 return True

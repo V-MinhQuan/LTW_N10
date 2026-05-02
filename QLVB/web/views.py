@@ -979,14 +979,29 @@ def api_vbdi_lich_su(request, pk):
 
 def api_vbdi_goi_y_so_ky_hieu(request):
     try:
-        last_vb = VanBanDi.objects.exclude(SoKyHieu__isnull=True).exclude(SoKyHieu='').order_by('-VanBanDiID').first()
-        next_number = 1
-        if last_vb and last_vb.SoKyHieu:
-            import re
-            match = re.match(r'^(\d+)', last_vb.SoKyHieu)
+        import re
+        
+        # Lấy tất cả số ký hiệu của văn bản đi để tìm số lớn nhất
+        vbs = VanBanDi.objects.exclude(SoKyHieu__isnull=True).exclude(SoKyHieu='')
+        
+        max_num = 0
+        for vb in vbs:
+            # Thử tìm format CV-DI-XX
+            match = re.search(r'CV-DI-(\d+)', vb.SoKyHieu)
             if match:
-                next_number = int(match.group(1)) + 1
-        return JsonResponse({'status': 'success', 'suggested': f'{next_number}/VBD'})
+                num = int(match.group(1))
+                if num > max_num:
+                    max_num = num
+            else:
+                # Thử tìm format X/VBD (số đứng đầu)
+                match_old = re.match(r'^(\d+)', vb.SoKyHieu)
+                if match_old:
+                    num = int(match_old.group(1))
+                    if num > max_num:
+                        max_num = num
+        
+        next_number = max_num + 1
+        return JsonResponse({'status': 'success', 'suggested': f'CV-DI-{next_number}'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 

@@ -7,7 +7,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
-<link rel="stylesheet" href="{% static 'css/pages/xu_ly_van_ban.css' %}?v=12">
+<link rel="stylesheet" href="{% static 'css/pages/xu_ly_van_ban.css' %}?v=13">
 {% endblock %}
 
 {% block content %}
@@ -20,14 +20,14 @@
             <div class="search-grid">
                 <input type="text" name="so_ky_hieu" class="form-control" placeholder="Nhập số ký hiệu"
                     value="{{ query_so_ky_hieu|default:'' }}">
-                <select name="nguoi_xu_ly" class="form-control">
-                    <option value="">--- Chọn người xử lý ---</option>
+                <input type="text" name="nguoi_xu_ly" id="search-nguoiXuLy" class="form-control" 
+                    placeholder="Nhập tên người xử lý..." list="nguoiXuLyList"
+                    value="{{ query_nguoi_xu_ly|default:'' }}" autocomplete="off">
+                <datalist id="nguoiXuLyList">
                     {% for u in danh_sach_nguoi_dung %}
-                        <option value="{{ u.HoTen }}" {% if query_nguoi_xu_ly == u.HoTen %}selected{% endif %}>
-                            {{ u.HoTen }}
-                        </option>
+                        <option value="{{ u.HoTen }}">
                     {% endfor %}
-                </select>
+                </datalist>
                 <input type="date" name="han_xu_ly" class="form-control"
                         value="{{ query_han_xu_ly|default:'' }}"
                         style="cursor: pointer;">
@@ -537,5 +537,5 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-<script src="{% static 'js/pages/xu_ly_van_ban.js' %}?v=6"></script>
+<script src="{% static 'js/pages/xu_ly_van_ban.js' %}?v=7"></script>
 {% endblock %}

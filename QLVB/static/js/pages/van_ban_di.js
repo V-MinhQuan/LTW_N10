@@ -450,9 +450,15 @@ function xacNhanPheDuyet(chap_nhan) {
         chu_ky_so: isEmpty ? '' : chuKy
     };
     apiPost('/api/van-ban-di/' + _pheDuyetId + '/phe-duyet/', data, () => {
-        App.showSuccess('Xử lý phê duyệt thành công', () => {
-            window.location.reload();
-        });
+        if (chap_nhan) {
+            App.showSuccess('Xử lý phê duyệt thành công', () => {
+                window.location.reload();
+            });
+        } else {
+            App.showError('Từ chối phê duyệt thành công', () => {
+                window.location.reload();
+            });
+        }
     });
 }
 
