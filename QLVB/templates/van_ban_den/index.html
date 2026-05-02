@@ -462,18 +462,8 @@
       <div class="search-grid">
         <input type="text" name="so_ky_hieu" class="form-control" placeholder="Số ký hiệu văn bản" value="{{ request.GET.so_ky_hieu }}" />
         <input type="text" name="trich_yeu" class="form-control" placeholder="Trích yếu văn bản" value="{{ request.GET.trich_yeu }}" />
-        <select class="form-control" name="don_vi_ngoai">
-          <option value="">-- Đơn vị gửi --</option>
-          {% for dv in don_vi_ngoai %}
-          <option value="{{ dv.DonViNgoaiID }}" {% if request.GET.don_vi_ngoai == dv.DonViNgoaiID|stringformat:"s" %}selected{% endif %}>{{ dv.TenDonVi }}</option>
-          {% endfor %}
-        </select>
-        <select class="form-control" name="don_vi_trong">
-          <option value="">-- Đơn vị nội bộ nhận --</option>
-          {% for dv in don_vi_trong %}
-          <option value="{{ dv.DonViTrongID }}" {% if request.GET.don_vi_trong == dv.DonViTrongID|stringformat:"s" %}selected{% endif %}>{{ dv.TenDonVi }}</option>
-          {% endfor %}
-        </select>
+        <input type="text" name="don_vi_ngoai" list="don_vi_ngoai_list" class="form-control" placeholder="Đơn vị gửi" value="{{ request.GET.don_vi_ngoai }}">
+        <input type="text" name="don_vi_trong" list="don_vi_trong_list" class="form-control" placeholder="Đơn vị nội bộ nhận" value="{{ request.GET.don_vi_trong }}">
       </div>
       <div class="btn-group">
         <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>
@@ -655,21 +645,11 @@
           </div>
           <div class="vbd-field">
             <label>Đơn vị gửi (<span style="color:red">*</span>)</label>
-            <select name="don_vi_ngoai_id" class="form-control" style="flex:1;" required>
-              <option value="">- Chọn đơn vị gửi -</option>
-              {% for dv in don_vi_ngoai %}
-              <option value="{{ dv.DonViNgoaiID }}">{{ dv.TenDonVi }}</option>
-              {% endfor %}
-            </select>
+            <input type="text" name="don_vi_ngoai_id" list="don_vi_ngoai_list" class="form-control" style="flex:1;" placeholder="Nhập hoặc chọn đơn vị gửi" required>
           </div>
           <div class="vbd-field">
             <label>Đơn vị nội bộ nhận</label>
-            <select name="don_vi_trong_id" class="form-control" style="flex:1;">
-              <option value="">- Chọn đơn vị nội bộ -</option>
-              {% for dv in don_vi_trong %}
-              <option value="{{ dv.DonViTrongID }}">{{ dv.TenDonVi }}</option>
-              {% endfor %}
-            </select>
+            <input type="text" name="don_vi_trong_id" list="don_vi_trong_list" class="form-control" style="flex:1;" placeholder="Nhập hoặc chọn đơn vị nội bộ">
           </div>
         </div>
         <div style="margin-top: 12px;">
@@ -728,20 +708,10 @@
           </select>
 
           <label style="font-size: 14px; font-weight: 500; color: #333;">Đơn vị gửi</label>
-          <select name="don_vi_ngoai" class="form-control">
-            <option value="">--- Tất cả ---</option>
-            {% for dv in don_vi_ngoai %}
-            <option value="{{ dv.DonViNgoaiID }}" {% if request.GET.don_vi_ngoai == dv.DonViNgoaiID|stringformat:"s" %}selected{% endif %}>{{ dv.TenDonVi }}</option>
-            {% endfor %}
-          </select>
+          <input type="text" name="don_vi_ngoai" list="don_vi_ngoai_list" class="form-control" placeholder="Tất cả đơn vị gửi" value="{{ request.GET.don_vi_ngoai }}">
 
           <label style="font-size: 14px; font-weight: 500; color: #333;">Đơn vị nội bộ</label>
-          <select name="don_vi_trong" class="form-control">
-            <option value="">--- Tất cả ---</option>
-            {% for dv in don_vi_trong %}
-            <option value="{{ dv.DonViTrongID }}" {% if request.GET.don_vi_trong == dv.DonViTrongID|stringformat:"s" %}selected{% endif %}>{{ dv.TenDonVi }}</option>
-            {% endfor %}
-          </select>
+          <input type="text" name="don_vi_trong" list="don_vi_trong_list" class="form-control" placeholder="Tất cả đơn vị nội bộ" value="{{ request.GET.don_vi_trong }}">
 
           <label style="font-size: 14px; font-weight: 500; color: #333;">Ngày nhận (Từ)</label>
           <input type="date" name="ngay_tu" class="form-control" value="{{ request.GET.ngay_tu }}">
@@ -930,21 +900,11 @@
         <div class="vbd-grid">
           <div class="vbd-field">
             <label>Đơn vị gửi</label>
-            <select name="don_vi_ngoai_id" id="edit_don_vi_gui" class="form-control" style="flex:1;">
-              <option value="">- Chọn đơn vị gửi -</option>
-              {% for dv in don_vi_ngoai %}
-              <option value="{{ dv.DonViNgoaiID }}">{{ dv.TenDonVi }}</option>
-              {% endfor %}
-            </select>
+            <input type="text" name="don_vi_ngoai_id" id="edit_don_vi_gui" list="don_vi_ngoai_list" class="form-control" style="flex:1;" placeholder="Nhập hoặc chọn đơn vị gửi">
           </div>
           <div class="vbd-field">
             <label>Đơn vị nội bộ nhận</label>
-            <select name="don_vi_trong_id" id="edit_don_vi_trong" class="form-control" style="flex:1;">
-              <option value="">- Chọn đơn vị nội bộ -</option>
-              {% for dv in don_vi_trong %}
-              <option value="{{ dv.DonViTrongID }}">{{ dv.TenDonVi }}</option>
-              {% endfor %}
-            </select>
+            <input type="text" name="don_vi_trong_id" id="edit_don_vi_trong" list="don_vi_trong_list" class="form-control" style="flex:1;" placeholder="Nhập hoặc chọn đơn vị nội bộ">
           </div>
           <div class="vbd-field">
             <label>Trạng thái</label>
@@ -997,7 +957,19 @@
 </div>
 
 
+  <datalist id="don_vi_ngoai_list">
+    {% for dv in don_vi_ngoai %}
+    <option value="{{ dv.TenDonVi }}">
+    {% endfor %}
+  </datalist>
+
+  <datalist id="don_vi_trong_list">
+    {% for dv in don_vi_trong %}
+    <option value="{{ dv.TenDonVi }}">
+    {% endfor %}
+  </datalist>
 {% endblock %}
+
 
 {% block extra_js %}
 <script src="{% static 'js/pages/van_ban_den.js' %}?v=2"></script>

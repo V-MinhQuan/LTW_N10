@@ -251,9 +251,15 @@ def van_ban_den_index(request):
     if loai_vb:
         danh_sach = danh_sach.filter(LoaiVanBan__icontains=loai_vb)
     if don_vi_ngoai_id:
-        danh_sach = danh_sach.filter(DonViNgoaiID_id=don_vi_ngoai_id)
+        if str(don_vi_ngoai_id).isdigit():
+            danh_sach = danh_sach.filter(DonViNgoaiID_id=don_vi_ngoai_id)
+        else:
+            danh_sach = danh_sach.filter(DonViNgoaiID__TenDonVi__icontains=don_vi_ngoai_id)
     if don_vi_trong_id:
-        danh_sach = danh_sach.filter(DonViTrongID_id=don_vi_trong_id)
+        if str(don_vi_trong_id).isdigit():
+            danh_sach = danh_sach.filter(DonViTrongID_id=don_vi_trong_id)
+        else:
+            danh_sach = danh_sach.filter(DonViTrongID__TenDonVi__icontains=don_vi_trong_id)
     if ngay_tu:
         danh_sach = danh_sach.filter(NgayNhan__gte=ngay_tu)
     if ngay_den:
@@ -512,6 +518,11 @@ def van_ban_di_index(request):
         Prefetch('phancong_set', queryset=PhanCong.objects.select_related('UserID').order_by('-NgayPhanCong'),
                  to_attr='ds_phan_cong')
     ).order_by('-VanBanDiID')
+    don_vi_ngoai = request.GET.get('don_vi_ngoai', '')
+    don_vi_trong = request.GET.get('don_vi_trong', '')
+    ngay_tu = request.GET.get('ngay_tu', '')
+    ngay_den = request.GET.get('ngay_den', '')
+
     if so_ky_hieu:
         vbs = vbs.filter(SoKyHieu__icontains=so_ky_hieu)
     if trich_yeu:
@@ -520,11 +531,21 @@ def van_ban_di_index(request):
         vbs = vbs.filter(LoaiVanBan__icontains=loai_vb)
     if trang_thai:
         vbs = vbs.filter(TrangThai=trang_thai)
-    if don_vi:
-        vbs = vbs.filter(
-            Q(DonViNgoaiID__TenDonVi__icontains=don_vi) |
-            Q(DonViTrongID__TenDonVi__icontains=don_vi)
-        )
+    
+    if don_vi_ngoai:
+        if str(don_vi_ngoai).isdigit():
+            vbs = vbs.filter(DonViNgoaiID_id=don_vi_ngoai)
+        else:
+            vbs = vbs.filter(DonViNgoaiID__TenDonVi__icontains=don_vi_ngoai)
+    if don_vi_trong:
+        if str(don_vi_trong).isdigit():
+            vbs = vbs.filter(DonViTrongID_id=don_vi_trong)
+        else:
+            vbs = vbs.filter(DonViTrongID__TenDonVi__icontains=don_vi_trong)
+    if ngay_tu:
+        vbs = vbs.filter(NgayBanHanh__gte=ngay_tu)
+    if ngay_den:
+        vbs = vbs.filter(NgayBanHanh__lte=ngay_den)
 
     paginator = Paginator(vbs, page_size)
     page_obj = paginator.get_page(page_number)
@@ -679,9 +700,15 @@ def api_vbdi_them_moi(request):
         don_vi_ngoai_id = request.POST.get('don_vi_ngoai_id')
 
         if don_vi_trong_id:
-            vb.DonViTrongID = get_object_or_404(DonViBenTrong, pk=don_vi_trong_id)
+            if str(don_vi_trong_id).isdigit():
+                vb.DonViTrongID = get_object_or_404(DonViBenTrong, pk=don_vi_trong_id)
+            else:
+                vb.DonViTrongID = DonViBenTrong.objects.filter(TenDonVi__iexact=don_vi_trong_id).first()
         if don_vi_ngoai_id:
-            vb.DonViNgoaiID = get_object_or_404(DonViBenNgoai, pk=don_vi_ngoai_id)
+            if str(don_vi_ngoai_id).isdigit():
+                vb.DonViNgoaiID = get_object_or_404(DonViBenNgoai, pk=don_vi_ngoai_id)
+            else:
+                vb.DonViNgoaiID = DonViBenNgoai.objects.filter(TenDonVi__iexact=don_vi_ngoai_id).first()
 
         # Fallback nếu không chọn gì
         if not vb.DonViTrongID and not vb.DonViNgoaiID:
@@ -773,7 +800,11 @@ def api_vbdi_cap_nhat(request, pk):
         new_ngoai_id = request.POST.get('don_vi_ngoai_id')
 
         if new_trong_id:
-            new_trong_obj = DonViBenTrong.objects.filter(pk=new_trong_id).first()
+            if str(new_trong_id).isdigit():
+                new_trong_obj = DonViBenTrong.objects.filter(pk=new_trong_id).first()
+            else:
+                new_trong_obj = DonViBenTrong.objects.filter(TenDonVi__iexact=new_trong_id).first()
+            
             old_trong_name = vb.DonViTrongID.TenDonVi if vb.DonViTrongID else 'Trống'
             if new_trong_obj and (not vb.DonViTrongID or vb.DonViTrongID.pk != new_trong_obj.pk):
                 changes.append(f'Đơn vị trong: "{old_trong_name}" → "{new_trong_obj.TenDonVi}"')
@@ -783,7 +814,11 @@ def api_vbdi_cap_nhat(request, pk):
             vb.DonViTrongID = None
 
         if new_ngoai_id:
-            new_ngoai_obj = DonViBenNgoai.objects.filter(pk=new_ngoai_id).first()
+            if str(new_ngoai_id).isdigit():
+                new_ngoai_obj = DonViBenNgoai.objects.filter(pk=new_ngoai_id).first()
+            else:
+                new_ngoai_obj = DonViBenNgoai.objects.filter(TenDonVi__iexact=new_ngoai_id).first()
+                
             old_ngoai_name = vb.DonViNgoaiID.TenDonVi if vb.DonViNgoaiID else 'Trống'
             if new_ngoai_obj and (not vb.DonViNgoaiID or vb.DonViNgoaiID.pk != new_ngoai_obj.pk):
                 changes.append(f'Đơn vị ngoài: "{old_ngoai_name}" → "{new_ngoai_obj.TenDonVi}"')

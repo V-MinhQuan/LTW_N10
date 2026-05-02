@@ -196,9 +196,9 @@ function suaVBD(id) {
             document.getElementById('edit_loai_van_ban').value = v.loai_van_ban;
             document.getElementById('edit_ngay_ban_hanh').value = v.ngay_ban_hanh;
             document.getElementById('edit_ngay_nhan').value = v.ngay_nhan;
-            document.getElementById('edit_don_vi_gui').value = v.don_vi_ngoai_id;
+            document.getElementById('edit_don_vi_gui').value = v.don_vi_ngoai_ten === 'Chưa xác định' ? '' : v.don_vi_ngoai_ten;
             if (document.getElementById('edit_don_vi_trong')) {
-                document.getElementById('edit_don_vi_trong').value = v.don_vi_trong_id || "";
+                document.getElementById('edit_don_vi_trong').value = v.don_vi_trong_ten === 'Chưa xác định' ? '' : v.don_vi_trong_ten;
             }
             document.getElementById('edit_trang_thai').value = v.trang_thai;
             if (document.getElementById('edit_xoa_tep_dinh_kem')) {

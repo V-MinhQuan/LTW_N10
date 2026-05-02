@@ -151,7 +151,7 @@ function xemChiTiet(btn) {
         let d = res.data;
         document.getElementById("ct_sokyhieu").value = d.so_ky_hieu;
         document.getElementById("ct_trichyeu").value = d.trich_yeu;
-        document.getElementById("ct_donvi").value = d.don_vi_trong ? d.don_vi_trong : 'Chưa xác định';
+        document.getElementById("ct_donvi").value = (d.don_vi_trong || d.don_vi_ngoai) || 'Chưa xác định';
         document.getElementById("ct_loaivb").value = d.loai_vb;
         document.getElementById("ct_nguoisoan").value = d.nguoi_soan;
         document.getElementById("ct_ngay").value = d.ngay_ban_hanh;
@@ -205,7 +205,7 @@ function _getFormData(trangThai) {
     fd.append('trich_yeu', document.getElementById('trichYeu').value);
     fd.append('loai_vb', document.getElementById('loaiVB').value);
     fd.append('ngay_ban_hanh', document.getElementById('ngayBanHanh').value || '');
-    fd.append('don_vi_trong_id', document.getElementById('donViBH').value || '');
+    fd.append('don_vi_trong_id', document.getElementById('donViBH').value);
     fd.append('don_vi_ngoai_id', document.getElementById('donViNgoai') ? document.getElementById('donViNgoai').value : '');
     fd.append('nguoi_soan_id', document.getElementById('nguoiSoanThao').value || '');
     fd.append('trang_thai', trangThai);
@@ -267,10 +267,13 @@ function suaVanBan(btn) {
         document.getElementById("edit_nguoisoan").value = d.nguoi_soan;
 
         // Set dropdown đơn vị — tìm theo text hoặc id
-        document.getElementById("edit_donViBH").value = d.don_vi_trong_id || '';
-        document.getElementById("edit_donViNgoai").value = d.don_vi_ngoai_id || '';
-        if (d.don_vi_trong_id) {
-            loadUsersByDept(d.don_vi_trong_id, 'edit_nguoisoan', d.nguoi_soan_id);
+        // Set dropdown đơn vị — sử dụng tên cho autocomplete
+        document.getElementById("edit_donViBH").value = d.don_vi_trong || '';
+        document.getElementById("edit_donViNgoai").value = d.don_vi_ngoai || '';
+        if (d.don_vi_trong) {
+            // Tìm ID tương ứng với tên để load nhân viên
+            let dept = _cachedDonVi.trong.find(i => i.ten === d.don_vi_trong);
+            if (dept) loadUsersByDept(dept.id, 'edit_nguoisoan', d.nguoi_soan_id);
         }
 
 
@@ -543,77 +546,14 @@ function timDeXuLy() {
 }
 
 // ---- RELOAD ĐƠN VỊ DYNAMIC ----
+let _cachedDonVi = { trong: [], ngoai: [] };
+
 function reloadDonViDropdowns() {
     fetch('/api/don-vi/list/')
     .then(r => r.json())
     .then(res => {
         if (res.status !== 'success') return;
-
-        // 2. Modal Thêm mới - đơn vị trong & ngoài
-        const donViBH = document.getElementById('donViBH');
-        if (donViBH) {
-            const cur = donViBH.value;
-            donViBH.innerHTML = '<option value="">--- Chọn đơn vị bên trong ---</option>';
-            res.trong.forEach(dv => {
-                const opt = document.createElement('option');
-                opt.value = dv.id;
-                opt.textContent = dv.ten;
-                if (String(opt.value) === String(cur)) opt.selected = true;
-                donViBH.appendChild(opt);
-            });
-        }
-        const donViNgoai = document.getElementById('donViNgoai');
-        if (donViNgoai) {
-            const cur = donViNgoai.value;
-            donViNgoai.innerHTML = '<option value="">--- Chọn đơn vị bên ngoài ---</option>';
-            res.ngoai.forEach(dv => {
-                const opt = document.createElement('option');
-                opt.value = dv.id;
-                opt.textContent = dv.ten;
-                if (String(opt.value) === String(cur)) opt.selected = true;
-                donViNgoai.appendChild(opt);
-            });
-        }
-
-        // 4. Bộ lọc - đơn vị trong
-        const filterDonVi = document.getElementById('filter_don_vi');
-        if (filterDonVi) {
-            const cur = filterDonVi.value;
-            filterDonVi.innerHTML = '<option value="">--- Tất cả ---</option>';
-            res.trong.forEach(dv => {
-                const opt = document.createElement('option');
-                opt.value = dv.ten;
-                opt.textContent = dv.ten;
-                if (opt.value === cur) opt.selected = true;
-                filterDonVi.appendChild(opt);
-            });
-        }
-
-        // 5. Modal Sửa - đơn vị trong & ngoài
-        const editDonViBH = document.getElementById('edit_donViBH');
-        if (editDonViBH) {
-            const cur = editDonViBH.value;
-            editDonViBH.innerHTML = '<option value="">--- Chọn đơn vị bên trong ---</option>';
-            res.trong.forEach(dv => {
-                const opt = document.createElement('option');
-                opt.value = dv.id;
-                opt.textContent = dv.ten;
-                if (String(opt.value) === String(cur)) opt.selected = true;
-                editDonViBH.appendChild(opt);
-            });
-        }
-        const editDonViNgoai = document.getElementById('edit_donViNgoai');
-        if (editDonViNgoai) {
-            const cur = editDonViNgoai.value;
-            editDonViNgoai.innerHTML = '<option value="">--- Chọn đơn vị bên ngoài ---</option>';
-            res.ngoai.forEach(dv => {
-                const opt = document.createElement('option');
-                opt.value = dv.id;
-                opt.textContent = dv.ten;
-                if (String(opt.value) === String(cur)) opt.selected = true;
-                editDonViNgoai.appendChild(opt);
-            });
-        }
+        _cachedDonVi = res;
     });
 }
 
@@ -646,15 +586,19 @@ function loadUsersByDept(deptId, targetSelectId, selectedValue = null) {
 document.addEventListener('DOMContentLoaded', () => {
     const donViBH = document.getElementById('donViBH');
     if (donViBH) {
-        donViBH.addEventListener('change', function() {
-            loadUsersByDept(this.value, 'nguoiSoanThao');
+        donViBH.addEventListener('input', function() {
+            let val = this.value;
+            let dept = _cachedDonVi.trong.find(i => i.ten === val);
+            if (dept) loadUsersByDept(dept.id, 'nguoiSoanThao');
         });
     }
 
     const editDonViBH = document.getElementById('edit_donViBH');
     if (editDonViBH) {
-        editDonViBH.addEventListener('change', function() {
-            loadUsersByDept(this.value, 'edit_nguoisoan');
+        editDonViBH.addEventListener('input', function() {
+            let val = this.value;
+            let dept = _cachedDonVi.trong.find(i => i.ten === val);
+            if (dept) loadUsersByDept(dept.id, 'edit_nguoisoan');
         });
     }
 });
