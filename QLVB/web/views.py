@@ -234,14 +234,14 @@ def van_ban_den_index(request):
     don_vi_trong = DonViBenTrong.objects.all()
 
     # Get filter params
-    so_ky_hieu = request.GET.get('so_ky_hieu', '')
-    trich_yeu = request.GET.get('trich_yeu', '')
-    loai_vb = request.GET.get('loai_vb', '')
-    don_vi_ngoai_id = request.GET.get('don_vi_ngoai', '')
-    don_vi_trong_id = request.GET.get('don_vi_trong', '')
+    so_ky_hieu = request.GET.get('so_ky_hieu', '').strip()
+    trich_yeu = request.GET.get('trich_yeu', '').strip()
+    loai_vb = request.GET.get('loai_vb', '').strip()
+    don_vi_ngoai_id = request.GET.get('don_vi_ngoai', '').strip()
+    don_vi_trong_id = request.GET.get('don_vi_trong', '').strip()
     ngay_tu = request.GET.get('ngay_tu', '')
     ngay_den = request.GET.get('ngay_den', '')
-    trang_thai = request.GET.get('trang_thai', '')
+    trang_thai = request.GET.get('trang_thai', '').strip()
 
     # Apply filters
     if so_ky_hieu:
@@ -504,11 +504,11 @@ def van_ban_den_lich_su(request):
 
 # --- QUẢN LÝ VĂN BẢN ĐI ---
 def van_ban_di_index(request):
-    so_ky_hieu = request.GET.get('so_ky_hieu', '')
-    trich_yeu = request.GET.get('trich_yeu', '')
-    loai_vb = request.GET.get('loai_vb', '')
-    don_vi = request.GET.get('don_vi', '')
-    trang_thai = request.GET.get('trang_thai', '')
+    so_ky_hieu = request.GET.get('so_ky_hieu', '').strip()
+    trich_yeu = request.GET.get('trich_yeu', '').strip()
+    loai_vb = request.GET.get('loai_vb', '').strip()
+    don_vi = request.GET.get('don_vi', '').strip()
+    trang_thai = request.GET.get('trang_thai', '').strip()
     page_number = request.GET.get('page', 1)
     page_size = 8
 
@@ -518,8 +518,8 @@ def van_ban_di_index(request):
         Prefetch('phancong_set', queryset=PhanCong.objects.select_related('UserID').order_by('-NgayPhanCong'),
                  to_attr='ds_phan_cong')
     ).order_by('-VanBanDiID')
-    don_vi_ngoai = request.GET.get('don_vi_ngoai', '')
-    don_vi_trong = request.GET.get('don_vi_trong', '')
+    don_vi_ngoai = request.GET.get('don_vi_ngoai', '').strip()
+    don_vi_trong = request.GET.get('don_vi_trong', '').strip()
     ngay_tu = request.GET.get('ngay_tu', '')
     ngay_den = request.GET.get('ngay_den', '')
 
@@ -1461,10 +1461,10 @@ def xu_ly_van_ban_index(request):
     ).exclude(TrangThaiXuLy='Hoàn thành').exclude(TrangThaiXuLy='Quá hạn').update(TrangThaiXuLy='Quá hạn')
 
     # 2. Lấy tham số từ URL
-    query_so_ky_hieu = request.GET.get('so_ky_hieu', '')
-    query_nguoi_xu_ly = request.GET.get('nguoi_xu_ly', '')
-    query_han_xu_ly = request.GET.get('han_xu_ly', '')
-    query_loai_xu_ly = request.GET.get('loai_xu_ly', '')
+    query_so_ky_hieu = request.GET.get('so_ky_hieu', '').strip()
+    query_nguoi_xu_ly = request.GET.get('nguoi_xu_ly', '').strip()
+    query_han_xu_ly = request.GET.get('han_xu_ly', '').strip()
+    query_loai_xu_ly = request.GET.get('loai_xu_ly', '').strip()
     page_number = request.GET.get('page', 1)
 
     # 3. Khởi tạo QuerySet
