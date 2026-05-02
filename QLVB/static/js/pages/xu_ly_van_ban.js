@@ -214,7 +214,7 @@ async function saveAndClose(modalId) {
         const fileInput = document.getElementById('upd-file');
 
         if (!trangThai || !noiDung) {
-            alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
+            App.showAlert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
             return;
         }
 
@@ -235,7 +235,7 @@ async function saveAndClose(modalId) {
         const fileInput = document.getElementById('fwd-file');
 
         if (selectedUsers.length === 0 || !noiDung) {
-            alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
+            App.showAlert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
             return;
         }
 
@@ -256,7 +256,7 @@ async function saveAndClose(modalId) {
         const fileInput = document.getElementById('rep-file');
 
         if (!loaiVanDe || !moTa || !recipientId) {
-            alert('Vui lòng nhập đầy đủ thông tin bắt buộc (Loại vấn đề, Mô tả, Người nhận)!');
+            App.showAlert('Vui lòng nhập đầy đủ thông tin bắt buộc (Loại vấn đề, Mô tả, Người nhận)!');
             return;
         }
 
@@ -279,7 +279,7 @@ async function saveAndClose(modalId) {
         const fileInput = document.getElementById('asn-file');
 
         if (selectedUsers.length === 0 || !hanXuLy) {
-            alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
+            App.showAlert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
             return;
         }
 
@@ -302,18 +302,13 @@ async function saveAndClose(modalId) {
         const result = await response.json();
         if (result.status === 'success') {
             closeModal(modalId);
-            if (typeof App !== 'undefined' && App.showSuccess) {
-                App.showSuccess(result.message || 'Thao tác thành công', () => location.reload());
-            } else {
-                alert(result.message || 'Thao tác thành công');
-                location.reload();
-            }
+            App.showSuccess(result.message || 'Thao tác thành công', () => location.reload());
         } else {
-            alert('Lỗi: ' + result.message);
+            App.showError('Lỗi: ' + result.message);
         }
     } catch (e) {
         console.error(e);
-        alert('Lỗi hệ thống!');
+        App.showError('Lỗi hệ thống!');
     }
 }
 
@@ -331,16 +326,14 @@ async function postJson(url, data, modalId) {
         const result = await response.json();
         if (result.status === 'success') {
             closeModal(modalId);
-            if (typeof App !== 'undefined' && App.showSuccess) {
-                App.showSuccess(result.message || 'Thao tác thành công', () => location.reload());
-            } else {
-                alert(result.message || 'Thao tác thành công');
-                location.reload();
-            }
+            App.showSuccess(result.message || 'Thao tác thành công', () => location.reload());
         } else {
-            alert('Lỗi: ' + result.message);
+            App.showError('Lỗi: ' + result.message);
         }
-    } catch (e) { console.error(e); alert('Lỗi hệ thống!'); }
+    } catch (e) {
+        console.error(e);
+        App.showError('Lỗi hệ thống!');
+    }
 }
 
 function removeSelectedFileAsn() {
@@ -424,7 +417,7 @@ async function openModalListReports() {
         }
     } catch (e) {
         console.error(e);
-        alert('Không thể tải danh sách báo cáo!');
+        App.showError('Không thể tải danh sách báo cáo!');
     }
 }
 
@@ -459,12 +452,12 @@ async function confirmXuLyBaoCao() {
     const newRecipientId = document.getElementById('xl-newRecipient').value;
     
     if (!noiDung) {
-        alert('Vui lòng nhập nội dung phản hồi xử lý!');
+        App.showAlert('Vui lòng nhập nội dung phản hồi xử lý!');
         return;
     }
     
     if (action === 'CHUYEN' && !newRecipientId) {
-        alert('Vui lòng chọn người nhận mới để chuyển tiếp báo cáo!');
+        App.showAlert('Vui lòng chọn người nhận mới để chuyển tiếp báo cáo!');
         return;
     }
     
@@ -481,9 +474,203 @@ async function confirmXuLyBaoCao() {
 function rejectReport() {
     const noiDung = document.getElementById('xl-noiDungXuLy').value;
     if (!noiDung) {
-        alert('Vui lòng nhập lý do từ chối vào ô nội dung phản hồi!');
+        App.showAlert('Vui lòng nhập lý do từ chối vào ô nội dung phản hồi!');
         return;
     }
     document.getElementById('xl-huongXuLy').value = 'TU_CHOI';
     confirmXuLyBaoCao();
+}
+
+// --- Logic Phê duyệt & Phát hành văn bản đi (Bổ sung từ van_ban_di.js) ---
+
+let _pheDuyetId = null;
+let _phatHanhId = null;
+let _isSigning = false;
+let _sigCanvas = null;
+let _sigCtx = null;
+
+function openVBD(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'flex';
+}
+
+function closeVBD(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+}
+
+function pheDuyetVanBan(id) {
+    _pheDuyetId = id;
+    openVBD('popupPheDuyet');
+    initSignaturePad();
+}
+
+function initSignaturePad() {
+    _sigCanvas = document.getElementById('signature-pad');
+    if (!_sigCanvas) return;
+    _sigCtx = _sigCanvas.getContext('2d');
+    _sigCtx.strokeStyle = "#222";
+    _sigCtx.lineWidth = 2;
+    _sigCtx.lineJoin = "round";
+    _sigCtx.lineCap = "round";
+
+    // Mouse events
+    _sigCanvas.addEventListener("mousedown", startSign);
+    _sigCanvas.addEventListener("mousemove", drawSign);
+    _sigCanvas.addEventListener("mouseup", stopSign);
+    _sigCanvas.addEventListener("mouseleave", stopSign);
+
+    // Touch events
+    _sigCanvas.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        startSign(e.touches[0]);
+    });
+    _sigCanvas.addEventListener("touchmove", (e) => {
+        e.preventDefault();
+        drawSign(e.touches[0]);
+    });
+    _sigCanvas.addEventListener("touchend", stopSign);
+}
+
+function startSign(e) {
+    _isSigning = true;
+    _sigCtx.beginPath();
+    const pos = _getPos(e);
+    _sigCtx.moveTo(pos.x, pos.y);
+    document.getElementById('signature-placeholder').style.display = 'none';
+}
+
+function drawSign(e) {
+    if (!_isSigning) return;
+    const pos = _getPos(e);
+    _sigCtx.lineTo(pos.x, pos.y);
+    _sigCtx.stroke();
+}
+
+function stopSign() {
+    _isSigning = false;
+}
+
+function _getPos(e) {
+    const rect = _sigCanvas.getBoundingClientRect();
+    const scaleX = _sigCanvas.width / rect.width;
+    const scaleY = _sigCanvas.height / rect.height;
+    return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+    };
+}
+
+function clearSignature() {
+    if (!_sigCanvas) return;
+    _sigCtx.clearRect(0, 0, _sigCanvas.width, _sigCanvas.height);
+    document.getElementById('signature-placeholder').style.display = 'block';
+}
+
+function xacNhanPheDuyet(chap_nhan) {
+    if (!_pheDuyetId) return;
+
+    let chuKy = _sigCanvas ? _sigCanvas.toDataURL() : '';
+    let isEmpty = true;
+    if (_sigCanvas) {
+        let blank = document.createElement('canvas');
+        blank.width = _sigCanvas.width;
+        blank.height = _sigCanvas.height;
+        if (_sigCanvas.toDataURL() !== blank.toDataURL()) isEmpty = false;
+    }
+
+    if (chap_nhan && isEmpty) {
+        App.showAlert("Vui lòng ký tên trước khi phê duyệt.");
+        return;
+    }
+
+    let data = {
+        chap_nhan: chap_nhan,
+        ghi_chu: document.getElementById('pd_ghichu') ? document.getElementById('pd_ghichu').value : '',
+        chu_ky_so: isEmpty ? '' : chuKy
+    };
+    
+    fetch('/api/van-ban-di/' + _pheDuyetId + '/phe-duyet/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.status === 'success') {
+            App.showSuccess(chap_nhan ? 'Xử lý phê duyệt thành công' : 'Từ chối phê duyệt thành công', () => {
+                window.location.reload();
+            });
+        } else {
+            App.showError('Lỗi: ' + res.message);
+        }
+    })
+    .catch(() => App.showError('Có lỗi xảy ra, vui lòng thử lại.'));
+}
+
+function phatHanhVanBan(id) {
+    _phatHanhId = id;
+    fetch('/api/van-ban-di/' + _phatHanhId + '/chi-tiet/')
+        .then(r => r.json())
+        .then(res => {
+            let d = res.data;
+            document.getElementById("ph_trichyeu").value = d.trich_yeu;
+            if (d.ngay_ban_hanh) {
+                let parts = d.ngay_ban_hanh.split("/");
+                if (parts.length === 3) {
+                    document.getElementById("ph_ngay").value = parts[2] + "-" + parts[1] + "-" + parts[0];
+                }
+            }
+            let ph_phongban = document.getElementById("ph_phongban");
+            if (ph_phongban) {
+                ph_phongban.value = d.don_vi_trong_id || '';
+            }
+            openVBD('popupPhatHanh');
+        });
+}
+
+function xacNhanPhatHanh() {
+    if (!_phatHanhId) return;
+    
+    let trichYeu = document.getElementById('ph_trichyeu').value.trim();
+    let ngayBanHanh = document.getElementById('ph_ngay').value;
+    let ph_phongban = document.getElementById('ph_phongban');
+    
+    if (!trichYeu) {
+        App.showAlert('Vui lòng nhập trích yếu!');
+        return;
+    }
+    
+    if (ph_phongban && !ph_phongban.value) {
+        App.showAlert('Vui lòng chọn phòng ban nhận để phân công!');
+        return;
+    }
+    
+    if (!ngayBanHanh) {
+        App.showAlert('Vui lòng chọn ngày ban hành!');
+        return;
+    }
+    
+    let data = {
+        trich_yeu: trichYeu,
+        ngay_ban_hanh: ngayBanHanh,
+        don_vi_trong_id: ph_phongban ? ph_phongban.value : null
+    };
+    
+    fetch('/api/van-ban-di/' + _phatHanhId + '/phat-hanh/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.status === 'success') {
+            App.showSuccess('Phát hành thành công', () => {
+                window.location.reload();
+            });
+        } else {
+            App.showError('Lỗi: ' + res.message);
+        }
+    })
+    .catch(() => App.showError('Có lỗi xảy ra, vui lòng thử lại.'));
 }

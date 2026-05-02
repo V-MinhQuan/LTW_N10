@@ -6,7 +6,8 @@
 .search-grid .form-control,
 .search-grid select.form-control,
 .search-grid input[readonly].form-control {
-    background-color: #ffffff !important; /* Đổi tất cả về màu trắng */
+    background-color: #ffffff !important;
+    /* Đổi tất cả về màu trắng */
     border: 1px solid #ccc !important;
     color: #333 !important;
     height: 38px !important;
@@ -561,6 +562,7 @@ button.btn-assign-wide {
     color: #666 !important;
     line-height: 1.5 !important;
 }
+
 .mo-ta-action {
     padding: 2px 10px !important;
     border-radius: 4px !important;
@@ -575,15 +577,143 @@ button.btn-assign-wide {
 }
 
 /* Mã màu lấy từ Hình 2 */
-.tag-chuyen-tiep { background-color: #bf24d6 !important; } /* Tím hồng */
-.tag-cap-nhat { background-color: #2fb370 !important; }    /* Xanh lá xử lý */
-.tag-canh-bao { background-color: #f7941d !important; }    /* Cam cảnh báo */
-.tag-bao-cao { background-color: #e91e63 !important; }     /* Hồng đỏ báo cáo */
-.tag-phan-cong { background-color: #00adef !important; }   /* Xanh dương phân công */
+.tag-chuyen-tiep {
+    background-color: #bf24d6 !important;
+}
+
+/* Tím hồng */
+.tag-cap-nhat {
+    background-color: #2fb370 !important;
+}
+
+/* Xanh lá xử lý */
+.tag-canh-bao {
+    background-color: #f7941d !important;
+}
+
+/* Cam cảnh báo */
+.tag-bao-cao {
+    background-color: #e91e63 !important;
+}
+
+/* Hồng đỏ báo cáo */
+.tag-phan-cong {
+    background-color: #00adef !important;
+}
+
+/* Xanh dương phân công */
 
 .mo-ta-cell {
     /* Đảm bảo text không bị cắt ngang khi cột đã rộng ra */
     white-space: normal !important;
     text-align: left !important;
     padding: 10px !important;
+}
+
+/* MODAL & POPUP STYLES (PORTED FROM VAN_BAN_DI) */
+.vbd-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: none;
+    /* Trạng thái mặc định */
+    justify-content: center;
+    align-items: center;
+    z-index: 1500;
+    /* Cao hơn các thành phần khác */
+}
+
+.vbd-popup {
+    width: 700px;
+    max-width: 95%;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: vbd-slideDown 0.3s ease-out;
+}
+
+@keyframes vbd-slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.vbd-popup-header {
+    background: #E0F2FE;
+    color: #0E70A6;
+    font-weight: 600;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.vbd-popup-body {
+    padding: 25px 30px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.vbd-popup-footer {
+    padding: 15px 25px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    background: #f8f9fa;
+    border-top: 1px solid #eee;
+}
+
+/* Button Classes for Actions - Wide Style with Text */
+.btn-approve-wide,
+.btn-publish-wide {
+    color: white !important;
+    border: none !important;
+    padding: 6px 16px !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn-approve-wide {
+    background-color: #bf24d6 !important;
+    /* Màu tím theo yêu cầu */
+}
+
+.btn-publish-wide {
+    background-color: #17a2b8 !important;
+    /* Màu xanh teal */
+}
+
+.btn-approve-wide:hover,
+.btn-publish-wide:hover {
+    filter: brightness(0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Signature Pad Styles */
+#signature-pad {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
 }

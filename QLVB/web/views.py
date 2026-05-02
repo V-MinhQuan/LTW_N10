@@ -35,11 +35,13 @@ from .models import VanBanDi, PheDuyet, PhatHanh
 def is_tgd(user):
     """Boss: Toàn quyền xem, nhưng không thao tác kỹ thuật/user"""
     if not user or not user.is_authenticated: return False
+    if user.is_superuser: return True
     return user.VaiTroID and user.VaiTroID.ChucVu == 'Tổng giám đốc'
 
 def is_tp_it(user):
     """Admin kỹ thuật: Toàn quyền hệ thống & User"""
     if not user or not user.is_authenticated: return False
+    if user.is_superuser: return True
     return user.VaiTroID and user.VaiTroID.ChucVu == 'Trưởng phòng IT'
 
 def is_truong_phong(user):
@@ -107,14 +109,39 @@ def get_filtered_documents(user, model_class):
             Q(phancong__UserID=user) | 
             Q(chuyentiep__UserID=user)
         ).distinct()
-    else:
-        # Văn bản đi: Thêm điều kiện người gửi (NguoiGui) và người xử lý (UserID)
         return model_class.objects.filter(
             Q(NguoiGui=user) |
             Q(UserID=user) | 
             Q(phancong__UserID=user) | 
             Q(chuyentiep__UserID=user)
         ).distinct()
+
+def sync_van_ban_den(vb_di):
+    """Đồng bộ trạng thái từ Văn bản đi sang Văn bản đến tương ứng"""
+    from .models import VanBanDen
+    from django.utils import timezone
+    
+    # Tìm hoặc tạo Văn bản đến tương ứng (dựa trên VanBanDiID và Người xử lý)
+    # Tránh tạo trùng văn bản đến: kiểm tra theo SoKyHieu + UserID (Người xử lý phê duyệt)
+    vbd = VanBanDen.objects.filter(VanBanDiID=vb_di, UserID=vb_di.UserID).first()
+    
+    if not vbd:
+        vbd = VanBanDen(VanBanDiID=vb_di)
+        vbd.NgayNhan = timezone.now()
+        
+    vbd.SoKyHieu = vb_di.SoKyHieu
+    vbd.NgayBanHanh = vb_di.NgayBanHanh
+    vbd.LoaiVanBan = vb_di.LoaiVanBan
+    vbd.TrichYeu = vb_di.TrichYeu
+    vbd.TrangThai = vb_di.TrangThai
+    vbd.TepDinhKem = vb_di.TepDinhKem
+    vbd.UserID = vb_di.UserID
+    
+    if vb_di.UserID and vb_di.UserID.PhongBan:
+        vbd.DonViTrongID = vb_di.UserID.PhongBan
+        
+    vbd.save()
+    return vbd
 
 # --- TRANG CHỦ ---
 @login_required
@@ -735,7 +762,15 @@ def api_vbdi_them_moi(request):
         if request.FILES.get('tep_dinh_kem'):
             vb.TepDinhKem = request.FILES['tep_dinh_kem']
         vb.TrangThai = request.POST.get('trang_thai', VanBanDi.TrangThaiChoices.DU_THAO)
-        vb.save()
+        
+        # Luồng mới: Nếu gửi phê duyệt
+        if vb.TrangThai == VanBanDi.TrangThaiChoices.CHO_PHE_DUYET:
+            vb.NgayGuiPheDuyet = timezone.now()
+            vb.save()
+            sync_van_ban_den(vb)
+        else:
+            vb.save()
+            
         _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'THEM_MOI', 'Thêm mới văn bản', None, vb.TrangThai)
         return JsonResponse({'status': 'success', 'id': vb.VanBanDiID})
     except Exception as e:
@@ -860,7 +895,15 @@ def api_vbdi_cap_nhat(request, pk):
             vb.TepDinhKem = None
             changes.append('Đã xóa tài liệu đính kèm')
 
+        # Luồng mới: Nếu gửi phê duyệt
+        if vb.TrangThai == VanBanDi.TrangThaiChoices.CHO_PHE_DUYET and cu != VanBanDi.TrangThaiChoices.CHO_PHE_DUYET:
+            vb.NgayGuiPheDuyet = timezone.now()
+            
         vb.save()
+        
+        if vb.TrangThai == VanBanDi.TrangThaiChoices.CHO_PHE_DUYET:
+            sync_van_ban_den(vb)
+            
         noi_dung = 'Cập nhật: ' + '; '.join(changes) if changes else 'Lưu văn bản (không có thay đổi)'
         _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'CAP_NHAT', noi_dung, cu, vb.TrangThai)
         return JsonResponse({'status': 'success'})
@@ -887,13 +930,12 @@ def api_vbdi_xoa(request, pk):
 @login_required
 @permission_required('phe_duyet', model=VanBanDi)
 def api_vbdi_phe_duyet(request, pk):
-
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
     try:
         vb = get_object_or_404(VanBanDi, pk=pk)
-        if request.user != vb.UserID:
-            return JsonResponse({'status': 'error', 'message': 'Chỉ người phụ trách xử lý mới có quyền phê duyệt văn bản này.'}, status=403)
+        
+        # Kiểm tra trạng thái
         if vb.TrangThai != VanBanDi.TrangThaiChoices.CHO_PHE_DUYET:
             return JsonResponse({'status': 'error', 'message': 'Văn bản không ở trạng thái chờ phê duyệt.'}, status=400)
             
@@ -909,7 +951,13 @@ def api_vbdi_phe_duyet(request, pk):
         pd.ChuKySo = data.get('chu_ky_so', '')
         pd.save()
         vb.TrangThai = VanBanDi.TrangThaiChoices.DA_PHE_DUYET if chap_nhan else VanBanDi.TrangThaiChoices.DU_THAO
+        if chap_nhan:
+            vb.NgayPheDuyet = timezone.now()
         vb.save()
+        
+        # Đồng bộ sang văn bản đến
+        sync_van_ban_den(vb)
+        
         ghi_chu_str = pd.GhiChu.strip() if pd.GhiChu else ''
         noi_dung = ('Phê duyệt văn bản' if chap_nhan
                     else 'Từ chối phê duyệt' + (f': {ghi_chu_str}' if ghi_chu_str else ''))
@@ -929,9 +977,7 @@ def api_vbdi_phat_hanh(request, pk):
         with transaction.atomic():
             vb = get_object_or_404(VanBanDi, pk=pk)
             
-            # Kiểm tra quyền và trạng thái (từ remote)
-            if request.user != vb.UserID:
-                return JsonResponse({'status': 'error', 'message': 'Chỉ người phụ trách xử lý mới có quyền phát hành văn bản này.'}, status=403)
+            # Kiểm tra trạng thái
             if vb.TrangThai != VanBanDi.TrangThaiChoices.DA_PHE_DUYET:
                 return JsonResponse({'status': 'error', 'message': 'Văn bản chưa được phê duyệt.'}, status=400)
 
@@ -945,7 +991,6 @@ def api_vbdi_phat_hanh(request, pk):
             ngay_ban_hanh_str = data.get('ngay_ban_hanh')
             if ngay_ban_hanh_str and ngay_ban_hanh_str != (vb.NgayBanHanh.strftime('%Y-%m-%d') if vb.NgayBanHanh else None):
                 from datetime import datetime
-                from django.utils import timezone
                 try:
                     ngay_ban_hanh_date = datetime.strptime(ngay_ban_hanh_str, '%Y-%m-%d').date()
                     if ngay_ban_hanh_date < timezone.now().date():
@@ -963,8 +1008,8 @@ def api_vbdi_phat_hanh(request, pk):
             ph.TrangThai = 'DA_PHAT_HANH'
             ph.save()
             
-            # 2. Cập nhật trạng thái văn bản đi
             vb.TrangThai = VanBanDi.TrangThaiChoices.DA_PHAT_HANH
+            vb.NgayPhatHanh = data.get('ngay_ban_hanh') or timezone.now()
             if data.get('ngay_ban_hanh'):
                 vb.NgayBanHanh = data.get('ngay_ban_hanh')
             else:
@@ -987,6 +1032,9 @@ def api_vbdi_phat_hanh(request, pk):
                 except: pass
             
             vb.save()
+            
+            # Đồng bộ sang Văn bản đến (Theo yêu cầu luồng mới)
+            sync_van_ban_den(vb)
 
             # 3. TẠO/CẬP NHẬT VĂN BẢN ĐẾN TƯƠNG ỨNG
             from .models import VanBanDen, PhanCong
@@ -1599,9 +1647,27 @@ def xu_ly_van_ban_index(request):
     query_loai_xu_ly = request.GET.get('loai_xu_ly', '').strip()
     page_number = request.GET.get('page', 1)
 
-    # 3. Khởi tạo QuerySet
-    den_qs = get_filtered_documents(user, VanBanDen).select_related('DonViNgoaiID', 'UserID')
-    di_qs = get_filtered_documents(user, VanBanDi).select_related('DonViNgoaiID', 'DonViTrongID', 'UserID')
+    # 3. Khởi tạo QuerySet theo yêu cầu III
+    # Văn bản đến (web_vanbanden)
+    # Hiển thị nếu: UserID_id == request.user.UserID HOẶC DonViTrongID_id == request.user.PhongBan_id
+    # Nếu là Superuser, Tổng giám đốc hoặc Trưởng phòng IT: Hiển thị tất cả
+    if user.is_superuser or user.is_giam_doc() or user.is_it_head():
+        den_qs = VanBanDen.objects.all().select_related('DonViNgoaiID', 'UserID')
+    else:
+        den_qs = VanBanDen.objects.filter(
+            Q(UserID=user) | Q(DonViTrongID=user.PhongBan)
+        ).select_related('DonViNgoaiID', 'UserID')
+
+    # Văn bản đi cần xử lý (web_vanbandi)
+    # Hiển thị nếu: request.user.UserID == web_vanbandi.UserID (NguoiXuLyPheDuyet_id)
+    # HOẶC request.user.UserID == phancong__UserID (NguoiPhuTrachPhanCong_id)
+    # Nếu là Superuser, Tổng giám đốc hoặc Trưởng phòng IT: Hiển thị tất cả văn bản đi cần xử lý
+    if user.is_superuser or user.is_giam_doc() or user.is_it_head():
+        di_qs = VanBanDi.objects.all().select_related('DonViNgoaiID', 'DonViTrongID', 'UserID').distinct()
+    else:
+        di_qs = VanBanDi.objects.filter(
+            Q(UserID=user) | Q(phancong__UserID=user)
+        ).select_related('DonViNgoaiID', 'DonViTrongID', 'UserID').distinct()
 
     # 4. Áp dụng bộ lọc chung
     if query_so_ky_hieu:
@@ -1643,16 +1709,10 @@ def xu_ly_van_ban_index(request):
 
     # Xử lý Văn bản đi (Chỉ add nếu chọn 'Tất cả' hoặc 'Văn bản đi')
     if query_loai_xu_ly in ['', 'di']:
-        # Lọc logic nghiệp vụ: 
-        # 1. Văn bản đã phê duyệt/phát hành tới đơn vị mình (và mình là Trưởng phòng)
-        # 2. Hoặc mình là người soạn/gửi (NguoiGui)
-        # 3. Hoặc mình là người được giao xử lý/phân công cụ thể
+        # Văn bản đi cần xử lý hiển thị ở trang trung tâm nếu đang chờ duyệt hoặc đã duyệt
         di_tasks = di_qs.filter(
-            Q(DonViTrongID__isnull=True) |
-            Q(DonViTrongID__TenDonVi=user.PhongBan) |
-            Q(UserID=user) |
-            Q(phancong__UserID=user)
-        ).filter(TrangThai=VanBanDi.TrangThaiChoices.DA_PHAT_HANH).distinct()
+            TrangThai__in=[VanBanDi.TrangThaiChoices.CHO_PHE_DUYET, VanBanDi.TrangThaiChoices.DA_PHE_DUYET, VanBanDi.TrangThaiChoices.DA_PHAT_HANH]
+        ).distinct()
         
         # Loại bỏ nếu người dùng chính là người đã thực hiện thao tác "Phát hành"
         # để danh sách "Xử lý" của họ không bị dồn ứ sau khi đã xong việc
@@ -1721,9 +1781,11 @@ def xu_ly_van_ban_index(request):
         report_count = BaoCao.objects.filter(RecipientID=user, TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']).count()
 
     # 8. Context
+    from .models import DonViBenTrong
     context = {
         'page_obj': page_obj,
         'danh_sach_nguoi_dung': danh_sach_nguoi_dung,
+        'don_vi_trong_list': DonViBenTrong.objects.all().order_by('SoThuTu'),
         'query_so_ky_hieu': query_so_ky_hieu,
         'query_nguoi_xu_ly': query_nguoi_xu_ly,
         'query_han_xu_ly': query_han_xu_ly,

@@ -278,8 +278,7 @@
           {% with tt=vb.TrangThai %}
           <tr data-id="{{ vb.VanBanDiID }}">
             <td class="col-stt">{{ page_obj.start_index|add:forloop.counter0 }}</td>
-            <td class="text-left"><a href="javascript:void(0)" class="text-blue" onclick="xemChiTiet(this)">{{
-                vb.SoKyHieu }}</a></td>
+            <td class="text-left"><a href="javascript:void(0)" class="text-blue" onclick="xemChiTiet(this)">{{ vb.SoKyHieu }}</a></td>
             <td class="text-left"
               style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
               title="{{ vb.TrichYeu }}">{{ vb.TrichYeu }}</td>
@@ -315,20 +314,6 @@
             <td class="col-actions">
               <button class="action-btn btn-primary" onclick="xemChiTiet(this)" title="Xem"><i
                   class="fa fa-eye"></i></button>
-              {% if tt == 'DA_PHE_DUYET' %}
-              {% check_perm user 'phat_hanh' vb as publish_perm %}
-              {% if publish_perm %}
-              <button class="action-btn btn-info" onclick="phatHanhVanBan(this)" title="Phát hành"><i
-                  class="fa fa-paper-plane"></i></button>
-              {% endif %}
-              {% endif %}
-              {% if tt == 'CHO_PHE_DUYET' %}
-              {% check_perm user 'phe_duyet' vb as approve_perm %}
-              {% if approve_perm %}
-              <button class="action-btn btn-forward" onclick="pheDuyetVanBan(this)" title="Phê duyệt"><i
-                  class="fa fa-check"></i></button>
-              {% endif %}
-              {% endif %}
               {% if tt == 'DU_THAO' %}
               <button class="action-btn btn-success" onclick="suaVanBan(this)" title="Sửa"><i
                   class="fas fa-edit"></i></button>
@@ -637,7 +622,7 @@
             <select name="loai_vb" id="filter_loai_vb" class="form-control" style="flex: 1;">
               <option value="">--- Tất cả ---</option>
               {% for lv in loai_vb_list %}
-              <option value="{{ lv }}" {% if loai_vb==lv %}selected{% endif %}>{{ lv }}</option>
+              <option value="{{ lv }}" {% if loai_vb == lv %}selected{% endif %}>{{ lv }}</option>
               {% endfor %}
             </select>
           </div>
@@ -645,11 +630,11 @@
             <label style="margin: 0; min-width: 130px; color:#333; font-weight: 500;">Trạng thái</label>
             <select name="trang_thai" class="form-control" style="flex: 1;">
               <option value="">--- Tất cả ---</option>
-              <option value="DU_THAO" {% if trang_thai=="DU_THAO" %}selected{% endif %}>Dự thảo</option>
-              <option value="CHO_PHE_DUYET" {% if trang_thai=="CHO_PHE_DUYET" %}selected{% endif %}>Chờ phê duyệt
+              <option value="DU_THAO" {% if trang_thai == "DU_THAO" %}selected{% endif %}>Dự thảo</option>
+              <option value="CHO_PHE_DUYET" {% if trang_thai == "CHO_PHE_DUYET" %}selected{% endif %}>Chờ phê duyệt
               </option>
-              <option value="DA_PHE_DUYET" {% if trang_thai=="DA_PHE_DUYET" %}selected{% endif %}>Đã phê duyệt</option>
-              <option value="DA_PHAT_HANH" {% if trang_thai=="DA_PHAT_HANH" %}selected{% endif %}>Đã phát hành</option>
+              <option value="DA_PHE_DUYET" {% if trang_thai == "DA_PHE_DUYET" %}selected{% endif %}>Đã phê duyệt</option>
+              <option value="DA_PHAT_HANH" {% if trang_thai == "DA_PHAT_HANH" %}selected{% endif %}>Đã phát hành</option>
             </select>
           </div>
           <div class="vbd-field" style="display: flex; align-items: center; gap: 10px;">

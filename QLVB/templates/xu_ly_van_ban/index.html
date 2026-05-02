@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load auth_extras %}
 
 {% block title %}Xử lý văn bản điều hành - Vietasia Travel{% endblock %}
 
@@ -179,23 +180,43 @@
                             {% endwith %}
                         </td>
                         <td class="col-status">
-                            {% if doc.TrangThai == 'CAN_XU_LY_LAI' %}
-                            <span class="status-badge" style="background: #ff9800; color: white;">Cần xử lý lại</span>
-                            {% else %}
                             {% with phan_cong=doc.phancong_set.first %}
-                            {% if phan_cong %}
-                            {% if phan_cong.TrangThaiXuLy == 'Hoàn thành' %}
-                            <span class="status-badge status-completed">Hoàn thành</span>
-                            {% elif phan_cong.TrangThaiXuLy == 'Quá hạn' %}
-                            <span class="status-badge status-overdue">Quá hạn</span>
+                            {% if doc.doc_type == 'di' %}
+                                <!-- TRẠNG THÁI VĂN BẢN ĐI -->
+                                {% if doc.TrangThai == 'CHO_PHE_DUYET' %}
+                                    <span class="status-badge" style="background: #E0E7FF; color: #4338CA; border: 1px solid #C7D2FE;">Chờ phê duyệt</span>
+                                {% elif doc.TrangThai == 'DA_PHE_DUYET' %}
+                                    <span class="status-badge" style="background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A;">Chờ phát hành</span>
+                                {% elif doc.TrangThai == 'DA_PHAT_HANH' or doc.TrangThai == 'CAN_XU_LY_LAI' %}
+                                    {% if phan_cong %}
+                                        {% if phan_cong.TrangThaiXuLy == 'Hoàn thành' %}
+                                            <span class="status-badge status-completed">Hoàn thành</span>
+                                        {% elif phan_cong.TrangThaiXuLy == 'Quá hạn' %}
+                                            <span class="status-badge status-overdue">Quá hạn</span>
+                                        {% else %}
+                                            <span class="status-badge status-processing">Đang xử lý</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="status-badge status-pending">Chờ phân công</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="status-badge status-pending">{{ doc.get_TrangThai_display }}</span>
+                                {% endif %}
                             {% else %}
-                            <span class="status-badge status-processing">Đang xử lý</span>
-                            {% endif %}
-                            {% else %}
-                            <span class="status-badge status-pending">Chưa phân công</span>
+                                <!-- TRẠNG THÁI VĂN BẢN ĐẾN -->
+                                {% if phan_cong %}
+                                    {% if phan_cong.TrangThaiXuLy == 'Hoàn thành' %}
+                                        <span class="status-badge status-completed">Hoàn thành</span>
+                                    {% elif phan_cong.TrangThaiXuLy == 'Quá hạn' %}
+                                        <span class="status-badge status-overdue">Quá hạn</span>
+                                    {% else %}
+                                        <span class="status-badge status-processing">Đang xử lý</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="status-badge status-pending">Chờ phân công</span>
+                                {% endif %}
                             {% endif %}
                             {% endwith %}
-                            {% endif %}
                         </td>
                         <td class="mo-ta-cell">
                             {% with phan_cong=doc.phancong_set.first %}
@@ -215,30 +236,64 @@
                         </td>
                         <td class="col-actions">
                             {% with phan_cong=doc.phancong_set.first %}
-                            <div style="display: flex; gap: 5px; justify-content: center; width: 100%;">
-                                {% if phan_cong %}
-                                {% if phan_cong.TrangThaiXuLy == 'Hoàn thành' %}
-                                <span class="status-finished"><i class="fas fa-check-circle"></i> Đã kết thúc</span>
+                            <div style="display: flex; gap: 5px; justify-content: center; width: 100%; flex-wrap: wrap;">
+                                
+                                {% if doc.doc_type == 'di' %}
+                                    <!-- LUỒNG VĂN BẢN ĐI: Phê duyệt -> Phát hành -> Phân công -> Xử lý -->
+                                    {% if doc.TrangThai == 'CHO_PHE_DUYET' %}
+                                        {% check_perm user 'phe_duyet' doc as approve_perm %}
+                                        {% if approve_perm %}
+                                        <button class="btn-approve-wide" onclick="pheDuyetVanBan('{{ doc.pk }}')" title="Phê duyệt">
+                                            <i class="fas fa-check"></i>&nbsp;Phê duyệt
+                                        </button>
+                                        {% endif %}
+                                    
+                                    {% elif doc.TrangThai == 'DA_PHE_DUYET' %}
+                                        {% check_perm user 'phat_hanh' doc as publish_perm %}
+                                        {% if publish_perm %}
+                                        <button class="btn-publish-wide" onclick="phatHanhVanBan('{{ doc.pk }}')" title="Phát hành">
+                                            <i class="fas fa-paper-plane"></i>&nbsp;Phát hành
+                                        </button>
+                                        {% endif %}
+                                    
+                                    {% elif doc.TrangThai == 'DA_PHAT_HANH' or doc.TrangThai == 'CAN_XU_LY_LAI' %}
+                                        <!-- Sau khi phát hành hoặc khi cần xử lý lại: Phân công rồi mới Xử lý -->
+                                        {% if phan_cong %}
+                                            {% if phan_cong.TrangThaiXuLy == 'Hoàn thành' %}
+                                                <span class="status-finished"><i class="fas fa-check-circle"></i> Đã kết thúc</span>
+                                            {% else %}
+                                                <button onclick="openModalC('modalCapNhat', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}', '{{ doc.doc_type }}', '{% if doc.TepDinhKem %}{{ doc.TepDinhKem.url }}{% endif %}')"
+                                                    class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
+                                                <button onclick="openModalT('modalChuyenTiep', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
+                                                    class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
+                                                <button onclick="openModalB('modalBaoCao', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
+                                                    class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
+                                            {% endif %}
+                                        {% else %}
+                                            <button onclick="openModalP('modalPhanCong', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu|escapejs }}', '{{ doc.doc_type }}')"
+                                                class="btn-assign-wide" title="Phân công"><i class="fas fa-user-plus"></i>&nbsp;Phân công</button>
+                                        {% endif %}
+                                    {% endif %}
+
                                 {% else %}
-                                <button
-                                    onclick="openModalC('modalCapNhat', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}', '{{ doc.doc_type }}', '{% if doc.TepDinhKem %}{{ doc.TepDinhKem.url }}{% endif %}')"
-                                    class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
-                                <button
-                                    onclick="openModalT('modalChuyenTiep', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
-                                    class="action-btn btn-forward" title="Chuyển tiếp"><i
-                                        class="fas fa-file-export"></i></button>
-                                <button
-                                    onclick="openModalB('modalBaoCao', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
-                                    class="action-btn btn-report" title="Báo cáo"><i
-                                        class="fas fa-exclamation-triangle"></i></button>
+                                    <!-- LUỒNG VĂN BẢN ĐẾN: Phân công -> Xử lý -->
+                                    {% if phan_cong %}
+                                        {% if phan_cong.TrangThaiXuLy == 'Hoàn thành' %}
+                                            <span class="status-finished"><i class="fas fa-check-circle"></i> Đã kết thúc</span>
+                                        {% else %}
+                                            <button onclick="openModalC('modalCapNhat', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ phan_cong.UserID.HoTen }}', '{{ doc.doc_type }}', '{% if doc.TepDinhKem %}{{ doc.TepDinhKem.url }}{% endif %}')"
+                                                class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
+                                            <button onclick="openModalT('modalChuyenTiep', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
+                                                class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
+                                            <button onclick="openModalB('modalBaoCao', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
+                                                class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
+                                        {% endif %}
+                                    {% else %}
+                                        <button onclick="openModalP('modalPhanCong', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu|escapejs }}', '{{ doc.doc_type }}')"
+                                            class="btn-assign-wide" title="Phân công"><i class="fas fa-user-plus"></i>&nbsp;Phân công</button>
+                                    {% endif %}
                                 {% endif %}
-                                {% else %}
-                                <button
-                                    onclick="openModalP('modalPhanCong', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu|escapejs }}', '{{ doc.doc_type }}')"
-                                    class="btn-assign-wide" title="Phân công">
-                                    <i class="fas fa-user-plus"></i>&nbsp;Phân công
-                                </button>
-                                {% endif %}
+
                             </div>
                             {% endwith %}
                         </td>
@@ -652,9 +707,88 @@
         <button onclick="confirmXuLyBaoCao()" class="btn btn-primary">Xác nhận xử lý</button>
     </div>
 </div>
+
+<!-- Popup Phê duyệt văn bản đi -->
+<div id="popupPheDuyet" class="vbd-popup-overlay">
+  <div class="vbd-popup" style="width: 600px; max-width: 95%;">
+    <div class="vbd-popup-header">
+      <span>Phê duyệt văn bản đi</span>
+      <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupPheDuyet')"></i>
+    </div>
+    <div class="vbd-popup-body" style="padding: 25px 30px;">
+      <div style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 20px;">
+        <label style="width: 120px; padding-top: 10px; font-weight: 500; flex-shrink: 0;">Chữ ký số</label>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+          <div
+            style="position: relative; border: 1px solid #ddd; border-radius: 6px; background: #fff; line-height: 0;">
+            <canvas id="signature-pad" width="400" height="150"
+              style="width: 100%; cursor: crosshair; touch-action: none;"></canvas>
+            <div id="signature-placeholder"
+              style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ccc; pointer-events: none; text-align: center;">
+              <i class="fas fa-signature" style="font-size: 24px; display: block; margin-bottom: 5px;"></i>
+              <span style="font-size: 13px;">Ký tên vào đây</span>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <button type="button" class="btn"
+              style="padding: 4px 12px; font-size: 12px; background: #f1f1f1; border: 1px solid #ccc; color: #666;"
+              onclick="clearSignature()">
+              <i class="fas fa-eraser"></i> Xóa chữ ký
+            </button>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: flex-start; gap: 20px;">
+        <label style="width: 120px; padding-top: 8px; font-weight: 500; flex-shrink: 0;">Ghi chú</label>
+        <textarea id="pd_ghichu" class="form-control"
+          style="flex: 1; height: 100px; resize: vertical; padding-top: 10px"
+          placeholder="Nhập ghi chú (nếu có)..."></textarea>
+      </div>
+    </div>
+    <div class="vbd-popup-footer" style="padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px;">
+      <button class="btn btn-secondary" onclick="closeVBD('popupPheDuyet')">Hủy</button>
+      <button class="btn btn-warning" onclick="xacNhanPheDuyet(false)">Từ chối</button>
+      <button class="btn btn-primary" onclick="xacNhanPheDuyet(true)">Phê duyệt</button>
+    </div>
+  </div>
+</div>
+
+<!-- Popup Phát hành văn bản đi -->
+<div id="popupPhatHanh" class="vbd-popup-overlay">
+  <div class="vbd-popup" style="width: 650px; max-width: 95%;">
+    <div class="vbd-popup-header">
+      <span>Phát hành văn bản đi</span>
+      <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupPhatHanh')"></i>
+    </div>
+    <div class="vbd-popup-body" style="padding: 25px 30px;">
+      <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+        <label style="width: 150px; font-weight: 500; flex-shrink: 0;">Trích yếu (<span style="color:red">*</span>)</label>
+        <input type="text" id="ph_trichyeu" class="form-control" style="flex: 1;" placeholder="Nhập trích yếu">
+      </div>
+      <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+        <label style="width: 150px; font-weight: 500; flex-shrink: 0;">Phòng ban nhận (<span style="color:red">*</span>)</label>
+        <select id="ph_phongban" class="form-control" style="flex: 1;">
+          <option value="">--- Chọn phòng ban ---</option>
+          <option value="all">Tất cả</option>
+          {% for dv in don_vi_trong_list %}
+          <option value="{{ dv.DonViTrongID }}">{{ dv.TenDonVi }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <label style="width: 150px; font-weight: 500; flex-shrink: 0;">Ngày ban hành (<span style="color:red">*</span>)</label>
+        <input type="date" id="ph_ngay" class="form-control" style="flex: 1;">
+      </div>
+    </div>
+    <div class="vbd-popup-footer" style="padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px;">
+      <button class="btn btn-secondary" onclick="closeVBD('popupPhatHanh')">Hủy</button>
+      <button class="btn btn-primary" onclick="xacNhanPhatHanh()">Phát hành</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-<script src="{% static 'js/pages/xu_ly_van_ban.js' %}?v=7"></script>
+<script src="{% static 'js/pages/xu_ly_van_ban.js' %}?v=15"></script>
 {% endblock %}

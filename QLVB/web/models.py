@@ -43,33 +43,42 @@ class UserAccount(AbstractUser):
         return self.role_name and self.role_name.startswith("Nhân viên")
 
     def can_approve(self):
+        # Admin và Giám đốc có toàn quyền
+        if self.is_superuser or self.is_giam_doc():
+            return True
         # Trưởng phòng IT không có quyền phê duyệt
         if self.is_it_head():
             return False
-        return self.is_giam_doc() or self.is_department_head()
+        return self.is_department_head()
 
     def can_publish(self):
+        # Admin và Giám đốc có toàn quyền
+        if self.is_superuser or self.is_giam_doc():
+            return True
         # Trưởng phòng IT không có quyền phát hành
         if self.is_it_head():
             return False
-        return self.is_giam_doc() or self.is_department_head()
+        return self.is_department_head()
 
     def can_manage_users_and_units(self):
+        # Admin và Giám đốc có toàn quyền
+        if self.is_superuser or self.is_giam_doc():
+            return True
         # Trưởng phòng các phòng không có quyền quản lý người dùng, đơn vị
         if self.is_department_head():
             return False
-        # Giám đốc và IT Head có quyền này
-        return self.is_giam_doc() or self.is_it_head()
+        # IT Head có quyền này
+        return self.is_it_head()
 
     def can_perform_action(self, action, obj=None):
-        # Kiểm tra cực kỳ nghiêm ngặt: Chỉ người phụ trách (UserID) mới có quyền duyệt/phát hành văn bản đi cụ thể.
-        # Kể cả Giám đốc cũng không được duyệt thay nếu văn bản đã giao cho người khác (trừ khi Giám đốc tự giao cho mình).
+        # Admin và Giám đốc có toàn quyền hệ thống
+        if self.is_superuser or self.is_giam_doc():
+            return True
+
+        # Kiểm tra cực kỳ nghiêm ngặt cho các vai trò khác: Chỉ người phụ trách (UserID) mới có quyền duyệt/phát hành văn bản đi cụ thể.
         if obj and hasattr(obj, 'VanBanDiID') and action in ['phe_duyet', 'phat_hanh']:
             if hasattr(obj, 'UserID') and obj.UserID != self:
                 return False
-
-        if self.is_giam_doc():
-            return True
         
         # Nếu thao tác với một đối tượng cụ thể (Văn bản)
         if obj and action in ['xem', 'sua', 'xoa']:
@@ -195,6 +204,9 @@ class VanBanDen(models.Model):
         HOAN_THANH = 'HOAN_THANH', 'Hoàn thành'
         DANG_XU_LY = 'DANG_XU_LY', 'Đang xử lý'
         CAN_XU_LY_LAI = 'CAN_XU_LY_LAI', 'Cần xử lý lại'
+        CHO_PHE_DUYET = 'CHO_PHE_DUYET', 'Chờ phê duyệt'
+        DA_PHE_DUYET = 'DA_PHE_DUYET', 'Đã phê duyệt'
+        DA_PHAT_HANH = 'DA_PHAT_HANH', 'Đã phát hành'
 
     VanBanDenID = models.AutoField(primary_key=True)
     DonViNgoaiID = models.ForeignKey(DonViBenNgoai, on_delete=models.CASCADE, null=True, blank=True)
@@ -236,6 +248,11 @@ class VanBanDi(models.Model):
     TrichYeu = models.CharField(max_length=255, null=True, blank=True)
     TrangThai = models.CharField(max_length=50, choices=TrangThaiChoices.choices, default=TrangThaiChoices.DU_THAO, db_index=True)
     TepDinhKem = models.FileField(upload_to='di/%Y/%m/', null=True, blank=True)
+    
+    # Các trường bổ sung theo yêu cầu luồng mới
+    NgayGuiPheDuyet = models.DateTimeField(null=True, blank=True)
+    NgayPheDuyet = models.DateTimeField(null=True, blank=True)
+    NgayPhatHanh = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.SoKyHieu

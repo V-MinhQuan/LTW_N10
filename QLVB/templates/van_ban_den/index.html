@@ -509,8 +509,7 @@
           {% for vbd in danh_sach %}
           <tr>
             <td class="text-left">{{ page_obj.start_index|add:forloop.counter0 }}</td>
-            <td class="text-left"><a href="javascript:void(0)" onclick="xemVBD({{ vbd.VanBanDenID }})">{{ vbd.SoKyHieu
-                }}</a></td>
+            <td class="text-left"><a href="javascript:void(0)" onclick="xemVBD({{ vbd.pk }})">{{ vbd.SoKyHieu }}</a></td>
             <td class="text-left">{{ vbd.LoaiVanBan|default:"" }}</td>
             <td class="text-left"
               style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
@@ -727,9 +726,9 @@
           <label style="font-size: 14px; font-weight: 500; color: #333;">Trạng thái</label>
           <select name="trang_thai" class="form-control">
             <option value="">--- Tất cả ---</option>
-            <option value="DANG_XU_LY" {% if request.GET.trang_thai=="DANG_XU_LY" %}selected{% endif %}>Đang xử lý
+            <option value="DANG_XU_LY" {% if request.GET.trang_thai == "DANG_XU_LY" %}selected{% endif %}>Đang xử lý
             </option>
-            <option value="HOAN_THANH" {% if request.GET.trang_thai=="HOAN_THANH" %}selected{% endif %}>Hoàn thành
+            <option value="HOAN_THANH" {% if request.GET.trang_thai == "HOAN_THANH" %}selected{% endif %}>Hoàn thành
             </option>
           </select>
 

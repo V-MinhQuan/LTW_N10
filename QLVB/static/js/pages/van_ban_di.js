@@ -306,7 +306,7 @@ function luuCapNhat() {
     let trong = document.getElementById('edit_donViBH').value;
     let ngoai = document.getElementById('edit_donViNgoai').value;
     if (!trong && !ngoai) {
-        alert("Vui lòng chọn đơn vị nhận văn bản!");
+        App.showAlert("Vui lòng chọn đơn vị nhận văn bản!");
         return;
     }
 
@@ -450,7 +450,7 @@ function xacNhanPheDuyet(chap_nhan) {
     }
 
     if (chap_nhan && isEmpty) {
-        alert("Vui lòng ký tên trước khi phê duyệt.");
+        App.showAlert("Vui lòng ký tên trước khi phê duyệt.");
         return;
     }
 
@@ -504,17 +504,17 @@ function xacNhanPhatHanh() {
     let ph_phongban = document.getElementById('ph_phongban');
     
     if (!trichYeu) {
-        alert('Vui lòng nhập trích yếu!');
+        App.showAlert('Vui lòng nhập trích yếu!');
         return;
     }
     
     if (ph_phongban && !ph_phongban.value) {
-        alert('Vui lòng chọn phòng ban nhận để phân công!');
+        App.showAlert('Vui lòng chọn phòng ban nhận để phân công!');
         return;
     }
     
     if (!ngayBanHanh) {
-        alert('Vui lòng chọn ngày ban hành!');
+        App.showAlert('Vui lòng chọn ngày ban hành!');
         return;
     }
     
