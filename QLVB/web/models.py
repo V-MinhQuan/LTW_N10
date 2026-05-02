@@ -196,14 +196,14 @@ class VanBanDen(models.Model):
         DANG_XU_LY = 'DANG_XU_LY', 'Đang xử lý'
 
     VanBanDenID = models.AutoField(primary_key=True)
-    DonViNgoaiID = models.ForeignKey(DonViBenNgoai, on_delete=models.CASCADE)
+    DonViNgoaiID = models.ForeignKey(DonViBenNgoai, on_delete=models.CASCADE, null=True, blank=True)
+    VanBanDiID = models.ForeignKey('VanBanDi', on_delete=models.SET_NULL, null=True, blank=True, related_name='vbd_link_set')
     UserID = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, null=True, blank=True)
     SoKyHieu = models.CharField(max_length=50)
     NgayBanHanh = models.DateTimeField(null=True, blank=True)
     NgayNhan = models.DateTimeField(null=True, blank=True)
     LoaiVanBan = models.CharField(max_length=50, null=True, blank=True)
     TrichYeu = models.CharField(max_length=255, null=True, blank=True)
-    TrangThai = models.CharField(max_length=50, choices=TrangThaiChoices.choices, default=TrangThaiChoices.DANG_XU_LY)
     DonViTrongID = models.ForeignKey(DonViBenTrong, on_delete=models.SET_NULL, null=True, blank=True)
     TrangThai = models.CharField(max_length=50, choices=TrangThaiChoices.choices, default=TrangThaiChoices.DANG_XU_LY, db_index=True)
     NgayHoanThanh = models.DateTimeField(null=True, blank=True)

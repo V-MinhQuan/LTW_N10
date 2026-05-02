@@ -9,12 +9,12 @@ function apiPost(url, data, onSuccess) {
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify(data)
     })
-    .then(r => r.json())
-    .then(res => {
-        if (res.status === 'success') onSuccess(res);
-        else alert('Lỗi: ' + res.message);
-    })
-    .catch(() => alert('Có lỗi xảy ra, vui lòng thử lại.'));
+        .then(r => r.json())
+        .then(res => {
+            if (res.status === 'success') onSuccess(res);
+            else alert('Lỗi: ' + res.message);
+        })
+        .catch(() => alert('Có lỗi xảy ra, vui lòng thử lại.'));
 }
 
 function apiPostForm(url, formData, onSuccess) {
@@ -23,12 +23,12 @@ function apiPostForm(url, formData, onSuccess) {
         headers: { 'X-CSRFToken': getCookie('csrftoken') },
         body: formData
     })
-    .then(r => r.json())
-    .then(res => {
-        if (res.status === 'success') onSuccess(res);
-        else alert('Lỗi: ' + res.message);
-    })
-    .catch(() => alert('Có lỗi xảy ra, vui lòng thử lại.'));
+        .then(r => r.json())
+        .then(res => {
+            if (res.status === 'success') onSuccess(res);
+            else alert('Lỗi: ' + res.message);
+        })
+        .catch(() => alert('Có lỗi xảy ra, vui lòng thử lại.'));
 }
 
 function goPage(page) {
@@ -46,9 +46,9 @@ function openVBD(id) {
         // Reset form nếu là modal thêm mới
         if (id === 'modalForm') {
             const inputs = modal.querySelectorAll('input, select, textarea');
-            inputs.forEach(i => { 
+            inputs.forEach(i => {
                 if (i.type !== 'button' && i.type !== 'submit') {
-                    i.value = ''; 
+                    i.value = '';
                     if (i.tagName === 'SELECT' && (i.id === 'donViBH' || i.id === 'nguoiSoanThao' || i.id === 'donViNgoai')) {
                         i.selectedIndex = 0;
                         if (i.id === 'nguoiSoanThao') i.innerHTML = '<option value="">--- Chọn người xử lý ---</option>';
@@ -58,15 +58,15 @@ function openVBD(id) {
             });
             const label = document.getElementById('fileLabel');
             if (label) label.innerHTML = 'Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính';
-            
+
             // Lấy gợi ý số ký hiệu
             fetch('/api/van-ban-di/goi-y-so-ky-hieu/')
-            .then(r => r.json())
-            .then(res => {
-                if(res.status === 'success') {
-                    document.getElementById('soKyHieu').value = res.suggested;
-                }
-            });
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status === 'success') {
+                        document.getElementById('soKyHieu').value = res.suggested;
+                    }
+                });
         }
     }
 }
@@ -74,7 +74,7 @@ function openVBD(id) {
 function closeVBD(id) {
     const modal = document.getElementById(id);
     if (modal) modal.style.display = 'none';
-    
+
     // Kiểm tra xem có còn modal nào đang mở không
     const visibleModals = document.querySelectorAll('.modal-box[style*="display: flex"], .vbd-popup-overlay[style*="display: flex"]');
     if (visibleModals.length === 0) {
@@ -87,7 +87,7 @@ function closeVBD(id) {
     }
 }
 
-window.onclick = function(event) {
+window.onclick = function (event) {
     if (event.target.classList.contains('vbd-popup-overlay') || event.target.classList.contains('modal-box')) {
         closeVBD(event.target.id);
     }
@@ -129,7 +129,7 @@ function _renderFile(section, noFileEl, tepDinhKem, showDelete = true) {
 
 function xoaFileHienCo() {
     let section = document.getElementById('edit_file_section');
-    let noFile  = document.getElementById('edit_no_file');
+    let noFile = document.getElementById('edit_no_file');
     section.innerHTML = '';
     section.style.display = 'none';
     noFile.style.display = 'block';
@@ -146,35 +146,35 @@ let _detailId = null;
 function xemChiTiet(btn) {
     _detailId = btn.closest("tr").dataset.id;
     fetch('/api/van-ban-di/' + _detailId + '/chi-tiet/')
-    .then(r => r.json())
-    .then(res => {
-        let d = res.data;
-        document.getElementById("ct_sokyhieu").value = d.so_ky_hieu;
-        document.getElementById("ct_trichyeu").value = d.trich_yeu;
-        document.getElementById("ct_donvi").value = (d.don_vi_trong || d.don_vi_ngoai) || 'Chưa xác định';
-        document.getElementById("ct_loaivb").value = d.loai_vb;
-        document.getElementById("ct_nguoisoan").value = d.nguoi_soan;
-        document.getElementById("ct_ngay").value = d.ngay_ban_hanh;
-        document.getElementById("ct_trangthai").value = d.trang_thai;
-        _renderFile(document.getElementById('ct_file_section'), document.getElementById('ct_no_file'), d.tep_dinh_kem, false);
+        .then(r => r.json())
+        .then(res => {
+            let d = res.data;
+            document.getElementById("ct_sokyhieu").value = d.so_ky_hieu;
+            document.getElementById("ct_trichyeu").value = d.trich_yeu;
+            document.getElementById("ct_donvi").value = (d.don_vi_trong || d.don_vi_ngoai) || 'Chưa xác định';
+            document.getElementById("ct_loaivb").value = d.loai_vb;
+            document.getElementById("ct_nguoisoan").value = d.nguoi_soan;
+            document.getElementById("ct_ngay").value = d.ngay_ban_hanh;
+            document.getElementById("ct_trangthai").value = d.trang_thai;
+            _renderFile(document.getElementById('ct_file_section'), document.getElementById('ct_no_file'), d.tep_dinh_kem, false);
 
-        // Render lịch sử xử lý
-        const historyContainer = document.getElementById('ct_process_history');
-        if (historyContainer) {
-            historyContainer.innerHTML = '';
-            if (d.xu_ly_history && d.xu_ly_history.length > 0) {
-                // Map loại -> icon
-                const iconMap = {
-                    'Phân công': 'fas fa-user-plus',
-                    'Chuyển tiếp': 'fas fa-share',
-                    'Báo cáo': 'fas fa-flag',
-                    'Bút phê': 'fas fa-pen-nib',
-                };
-                d.xu_ly_history.forEach(item => {
-                    const icon = iconMap[item.type] || 'fas fa-circle';
-                    const row = document.createElement('div');
-                    row.className = 'vbd-process-row';
-                    row.innerHTML = `
+            // Render lịch sử xử lý
+            const historyContainer = document.getElementById('ct_process_history');
+            if (historyContainer) {
+                historyContainer.innerHTML = '';
+                if (d.xu_ly_history && d.xu_ly_history.length > 0) {
+                    // Map loại -> icon
+                    const iconMap = {
+                        'Phân công': 'fas fa-user-plus',
+                        'Chuyển tiếp': 'fas fa-share',
+                        'Báo cáo': 'fas fa-flag',
+                        'Bút phê': 'fas fa-pen-nib',
+                    };
+                    d.xu_ly_history.forEach(item => {
+                        const icon = iconMap[item.type] || 'fas fa-circle';
+                        const row = document.createElement('div');
+                        row.className = 'vbd-process-row';
+                        row.innerHTML = `
                         <div><span class="vbd-process-tag ${item.tag_class}">${item.type}</span></div>
                         <div class="vbd-process-personnel">
                             <div class="vbd-process-personnel-icon">
@@ -187,15 +187,15 @@ function xemChiTiet(btn) {
                             <div class="vbd-process-time-row"><i class="far fa-clock"></i> ${item.time}</div>
                         </div>
                     `;
-                    historyContainer.appendChild(row);
-                });
-            } else {
-                historyContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Chưa có nội dung xử lý văn bản này.</div>';
+                        historyContainer.appendChild(row);
+                    });
+                } else {
+                    historyContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Chưa có nội dung xử lý văn bản này.</div>';
+                }
             }
-        }
 
-        openVBD('modalDetail');
-    });
+            openVBD('modalDetail');
+        });
 }
 
 // ---- THÊM MỚI ----
@@ -256,7 +256,7 @@ function previewEditFile(input) {
             <div class="vbd-file-icon">${ext}</div>
             <div class="vbd-file-details">
                 <span class="vbd-file-name">${file.name}</span>
-                <span class="vbd-file-size">${(file.size/1024/1024).toFixed(2)} MB</span>
+                <span class="vbd-file-size">${(file.size / 1024 / 1024).toFixed(2)} MB</span>
             </div>
         </div>
         <button type="button" style="background:none;border:none;cursor:pointer;color:#888;font-size:16px;padding:4px 8px;" onclick="openVBD('popupRemoveFile')">
@@ -268,48 +268,48 @@ function previewEditFile(input) {
 function suaVanBan(btn) {
     _editId = btn.closest("tr").dataset.id;
     fetch('/api/van-ban-di/' + _editId + '/chi-tiet/')
-    .then(r => r.json())
-    .then(res => {
-        let d = res.data;
-        document.getElementById("edit_trichyeu").value = d.trich_yeu;
-        document.getElementById("edit_sokyhieu").value = d.so_ky_hieu;
-        document.getElementById("edit_loaivb").value = d.loai_vb;
-        document.getElementById("edit_nguoisoan").value = d.nguoi_soan;
+        .then(r => r.json())
+        .then(res => {
+            let d = res.data;
+            document.getElementById("edit_trichyeu").value = d.trich_yeu;
+            document.getElementById("edit_sokyhieu").value = d.so_ky_hieu;
+            document.getElementById("edit_loaivb").value = d.loai_vb;
+            document.getElementById("edit_nguoisoan").value = d.nguoi_soan;
 
-        // Set dropdown đơn vị — tìm theo text hoặc id
-        // Set dropdown đơn vị — sử dụng tên cho autocomplete
-        document.getElementById("edit_donViBH").value = d.don_vi_trong || '';
-        document.getElementById("edit_donViNgoai").value = d.don_vi_ngoai || '';
-        if (d.don_vi_trong) {
-            // Tìm ID tương ứng với tên để load nhân viên
-            let dept = _cachedDonVi.trong.find(i => i.ten === d.don_vi_trong);
-            if (dept) loadUsersByDept(dept.id, 'edit_nguoisoan', d.nguoi_soan_id);
-        }
+            // Set dropdown đơn vị — tìm theo text hoặc id
+            // Set dropdown đơn vị — sử dụng tên cho autocomplete
+            document.getElementById("edit_donViBH").value = d.don_vi_trong || '';
+            document.getElementById("edit_donViNgoai").value = d.don_vi_ngoai || '';
+            if (d.don_vi_trong) {
+                // Tìm ID tương ứng với tên để load nhân viên
+                let dept = _cachedDonVi.trong.find(i => i.ten === d.don_vi_trong);
+                if (dept) loadUsersByDept(dept.id, 'edit_nguoisoan', d.nguoi_soan_id);
+            }
 
 
-        // Map tên hiển thị -> mã
-        let ttMap = {'Dự thảo':'DU_THAO','Chờ phê duyệt':'CHO_PHE_DUYET','Đã phê duyệt':'DA_PHE_DUYET','Đã phát hành':'DA_PHAT_HANH'};
-        document.getElementById("edit_trangthai").value = ttMap[d.trang_thai] || 'DU_THAO';
+            // Map tên hiển thị -> mã
+            let ttMap = { 'Dự thảo': 'DU_THAO', 'Chờ phê duyệt': 'CHO_PHE_DUYET', 'Đã phê duyệt': 'DA_PHE_DUYET', 'Đã phát hành': 'DA_PHAT_HANH' };
+            document.getElementById("edit_trangthai").value = ttMap[d.trang_thai] || 'DU_THAO';
 
-        let parts = d.ngay_ban_hanh.split("/");
-        if (parts.length === 3) document.getElementById("edit_ngay").value = parts[2]+"-"+parts[1]+"-"+parts[0];
+            let parts = d.ngay_ban_hanh.split("/");
+            if (parts.length === 3) document.getElementById("edit_ngay").value = parts[2] + "-" + parts[1] + "-" + parts[0];
 
-        _renderFile(document.getElementById('edit_file_section'), document.getElementById('edit_no_file'), d.tep_dinh_kem);
-        document.getElementById('edit_xoa_file').value = '0'; // reset flag
-        openVBD('modalEdit');
-    });
+            _renderFile(document.getElementById('edit_file_section'), document.getElementById('edit_no_file'), d.tep_dinh_kem);
+            document.getElementById('edit_xoa_file').value = '0'; // reset flag
+            openVBD('modalEdit');
+        });
 }
 
 function luuCapNhat() {
     if (!_editId) return;
-    
+
     let trong = document.getElementById('edit_donViBH').value;
     let ngoai = document.getElementById('edit_donViNgoai').value;
     if (!trong && !ngoai) {
         alert("Vui lòng chọn đơn vị nhận văn bản!");
         return;
     }
-    
+
     let fd = new FormData();
     fd.append('so_ky_hieu', document.getElementById('edit_sokyhieu').value);
     fd.append('trich_yeu', document.getElementById('edit_trichyeu').value);
@@ -340,7 +340,7 @@ let _xoaId = null;
 
 function xoaVanBan(btn) {
     const id = btn.closest("tr").dataset.id;
-    App.confirmDelete("Bạn có chắc chắn muốn xóa văn bản này không?", function() {
+    App.confirmDelete("Bạn có chắc chắn muốn xóa văn bản này không?", function () {
         submitXoaVanBan(id);
     });
 }
@@ -478,22 +478,22 @@ let _phatHanhId = null;
 function phatHanhVanBan(btn) {
     _phatHanhId = btn.closest("tr").dataset.id;
     fetch('/api/van-ban-di/' + _phatHanhId + '/chi-tiet/')
-    .then(r => r.json())
-    .then(res => {
-        let d = res.data;
-        document.getElementById("ph_trichyeu").value = d.trich_yeu;
-        if(d.ngay_ban_hanh) {
-            let parts = d.ngay_ban_hanh.split("/");
-            if (parts.length === 3) {
-                document.getElementById("ph_ngay").value = parts[2] + "-" + parts[1] + "-" + parts[0];
+        .then(r => r.json())
+        .then(res => {
+            let d = res.data;
+            document.getElementById("ph_trichyeu").value = d.trich_yeu;
+            if (d.ngay_ban_hanh) {
+                let parts = d.ngay_ban_hanh.split("/");
+                if (parts.length === 3) {
+                    document.getElementById("ph_ngay").value = parts[2] + "-" + parts[1] + "-" + parts[0];
+                }
             }
-        }
-        let ph_phongban = document.getElementById("ph_phongban");
-        if (ph_phongban) {
-            ph_phongban.value = d.don_vi_trong_id || '';
-        }
-        openVBD('popupPhatHanh');
-    });
+            let ph_phongban = document.getElementById("ph_phongban");
+            if (ph_phongban) {
+                ph_phongban.value = d.don_vi_trong_id || '';
+            }
+            openVBD('popupPhatHanh');
+        });
 }
 
 function xacNhanPhatHanh() {
@@ -533,40 +533,40 @@ function xacNhanPhatHanh() {
 // ---- LỊCH SỬ ----
 function moLichSu(vanBanId) {
     fetch('/api/van-ban-di/' + vanBanId + '/lich-su/')
-    .then(r => r.json())
-    .then(res => {
-        let tbody = document.querySelector('#historyOverlay .history-table-full tbody');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-        if (!res.data || !res.data.length) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="color:#999;padding:20px;">Chưa có lịch sử chỉnh sửa</td></tr>';
-        } else {
-            res.data.forEach((ls, i) => {
-                let ttHtml = '';
-                if (ls.trang_thai_moi) {
-                    ttHtml = ls.trang_thai_cu && ls.trang_thai_cu !== ls.trang_thai_moi
-                        ? ` <span style="color:#888;font-size:12px;">(${ls.trang_thai_cu} → <strong>${ls.trang_thai_moi}</strong>)</span>`
-                        : ` <span style="color:#888;font-size:12px;">(→ <strong>${ls.trang_thai_moi}</strong>)</span>`;
-                }
-                let noiDungHtml = ls.noi_dung.replace(/Cập nhật/g, '<strong>Cập nhật</strong>');
-                tbody.innerHTML += `<tr>
-                    <td class="text-center">${i+1}</td>
+        .then(r => r.json())
+        .then(res => {
+            let tbody = document.querySelector('#historyOverlay .history-table-full tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!res.data || !res.data.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="color:#999;padding:20px;">Chưa có lịch sử chỉnh sửa</td></tr>';
+            } else {
+                res.data.forEach((ls, i) => {
+                    let ttHtml = '';
+                    if (ls.trang_thai_moi) {
+                        ttHtml = ls.trang_thai_cu && ls.trang_thai_cu !== ls.trang_thai_moi
+                            ? ` <span style="color:#888;font-size:12px;">(${ls.trang_thai_cu} → <strong>${ls.trang_thai_moi}</strong>)</span>`
+                            : ` <span style="color:#888;font-size:12px;">(→ <strong>${ls.trang_thai_moi}</strong>)</span>`;
+                    }
+                    let noiDungHtml = ls.noi_dung.replace(/Cập nhật/g, '<strong>Cập nhật</strong>');
+                    tbody.innerHTML += `<tr>
+                    <td class="text-center">${i + 1}</td>
                     <td class="text-center">${ls.thoi_gian}</td>
                     <td>${ls.nguoi_thuc_hien}</td>
                     <td class="text-center">${ls.ma_van_ban}</td>
                     <td>${ls.trich_yeu}</td>
                     <td class="text-left">${noiDungHtml}${ttHtml}</td>
                 </tr>`;
-            });
-        }
-        closeVBD('modalDetail');
-        openVBD('historyOverlay');
-    })
-    .catch(() => {
-        let tbody = document.querySelector('#historyOverlay .history-table-full tbody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="color:#e74c3c;padding:20px;">Không tải được lịch sử</td></tr>';
-        openVBD('historyOverlay');
-    });
+                });
+            }
+            closeVBD('modalDetail');
+            openVBD('historyOverlay');
+        })
+        .catch(() => {
+            let tbody = document.querySelector('#historyOverlay .history-table-full tbody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="color:#e74c3c;padding:20px;">Không tải được lịch sử</td></tr>';
+            openVBD('historyOverlay');
+        });
 }
 
 // ---- TÌM ĐỂ XỬ LÝ ----
@@ -581,11 +581,11 @@ let _cachedDonVi = { trong: [], ngoai: [] };
 
 function reloadDonViDropdowns() {
     fetch('/api/don-vi/list/')
-    .then(r => r.json())
-    .then(res => {
-        if (res.status !== 'success') return;
-        _cachedDonVi = res;
-    });
+        .then(r => r.json())
+        .then(res => {
+            if (res.status !== 'success') return;
+            _cachedDonVi = res;
+        });
 }
 
 // Gọi khi trang load
@@ -617,7 +617,7 @@ function loadUsersByDept(deptId, targetSelectId, selectedValue = null) {
 document.addEventListener('DOMContentLoaded', () => {
     const donViBH = document.getElementById('donViBH');
     if (donViBH) {
-        donViBH.addEventListener('input', function() {
+        donViBH.addEventListener('input', function () {
             let val = this.value;
             let dept = _cachedDonVi.trong.find(i => i.ten === val);
             if (dept) loadUsersByDept(dept.id, 'nguoiSoanThao');
@@ -626,7 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const editDonViBH = document.getElementById('edit_donViBH');
     if (editDonViBH) {
-        editDonViBH.addEventListener('input', function() {
+        editDonViBH.addEventListener('input', function () {
             let val = this.value;
             let dept = _cachedDonVi.trong.find(i => i.ten === val);
             if (dept) loadUsersByDept(dept.id, 'edit_nguoisoan');

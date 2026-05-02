@@ -428,7 +428,7 @@
     margin-top: 4px !important;
   }
 
-    .btn-attach-new:hover {
+  .btn-attach-new:hover {
     background-color: #0099d6 !important;
   }
 
@@ -442,13 +442,15 @@
     text-align: center !important;
     min-width: 90px !important;
   }
-  .pill-orange { 
-    background-color: #FFEDD5 !important; 
-    color: #C26844 !important; 
+
+  .pill-orange {
+    background-color: #FFEDD5 !important;
+    color: #C26844 !important;
   }
-  .pill-green { 
-    background-color: #E8F5E9 !important; 
-    color: #2E7D32 !important; 
+
+  .pill-green {
+    background-color: #E8F5E9 !important;
+    color: #2E7D32 !important;
   }
 </style>
 {% endblock %}
@@ -460,18 +462,24 @@
   <div class="panel-body">
     <form method="GET" action="{% url 'vbd_index' %}">
       <div class="search-grid">
-        <input type="text" name="so_ky_hieu" class="form-control" placeholder="Số ký hiệu văn bản" value="{{ request.GET.so_ky_hieu }}" />
-        <input type="text" name="trich_yeu" class="form-control" placeholder="Trích yếu văn bản" value="{{ request.GET.trich_yeu }}" />
-        <input type="text" name="don_vi_ngoai" list="don_vi_ngoai_list" class="form-control" placeholder="Đơn vị gửi" value="{{ request.GET.don_vi_ngoai }}">
-        <input type="text" name="don_vi_trong" list="don_vi_trong_list" class="form-control" placeholder="Đơn vị nội bộ nhận" value="{{ request.GET.don_vi_trong }}">
+        <input type="text" name="so_ky_hieu" class="form-control" placeholder="Số ký hiệu văn bản"
+          value="{{ request.GET.so_ky_hieu }}" />
+        <input type="text" name="trich_yeu" class="form-control" placeholder="Trích yếu văn bản"
+          value="{{ request.GET.trich_yeu }}" />
+        <input type="text" name="don_vi_ngoai" list="don_vi_ngoai_list" class="form-control" placeholder="Đơn vị gửi"
+          value="{{ request.GET.don_vi_ngoai }}">
+        <input type="text" name="don_vi_trong" list="don_vi_trong_list" class="form-control"
+          placeholder="Đơn vị nội bộ nhận" value="{{ request.GET.don_vi_trong }}">
       </div>
       <div class="btn-group">
         <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>
         <a href="{% url 'vbd_index' %}" class="btn btn-secondary"><i class="fa fa-sync-alt"></i> Làm mới</a>
         {% if user.is_giam_doc or user.is_it_head or user.is_department_head or user.is_nhan_vien %}
-        <button type="button" class="btn btn-success" onclick="openVBD('popupAdd')"><i class="fa fa-plus"></i> Thêm mới</button>
+        <button type="button" class="btn btn-success" onclick="openVBD('popupAdd')"><i class="fa fa-plus"></i> Thêm
+          mới</button>
         {% endif %}
-        <button type="button" class="btn btn-warning" onclick="openVBD('popupFilter')"><i class="fa fa-filter"></i> Bộ lọc</button>
+        <button type="button" class="btn btn-warning" onclick="openVBD('popupFilter')"><i class="fa fa-filter"></i> Bộ
+          lọc</button>
       </div>
     </form>
   </div>
@@ -501,9 +509,12 @@
           {% for vbd in danh_sach %}
           <tr>
             <td class="text-left">{{ page_obj.start_index|add:forloop.counter0 }}</td>
-            <td class="text-left"><a href="javascript:void(0)" onclick="xemVBD({{ vbd.VanBanDenID }})">{{ vbd.SoKyHieu }}</a></td>
+            <td class="text-left"><a href="javascript:void(0)" onclick="xemVBD({{ vbd.VanBanDenID }})">{{ vbd.SoKyHieu
+                }}</a></td>
             <td class="text-left">{{ vbd.LoaiVanBan|default:"" }}</td>
-            <td class="text-left" style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ vbd.TrichYeu }}">{{ vbd.TrichYeu|default:"" }}</td>
+            <td class="text-left"
+              style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+              title="{{ vbd.TrichYeu }}">{{ vbd.TrichYeu|default:"" }}</td>
             <td class="text-left">{{ vbd.NgayNhan|date:"d/m/Y" }}</td>
             <td class="text-left">{{ vbd.DonViNgoaiID.TenDonVi|default:"" }}</td>
             <td class="text-center">
@@ -516,45 +527,50 @@
             <td class="text-left" style="white-space: nowrap;">
               {% check_perm request.user 'xem' vbd as can_view %}
               {% if can_view %}
-              <button class="action-btn btn-primary" onclick="xemVBD({{ vbd.VanBanDenID }})" title="Xem"><i class="fas fa-eye"></i></button>
+              <button class="action-btn btn-primary" onclick="xemVBD({{ vbd.VanBanDenID }})" title="Xem"><i
+                  class="fas fa-eye"></i></button>
               {% endif %}
-              
+
               {% check_perm request.user 'sua' vbd as can_edit %}
               {% if can_edit %}
-              <button class="action-btn btn-success" onclick="suaVBD({{ vbd.VanBanDenID }})" title="Sửa"><i class="fas fa-edit"></i></button>
+              <button class="action-btn btn-success" onclick="suaVBD({{ vbd.VanBanDenID }})" title="Sửa"><i
+                  class="fas fa-edit"></i></button>
               {% endif %}
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="8" class="text-center">Không có văn bản nào.</td></tr>
+          <tr>
+            <td colspan="8" class="text-center">Không có văn bản nào.</td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     <div class="table-footer">
-      <div>Hiển thị {{ page_obj.start_index|default:0 }} - {{ page_obj.end_index|default:0 }} / Tổng số: {{ tong_so }}</div>
+      <div>Hiển thị {{ page_obj.start_index|default:0 }} - {{ page_obj.end_index|default:0 }} / Tổng số: {{ tong_so }}
+      </div>
       <div class="pagination">
         {% if page_obj.paginator.num_pages > 1 %}
-            <a href="?page=1{{ query_string }}" class="page-btn">Đầu</a>
-            
-            {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}{{ query_string }}" class="page-btn">Trước</a>
-            {% endif %}
+        <a href="?page=1{{ query_string }}" class="page-btn">Đầu</a>
 
-            {% for num in page_obj.paginator.page_range %}
-                {% if page_obj.number == num %}
-                    <button type="button" class="page-btn active">{{ num }}</button>
-                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                    <a href="?page={{ num }}{{ query_string }}" class="page-btn">{{ num }}</a>
-                {% endif %}
-            {% endfor %}
-
-            {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{{ query_string }}" class="page-btn">Sau</a>
-            {% endif %}
-
-            <a href="?page={{ page_obj.paginator.num_pages }}{{ query_string }}" class="page-btn">Cuối</a>
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{{ query_string }}" class="page-btn">Trước</a>
         {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <button type="button" class="page-btn active">{{ num }}</button>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <a
+          href="?page={{ num }}{{ query_string }}" class="page-btn">{{ num }}</a>
+          {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}{{ query_string }}" class="page-btn">Sau</a>
+          {% endif %}
+
+          <a href="?page={{ page_obj.paginator.num_pages }}{{ query_string }}" class="page-btn">Cuối</a>
+          {% endif %}
       </div>
     </div>
 </section>
@@ -587,9 +603,10 @@
       </div>
       <div class="btn-group" style="margin-top: 15px; margin-bottom: 25px;">
         <button class="btn btn-primary"><i class="fa fa-search"></i> Tìm kiếm</button>
-        <button class="btn btn-secondary" onclick="closeVBD('historyView');"><i class="fa fa-sync-alt"></i> Làm mới</button>
+        <button class="btn btn-secondary" onclick="closeVBD('historyView');"><i class="fa fa-sync-alt"></i> Làm
+          mới</button>
       </div>
-      
+
       <div class="table-responsive">
         <table class="history-table-full">
           <thead>
@@ -645,15 +662,18 @@
           </div>
           <div class="vbd-field">
             <label>Đơn vị gửi (<span style="color:red">*</span>)</label>
-            <input type="text" name="don_vi_ngoai_id" list="don_vi_ngoai_list" class="form-control" style="flex:1;" placeholder="Nhập hoặc chọn đơn vị gửi" required>
+            <input type="text" name="don_vi_ngoai_id" list="don_vi_ngoai_list" class="form-control" style="flex:1;"
+              placeholder="Nhập hoặc chọn đơn vị gửi" required>
           </div>
           <div class="vbd-field">
             <label>Đơn vị nội bộ nhận</label>
-            <input type="text" name="don_vi_trong_id" list="don_vi_trong_list" class="form-control" style="flex:1;" placeholder="Nhập hoặc chọn đơn vị nội bộ">
+            <input type="text" name="don_vi_trong_id" list="don_vi_trong_list" class="form-control" style="flex:1;"
+              placeholder="Nhập hoặc chọn đơn vị nội bộ">
           </div>
         </div>
         <div style="margin-top: 12px;">
-          <label style="font-size: 14px; font-weight: 500; color: #333; display: block; margin-bottom: 8px;">Tài liệu đính kèm (<span style="color:red">*</span>)</label>
+          <label style="font-size: 14px; font-weight: 500; color: #333; display: block; margin-bottom: 8px;">Tài liệu
+            đính kèm (<span style="color:red">*</span>)</label>
           <div class="vbd-upload-area-new" id="add_upload_area">
             <div class="upload-icon">
               <i class="fa fa-cloud-upload-alt"></i>
@@ -667,10 +687,13 @@
           <div class="vbd-file-list" id="add_tep_dinh_kem_container" style="display:none; margin-top: 10px;">
             <div class="vbd-file-item">
               <div class="vbd-file-info">
-                <div class="vbd-file-icon" style="background-color: #e3f2fd; border-color: #bbdefb; color: #1976d2;"><i class="fas fa-file-alt"></i></div>
+                <div class="vbd-file-icon" style="background-color: #e3f2fd; border-color: #bbdefb; color: #1976d2;"><i
+                    class="fas fa-file-alt"></i></div>
                 <div class="vbd-file-details">
-                  <span class="vbd-file-name" id="add_tep_dinh_kem_name" style="font-weight: 500; color: #333; font-size: 14px;"></span>
-                  <span class="vbd-file-size" id="add_tep_dinh_kem_size" style="font-size: 12px; color: #666;">Vừa chọn</span>
+                  <span class="vbd-file-name" id="add_tep_dinh_kem_name"
+                    style="font-weight: 500; color: #333; font-size: 14px;"></span>
+                  <span class="vbd-file-size" id="add_tep_dinh_kem_size" style="font-size: 12px; color: #666;">Vừa
+                    chọn</span>
                 </div>
               </div>
               <i class="fas fa-trash-alt vbd-file-delete" onclick="removeAddSelectedFile()" title="Bỏ chọn tệp"></i>
@@ -696,26 +719,31 @@
     <div class="vbd-popup-body">
       <form id="filterFormVBD">
         <div style="display: grid; grid-template-columns: 130px 1fr 130px 1fr; gap: 15px 25px; align-items: center;">
-          
+
           <label style="font-size: 14px; font-weight: 500; color: #333;">Loại văn bản</label>
-          <input type="text" name="loai_vb" list="loai_vb_list" class="form-control" placeholder="VD: Báo cáo..." value="{{ request.GET.loai_vb }}">
-          
+          <input type="text" name="loai_vb" list="loai_vb_list" class="form-control" placeholder="VD: Báo cáo..."
+            value="{{ request.GET.loai_vb }}">
+
           <label style="font-size: 14px; font-weight: 500; color: #333;">Trạng thái</label>
           <select name="trang_thai" class="form-control">
             <option value="">--- Tất cả ---</option>
-            <option value="DANG_XU_LY" {% if request.GET.trang_thai == "DANG_XU_LY" %}selected{% endif %}>Đang xử lý</option>
-            <option value="HOAN_THANH" {% if request.GET.trang_thai == "HOAN_THANH" %}selected{% endif %}>Hoàn thành</option>
+            <option value="DANG_XU_LY" {% if request.GET.trang_thai=="DANG_XU_LY" %}selected{% endif %}>Đang xử lý
+            </option>
+            <option value="HOAN_THANH" {% if request.GET.trang_thai=="HOAN_THANH" %}selected{% endif %}>Hoàn thành
+            </option>
           </select>
 
           <label style="font-size: 14px; font-weight: 500; color: #333;">Đơn vị gửi</label>
-          <input type="text" name="don_vi_ngoai" list="don_vi_ngoai_list" class="form-control" placeholder="Tất cả đơn vị gửi" value="{{ request.GET.don_vi_ngoai }}">
+          <input type="text" name="don_vi_ngoai" list="don_vi_ngoai_list" class="form-control"
+            placeholder="Tất cả đơn vị gửi" value="{{ request.GET.don_vi_ngoai }}">
 
           <label style="font-size: 14px; font-weight: 500; color: #333;">Đơn vị nội bộ</label>
-          <input type="text" name="don_vi_trong" list="don_vi_trong_list" class="form-control" placeholder="Tất cả đơn vị nội bộ" value="{{ request.GET.don_vi_trong }}">
+          <input type="text" name="don_vi_trong" list="don_vi_trong_list" class="form-control"
+            placeholder="Tất cả đơn vị nội bộ" value="{{ request.GET.don_vi_trong }}">
 
           <label style="font-size: 14px; font-weight: 500; color: #333;">Ngày nhận (Từ)</label>
           <input type="date" name="ngay_tu" class="form-control" value="{{ request.GET.ngay_tu }}">
-          
+
           <label style="font-size: 14px; font-weight: 500; color: #333; text-align: left;">Đến</label>
           <input type="date" name="ngay_den" class="form-control" value="{{ request.GET.ngay_den }}">
 
@@ -746,10 +774,14 @@
     </div>
     <div class="vbd-popup-body" id="popupViewBody">
       <div style="display: flex; justify-content: flex-end; margin-bottom: 15px; gap: 10px;">
-        <button type="button" id="btn_goto_processing" class="btn" style="background: #007bff; border: 1px solid #007bff; color: white; padding: 5px 15px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" onclick="gotoProcessing(this.dataset.so_ky_hieu)">
+        <button type="button" id="btn_goto_processing" class="btn"
+          style="background: #007bff; border: 1px solid #007bff; color: white; padding: 5px 15px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;"
+          onclick="gotoProcessing(this.dataset.so_ky_hieu)">
           <i class="fa fa-search"></i> Tìm để xử lý
         </button>
-        <button type="button" class="btn btn-history" style="background: #f8f9fa; border: 1px solid #ced4da; color: #333; padding: 5px 12px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px;" onclick="closeVBD('popupView'); openHistory(this.dataset.id);">
+        <button type="button" class="btn btn-history"
+          style="background: #f8f9fa; border: 1px solid #ced4da; color: #333; padding: 5px 12px; font-size: 13px; font-weight: 500; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px;"
+          onclick="closeVBD('popupView'); openHistory(this.dataset.id);">
           <i class="fa fa-history" style="color: #666;"></i> Lịch sử chỉnh sửa
         </button>
       </div>
@@ -783,12 +815,12 @@
       </div>
       <div class="vbd-grid">
         <div class="vbd-field">
-            <label>Đơn vị gửi</label>
-            <input type="text" id="view_don_vi_gui" readonly>
+          <label>Đơn vị gửi</label>
+          <input type="text" id="view_don_vi_gui" readonly>
         </div>
         <div class="vbd-field">
-            <label>Đơn vị nội bộ nhận</label>
-            <input type="text" id="view_don_vi_trong" readonly>
+          <label>Đơn vị nội bộ nhận</label>
+          <input type="text" id="view_don_vi_trong" readonly>
         </div>
       </div>
 
@@ -832,7 +864,8 @@
     </div>
     <div class="vbd-popup-body">
       <!-- Hiện thông tin lịch sử trực tiếp cho văn bản này, không cần tìm kiếm -->
-      <div style="margin-bottom: 20px; font-weight: bold; color: #2c3e50; text-align: center; background: #e3f2fd; padding: 12px; border: 1px solid #bbdefb; border-radius: 6px;">
+      <div
+        style="margin-bottom: 20px; font-weight: bold; color: #2c3e50; text-align: center; background: #e3f2fd; padding: 12px; border: 1px solid #bbdefb; border-radius: 6px;">
         <i class="fa fa-history"></i> DANH SÁCH LỊCH SỬ CẬP NHẬT CHI TIẾT
       </div>
 
@@ -861,7 +894,8 @@
 <!-- Popup Edit -->
 <div id="popupEdit" class="vbd-popup-overlay">
   <div class="vbd-popup" style="width: 900px;">
-    <div class="vbd-popup-header" style="height: auto; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;">
+    <div class="vbd-popup-header"
+      style="height: auto; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;">
       <span>Chỉnh sửa thông tin văn bản đến</span>
       <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupEdit')"></i>
     </div>
@@ -900,11 +934,13 @@
         <div class="vbd-grid">
           <div class="vbd-field">
             <label>Đơn vị gửi</label>
-            <input type="text" name="don_vi_ngoai_id" id="edit_don_vi_gui" list="don_vi_ngoai_list" class="form-control" style="flex:1;" placeholder="Nhập hoặc chọn đơn vị gửi">
+            <input type="text" name="don_vi_ngoai_id" id="edit_don_vi_gui" list="don_vi_ngoai_list" class="form-control"
+              style="flex:1;" placeholder="Nhập hoặc chọn đơn vị gửi">
           </div>
           <div class="vbd-field">
             <label>Đơn vị nội bộ nhận</label>
-            <input type="text" name="don_vi_trong_id" id="edit_don_vi_trong" list="don_vi_trong_list" class="form-control" style="flex:1;" placeholder="Nhập hoặc chọn đơn vị nội bộ">
+            <input type="text" name="don_vi_trong_id" id="edit_don_vi_trong" list="don_vi_trong_list"
+              class="form-control" style="flex:1;" placeholder="Nhập hoặc chọn đơn vị nội bộ">
           </div>
           <div class="vbd-field">
             <label>Trạng thái</label>
@@ -925,9 +961,11 @@
         <div class="vbd-file-list" id="edit_tep_dinh_kem_container" style="display:none; margin-top: 10px;">
           <div class="vbd-file-item">
             <div class="vbd-file-info">
-              <div class="vbd-file-icon" style="background-color: #e3f2fd; border-color: #bbdefb; color: #1976d2;"><i class="fas fa-file-alt"></i></div>
+              <div class="vbd-file-icon" style="background-color: #e3f2fd; border-color: #bbdefb; color: #1976d2;"><i
+                  class="fas fa-file-alt"></i></div>
               <div class="vbd-file-details">
-                <a href="#" target="_blank" class="vbd-file-name" id="edit_tep_dinh_kem_name" style="text-decoration: none; color: #1b6ec2;"></a>
+                <a href="#" target="_blank" class="vbd-file-name" id="edit_tep_dinh_kem_name"
+                  style="text-decoration: none; color: #1b6ec2;"></a>
                 <span class="vbd-file-size">Đã tải lên trước đó</span>
               </div>
             </div>
@@ -937,9 +975,11 @@
         <div class="vbd-file-list" id="edit_new_tep_container" style="display:none; margin-top: 10px;">
           <div class="vbd-file-item">
             <div class="vbd-file-info">
-              <div class="vbd-file-icon" style="background-color: #e3f2fd; border-color: #bbdefb; color: #1976d2;"><i class="fas fa-file-alt"></i></div>
+              <div class="vbd-file-icon" style="background-color: #e3f2fd; border-color: #bbdefb; color: #1976d2;"><i
+                  class="fas fa-file-alt"></i></div>
               <div class="vbd-file-details">
-                <span class="vbd-file-name" id="edit_new_tep_name" style="font-weight: 500; color: #333; font-size: 14px;"></span>
+                <span class="vbd-file-name" id="edit_new_tep_name"
+                  style="font-weight: 500; color: #333; font-size: 14px;"></span>
                 <span class="vbd-file-size" id="edit_new_tep_size" style="font-size: 12px; color: #666;">Vừa chọn</span>
               </div>
             </div>
@@ -957,17 +997,17 @@
 </div>
 
 
-  <datalist id="don_vi_ngoai_list">
-    {% for dv in don_vi_ngoai %}
-    <option value="{{ dv.TenDonVi }}">
+<datalist id="don_vi_ngoai_list">
+  {% for dv in don_vi_ngoai %}
+  <option value="{{ dv.TenDonVi }}">
     {% endfor %}
-  </datalist>
+</datalist>
 
-  <datalist id="don_vi_trong_list">
-    {% for dv in don_vi_trong %}
-    <option value="{{ dv.TenDonVi }}">
+<datalist id="don_vi_trong_list">
+  {% for dv in don_vi_trong %}
+  <option value="{{ dv.TenDonVi }}">
     {% endfor %}
-  </datalist>
+</datalist>
 {% endblock %}
 
 

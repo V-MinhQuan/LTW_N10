@@ -25,23 +25,57 @@ function getCookie(name) {
 }
 
 // Fetch Roles on load
-function loadRoles() {
-    fetch('/api/vai-tro/list/')
+function loadRoles(deptName = '') {
+    const select = document.getElementById('userRole');
+    if (!select) return Promise.resolve();
+
+    if (!deptName) {
+        select.innerHTML = '<option value="">--- Vui lòng chọn phòng ban trước ---</option>';
+        select.disabled = true;
+        return Promise.resolve();
+    }
+
+    select.disabled = false;
+    select.innerHTML = '<option value="">--- Đang tải chức vụ... ---</option>';
+
+    return fetch(`/api/vai-tro/list/?dept_name=${encodeURIComponent(deptName)}`)
         .then(res => res.json())
         .then(res => {
             if (res.status === 'success') {
-                const select = document.getElementById('userRole');
-                if (select) {
-                    select.innerHTML = '<option value="">--- Chọn chức vụ ---</option>';
-                    res.data.forEach(role => {
-                        const opt = document.createElement('option');
-                        opt.value = role.id;
-                        opt.innerText = role.name;
-                        select.appendChild(opt);
-                    });
+                select.innerHTML = '<option value="">--- Chọn chức vụ ---</option>';
+                res.data.forEach(role => {
+                    const opt = document.createElement('option');
+                    opt.value = role.id;
+                    opt.innerText = role.name;
+                    select.appendChild(opt);
+                });
+            }
+        })
+        .catch(err => {
+            console.error('Error loading roles:', err);
+            select.innerHTML = '<option value="">--- Lỗi tải dữ liệu ---</option>';
+        });
+}
+
+function loadDepartments() {
+    fetch('/api/don-vi/list/')
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === 'success') {
+                const datalist = document.getElementById('deptList');
+                const searchSelect = document.getElementById('searchDept');
+                
+                if (datalist) {
+                    datalist.innerHTML = res.trong.map(dept => `<option value="${dept.ten}">`).join('');
+                }
+                
+                if (searchSelect) {
+                    searchSelect.innerHTML = '<option value="">--- Chọn phòng ban ---</option>' + 
+                                            res.trong.map(dept => `<option value="${dept.ten}">${dept.ten}</option>`).join('');
                 }
             }
-        });
+        })
+        .catch(err => console.error('Error loading departments:', err));
 }
 
 function openModal(title, mode) {
@@ -101,6 +135,8 @@ function openModal(title, mode) {
             statusInput.value = 'ACTIVE';
             statusInput.disabled = true; // Không cho chọn khi thêm mới
         }
+        // Reset roles when adding
+        loadRoles('');
     }
 }
 
@@ -271,10 +307,14 @@ function populateModal(user) {
     document.getElementById('userUsername').value = user.username;
     document.getElementById('userFullName').value = user.fullname;
     document.getElementById('userDept').value = user.dept || '';
-    document.getElementById('userRole').value = user.role_id || '';
     document.getElementById('userEmail').value = user.email;
     document.getElementById('userPhone').value = user.phone || '';
     document.getElementById('userStatus').value = user.status;
+    
+    // Load roles for this dept and THEN set the role value
+    loadRoles(user.dept || '').then(() => {
+        document.getElementById('userRole').value = user.role_id || '';
+    });
 }
 
 window.toggleUserStatus = function () {
@@ -369,8 +409,16 @@ window.saveData = function () {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    loadRoles();
+    // loadRoles(); // No longer called standalone
+    loadDepartments();
     loadUsers(1);
+
+    const userDept = document.getElementById('userDept');
+    if (userDept) {
+        userDept.addEventListener('change', function() {
+            loadRoles(this.value);
+        });
+    }
 
     // Search button
     const searchBtn = document.querySelector('.btn-primary[onclick*="search"]'); // Adjust if needed

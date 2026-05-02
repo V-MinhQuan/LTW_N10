@@ -18,10 +18,6 @@
             <input type="text" id="searchFullName" class="form-control" placeholder="Nhập họ và tên">
             <select id="searchDept" class="form-control">
                 <option value="">--- Chọn phòng ban ---</option>
-                <option>Phòng Kế hoạch</option>
-                <option>Phòng Kinh doanh</option>
-                <option>Phòng Hành chính</option>
-                <option>Phòng CSKH</option>
             </select>
             <select id="searchStatus" class="form-control">
                 <option value="">Tất cả</option>
@@ -115,13 +111,8 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>Phòng ban (<span class="required">*</span>)</label>
-                    <select id="userDept" class="modal-input">
-                        <option value="">--- Chọn phòng ban ---</option>
-                        <option>Phòng Kế hoạch</option>
-                        <option>Phòng Kinh doanh</option>
-                        <option>Phòng Hành chính</option>
-                        <option>Phòng CSKH</option>
-                    </select>
+                    <input type="text" id="userDept" list="deptList" class="modal-input" placeholder="Nhập hoặc chọn phòng ban">
+                    <datalist id="deptList"></datalist>
                 </div>
                 <div class="form-group">
                     <label>Chức vụ (<span class="required">*</span>)</label>
