@@ -24,6 +24,7 @@ from django.contrib import messages
 from functools import wraps
 from django.core.exceptions import PermissionDenied
 from .forms import LoginForm
+from django.views.decorators.cache import never_cache
 
 from .forms import VanBanDenForm
 from .models import DonViBenTrong, UserAccount, VaiTro
@@ -35,14 +36,20 @@ from .models import VanBanDi, PheDuyet, PhatHanh
 def is_tgd(user):
     """Boss: Toàn quyền xem, nhưng không thao tác kỹ thuật/user"""
     if not user or not user.is_authenticated: return False
-    if user.is_superuser: return True
-    return user.VaiTroID and user.VaiTroID.ChucVu == 'Tổng giám đốc'
+    # Giám đốc thật sự
+    if user.VaiTroID and user.VaiTroID.ChucVu == 'Tổng giám đốc': return True
+    # Superuser không phải Trưởng phòng ban khác và không phải Trưởng phòng IT
+    if user.is_superuser and not user.is_department_head() and not user.is_it_head(): return True
+    return False
 
 def is_tp_it(user):
     """Admin kỹ thuật: Toàn quyền hệ thống & User"""
     if not user or not user.is_authenticated: return False
-    if user.is_superuser: return True
-    return user.VaiTroID and user.VaiTroID.ChucVu == 'Trưởng phòng IT'
+    # Trưởng phòng IT thật sự
+    if user.VaiTroID and user.VaiTroID.ChucVu == 'Trưởng phòng IT': return True
+    # Superuser không phải Trưởng phòng ban khác
+    if user.is_superuser and not user.is_department_head(): return True
+    return False
 
 def is_truong_phong(user):
     """Quản lý phòng ban: Phân công, Duyệt trong phòng"""
@@ -93,28 +100,29 @@ def get_filtered_documents(user, model_class):
                 Q(UserID__PhongBan=user.PhongBan) |
                 Q(phancong__UserID__PhongBan=user.PhongBan)
             ).distinct()
-        else:
-            # Văn bản đi: Hiện cho phòng gửi, phòng xử lý HOẶC phòng nhận nội bộ
-            return model_class.objects.filter(
-                Q(NguoiGui__PhongBan=user.PhongBan) | 
-                Q(UserID__PhongBan=user.PhongBan) | 
-                Q(phancong__UserID__PhongBan=user.PhongBan) |
-                Q(DonViTrongID__TenDonVi=user.PhongBan)
-            ).distinct()
+            
+        # Mặc định cho Văn bản đi: Hiện cho phòng gửi, phòng xử lý HOẶC phòng nhận nội bộ
+        return model_class.objects.filter(
+            Q(NguoiGui__PhongBan=user.PhongBan) | 
+            Q(UserID__PhongBan=user.PhongBan) | 
+            Q(phancong__UserID__PhongBan=user.PhongBan) |
+            Q(DonViTrongID__TenDonVi=user.PhongBan)
+        ).distinct()
 
-    # 3. Nhân viên: Chỉ xem văn bản mình soạn, được giao xử lý hoặc được phân công/chuyển tiếp
+    # 3. Nhân viên: Chỉ xem văn bản mình soạn, hoặc được phân công/chuyển tiếp
     if model_class == VanBanDen:
         return model_class.objects.filter(
             Q(UserID=user) |
             Q(phancong__UserID=user) | 
             Q(chuyentiep__UserID=user)
         ).distinct()
-        return model_class.objects.filter(
-            Q(NguoiGui=user) |
-            Q(UserID=user) | 
-            Q(phancong__UserID=user) | 
-            Q(chuyentiep__UserID=user)
-        ).distinct()
+
+    # Mặc định cho Văn bản đi: Loại bỏ Q(UserID=user) để tránh hiển thị văn bản cần phê duyệt trong danh sách chính
+    return model_class.objects.filter(
+        Q(NguoiGui=user) |
+        Q(phancong__UserID=user) | 
+        Q(chuyentiep__UserID=user)
+    ).distinct()
 
 def sync_van_ban_den(vb_di):
     """Đồng bộ trạng thái từ Văn bản đi sang Văn bản đến tương ứng"""
@@ -140,11 +148,78 @@ def sync_van_ban_den(vb_di):
     if vb_di.UserID and vb_di.UserID.PhongBan:
         vbd.DonViTrongID = vb_di.UserID.PhongBan
         
+    # --- MỚI: Lưu phòng ban của người gửi phê duyệt vào Đơn vị gửi (Internal) ---
+    if vb_di.NguoiGui and vb_di.NguoiGui.PhongBan:
+        vbd.DonViGuiID = vb_di.NguoiGui.PhongBan
+        vbd.DonViNgoaiID = None # Đảm bảo không bị trùng lặp với đơn vị ngoài
+    # ----------------------------------------------------------------
+        
     vbd.save()
     return vbd
 
+# --- TÌM KIẾM TỔNG HỢP ---
+@login_required
+def tim_kiem_tong_hop(request):
+    """Tìm kiếm văn bản đến và văn bản đi theo số ký hiệu hoặc trích yếu"""
+    query = request.GET.get('q', '').strip()
+    results_den = []
+    results_di = []
+
+    if query:
+        user = request.user
+
+        # --- Văn bản đến ---
+        if is_tgd(user):
+            den_qs = VanBanDen.objects.all()
+        elif is_truong_phong(user):
+            den_qs = VanBanDen.objects.filter(
+                Q(DonViTrongID=user.PhongBan) |
+                Q(UserID__PhongBan=user.PhongBan) |
+                Q(phancong__UserID__PhongBan=user.PhongBan) |
+                Q(chuyentiep__UserID__PhongBan=user.PhongBan)
+            ).distinct()
+        else:
+            den_qs = VanBanDen.objects.filter(
+                Q(UserID=user) |
+                Q(phancong__UserID=user) |
+                Q(chuyentiep__UserID=user)
+            ).distinct()
+
+        results_den = den_qs.filter(
+            Q(SoKyHieu__icontains=query) | Q(TrichYeu__icontains=query)
+        ).select_related('DonViNgoaiID', 'DonViTrongID').order_by('-NgayNhan')[:20]
+
+        # --- Văn bản đi ---
+        if is_tgd(user):
+            di_qs = VanBanDi.objects.all()
+        elif is_truong_phong(user):
+            di_qs = VanBanDi.objects.filter(
+                Q(NguoiGui__PhongBan=user.PhongBan) |
+                Q(UserID__PhongBan=user.PhongBan) |
+                Q(phancong__UserID__PhongBan=user.PhongBan)
+            ).distinct()
+        else:
+            di_qs = VanBanDi.objects.filter(
+                Q(NguoiGui=user) |
+                Q(UserID=user) |
+                Q(phancong__UserID=user) |
+                Q(chuyentiep__UserID=user)
+            ).distinct()
+
+        results_di = di_qs.filter(
+            Q(SoKyHieu__icontains=query) | Q(TrichYeu__icontains=query)
+        ).select_related('DonViTrongID', 'DonViNgoaiID', 'NguoiGui').order_by('-NgayBanHanh')[:20]
+
+    return render(request, 'tim_kiem.html', {
+        'query': query,
+        'results_den': results_den,
+        'results_di': results_di,
+        'total': len(results_den) + len(results_di),
+    })
+
 # --- TRANG CHỦ ---
 @login_required
+@never_cache
 def index(request):
     """View cho trang Dashboard - Hiển thị số liệu thực tế"""
     now = timezone.now()
@@ -155,12 +230,24 @@ def index(request):
         count_overdue = PhanCong.objects.filter(HanXuLy__lt=now).exclude(TrangThaiXuLy='Hoàn thành').count()
         count_completed = VanBanDen.objects.filter(TrangThai='HOAN_THANH', NgayHoanThanh__gte=now - timedelta(days=7)).count()
     elif is_truong_phong(request.user):
-        # Thống kê dành cho Trưởng phòng (chỉ văn bản thuộc phòng mình)
-        dept_docs = VanBanDen.objects.filter(DonViTrongID=request.user.PhongBan)
+        # Phạm vi văn bản của Trưởng phòng: khớp với những gì họ thấy trên trang Văn bản đến
+        dept_docs = VanBanDen.objects.filter(
+            Q(DonViTrongID=request.user.PhongBan) |
+            Q(UserID__PhongBan=request.user.PhongBan) |
+            Q(phancong__UserID__PhongBan=request.user.PhongBan) |
+            Q(chuyentiep__UserID__PhongBan=request.user.PhongBan)
+        ).distinct()
         count_new = dept_docs.filter(TrangThai='MOI').count()
-        count_processing = PhanCong.objects.filter(VanBanDenID__in=dept_docs, TrangThaiXuLy__in=['Đang xử lý', 'DANG_XU_LY']).count()
-        count_overdue = PhanCong.objects.filter(VanBanDenID__in=dept_docs, HanXuLy__lt=now).exclude(TrangThaiXuLy='Hoàn thành').count()
-        count_completed = dept_docs.filter(TrangThai='HOAN_THANH', NgayHoanThanh__gte=now - timedelta(days=7)).count()
+        # Văn bản đang xử lý: loại trừ Hoàn thành và Chờ phê duyệt
+        count_processing = dept_docs.exclude(
+            TrangThai__in=['HOAN_THANH', 'CHO_PHE_DUYET']
+        ).count()
+        count_overdue = PhanCong.objects.filter(
+            VanBanDenID__in=dept_docs, HanXuLy__lt=now
+        ).exclude(TrangThaiXuLy='Hoàn thành').count()
+        count_completed = dept_docs.filter(
+            TrangThai='HOAN_THANH', NgayHoanThanh__gte=now - timedelta(days=7)
+        ).count()
     else:
         # Thống kê cá nhân dành cho nhân viên
         count_new = VanBanDen.objects.filter(TrangThai='MOI', phancong__UserID=request.user).count()
@@ -168,8 +255,43 @@ def index(request):
         count_overdue = PhanCong.objects.filter(UserID=request.user, HanXuLy__lt=now).exclude(TrangThaiXuLy='Hoàn thành').count()
         count_completed = VanBanDen.objects.filter(TrangThai='HOAN_THANH', phancong__UserID=request.user, NgayHoanThanh__gte=now - timedelta(days=7)).count()
 
-    recent_documents = get_filtered_documents(request.user, VanBanDen).select_related('DonViNgoaiID').order_by('-NgayNhan')[:5]
-    todo_list = PhanCong.objects.filter(UserID=request.user, TrangThaiXuLy__in=['Đang xử lý', 'DANG_XU_LY']).select_related('VanBanDenID', 'VanBanDiID').order_by('HanXuLy')[:2]
+    # Văn bản đến mới nhất của người đang đăng nhập
+    if is_tgd(request.user):
+        # TGĐ và TP IT xem toàn bộ văn bản đến mới nhất
+        recent_documents = VanBanDen.objects.select_related('DonViNgoaiID').order_by('-NgayNhan')[:5]
+    elif is_truong_phong(request.user):
+        # Trưởng phòng: chỉ văn bản đến thuộc phòng mình
+        # Dùng subquery lấy ID trước để tránh trùng lặp do JOIN qua phancong
+        dept_vbd_ids = VanBanDen.objects.filter(
+            Q(DonViTrongID=request.user.PhongBan) |
+            Q(UserID__PhongBan=request.user.PhongBan) |
+            Q(phancong__UserID__PhongBan=request.user.PhongBan)
+        ).values_list('VanBanDenID', flat=True).distinct()
+        recent_documents = VanBanDen.objects.filter(
+            VanBanDenID__in=dept_vbd_ids
+        ).select_related('DonViNgoaiID').order_by('-NgayNhan')[:5]
+    else:
+        # Nhân viên: chỉ văn bản đến của chính mình
+        # Dùng subquery lấy ID trước để tránh trùng lặp do JOIN qua phancong/chuyentiep
+        nv_vbd_ids = VanBanDen.objects.filter(
+            Q(UserID=request.user) |
+            Q(phancong__UserID=request.user) |
+            Q(chuyentiep__UserID=request.user)
+        ).values_list('VanBanDenID', flat=True).distinct()
+        recent_documents = VanBanDen.objects.filter(
+            VanBanDenID__in=nv_vbd_ids
+        ).select_related('DonViNgoaiID').order_by('-NgayNhan')[:5]
+
+    # Công việc cần làm: quá hạn + sắp đến hạn (trong 7 ngày tới), lấy 3 cái gần nhất
+    deadline_window = now + timedelta(days=7)
+    todo_list = PhanCong.objects.filter(
+        UserID=request.user,
+        HanXuLy__lte=deadline_window,      # Hạn <= 7 ngày tới (bao gồm đã quá hạn)
+    ).exclude(
+        TrangThaiXuLy='Hoàn thành'         # Loại trừ đã hoàn thành
+    ).select_related(
+        'VanBanDenID', 'VanBanDiID'
+    ).order_by('HanXuLy')[:3]              # Sắp xếp theo hạn gần nhất, lấy 3
 
     context = {
         'count_new': count_new,
@@ -178,11 +300,15 @@ def index(request):
         'count_completed': count_completed,
         'recent_documents': recent_documents,
         'todo_list': todo_list,
+        'now': now,
     }
     return render(request, 'index.html', context)
 
 
+@never_cache
 def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('index')
     if request.method == 'POST':
         form = LoginForm(request, data=request.POST)
         if form.is_valid():
@@ -284,9 +410,9 @@ def van_ban_den_index(request):
         danh_sach = danh_sach.filter(LoaiVanBan__icontains=loai_vb)
     if don_vi_ngoai_id:
         if str(don_vi_ngoai_id).isdigit():
-            danh_sach = danh_sach.filter(DonViNgoaiID_id=don_vi_ngoai_id)
+            danh_sach = danh_sach.filter(Q(DonViNgoaiID_id=don_vi_ngoai_id) | Q(DonViGuiID_id=don_vi_ngoai_id))
         else:
-            danh_sach = danh_sach.filter(DonViNgoaiID__TenDonVi__icontains=don_vi_ngoai_id)
+            danh_sach = danh_sach.filter(Q(DonViNgoaiID__TenDonVi__icontains=don_vi_ngoai_id) | Q(DonViGuiID__TenDonVi__icontains=don_vi_ngoai_id))
     if don_vi_trong_id:
         if str(don_vi_trong_id).isdigit():
             danh_sach = danh_sach.filter(DonViTrongID_id=don_vi_trong_id)
@@ -417,7 +543,8 @@ def van_ban_den_xem(request, pk):
             'loai_van_ban': vbd.LoaiVanBan,
             'ngay_ban_hanh': vbd.NgayBanHanh.strftime('%Y-%m-%d') if vbd.NgayBanHanh else '',
             'ngay_nhan': vbd.NgayNhan.strftime('%Y-%m-%d') if vbd.NgayNhan else '',
-            'don_vi_ngoai_ten': vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else 'Chưa xác định',
+            'don_vi_ngoai_ten': vbd.DonViGuiID.TenDonVi if vbd.DonViGuiID else (vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else 'Chưa xác định'),
+            'don_vi_gui_trong_id': vbd.DonViGuiID_id,
             'don_vi_ngoai_id': vbd.DonViNgoaiID_id,
             'don_vi_trong_ten': vbd.DonViTrongID.TenDonVi if vbd.DonViTrongID else 'Chưa xác định',
             'don_vi_trong_id': vbd.DonViTrongID_id,
@@ -445,7 +572,7 @@ def van_ban_den_sua(request, pk):
             'Loại văn bản': vbd.LoaiVanBan,
             'Ngày ban hành': vbd.NgayBanHanh.strftime('%d/%m/%Y') if vbd.NgayBanHanh else 'Trống',
             'Ngày nhận': vbd.NgayNhan.strftime('%d/%m/%Y') if vbd.NgayNhan else 'Trống',
-            'Đơn vị gửi': vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else 'Trống',
+            'Đơn vị gửi': vbd.DonViGuiID.TenDonVi if vbd.DonViGuiID else (vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else 'Trống'),
             'Trạng thái': 'Đang xử lý' if vbd.TrangThai != 'HOAN_THANH' else 'Hoàn thành',
             'Tệp đính kèm': vbd.TepDinhKem.name.split('/')[-1] if vbd.TepDinhKem else 'Trống'
         }
@@ -464,7 +591,7 @@ def van_ban_den_sua(request, pk):
                 'Loại văn bản': vbd.LoaiVanBan,
                 'Ngày ban hành': vbd.NgayBanHanh.strftime('%d/%m/%Y') if vbd.NgayBanHanh else 'Trống',
                 'Ngày nhận': vbd.NgayNhan.strftime('%d/%m/%Y') if vbd.NgayNhan else 'Trống',
-                'Đơn vị gửi': vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else 'Trống',
+                'Đơn vị gửi': vbd.DonViGuiID.TenDonVi if vbd.DonViGuiID else (vbd.DonViNgoaiID.TenDonVi if vbd.DonViNgoaiID else 'Trống'),
                 'Trạng thái': 'Đang xử lý' if vbd.TrangThai != 'HOAN_THANH' else 'Hoàn thành',
                 'Tệp đính kèm': vbd.TepDinhKem.name.split('/')[-1] if vbd.TepDinhKem else 'Trống'
             }
@@ -689,6 +816,8 @@ def api_vbdi_chi_tiet(request, pk):
             'don_vi_ngoai_id': vb.DonViNgoaiID_id if vb.DonViNgoaiID else '',
             'don_vi_trong': 'Tất cả' if (vb.TrangThai == 'DA_PHAT_HANH' and not vb.DonViTrongID and not vb.DonViNgoaiID) else (vb.DonViTrongID.TenDonVi if vb.DonViTrongID else ''),
             'don_vi_trong_id': vb.DonViTrongID_id if vb.DonViTrongID else '',
+            'don_vi_gui': vb.DonViGuiID.TenDonVi if vb.DonViGuiID else '',
+            'don_vi_gui_id': vb.DonViGuiID_id if vb.DonViGuiID else '',
             'nguoi_soan': ", ".join(nguoi_xu_ly_list) if nguoi_xu_ly_list else (vb.UserID.HoTen if vb.UserID else ''),
             'nguoi_soan_id': vb.UserID_id if vb.UserID else '',
             'ngay_ban_hanh': vb.NgayBanHanh.strftime('%d/%m/%Y') if vb.NgayBanHanh else '',
@@ -758,6 +887,8 @@ def api_vbdi_them_moi(request):
             
         # Lưu người gửi (người tạo/người yêu cầu phê duyệt)
         vb.NguoiGui = request.user
+        if request.user and hasattr(request.user, 'PhongBan'):
+            vb.DonViGuiID = request.user.PhongBan
             
         if request.FILES.get('tep_dinh_kem'):
             vb.TepDinhKem = request.FILES['tep_dinh_kem']
@@ -801,7 +932,6 @@ def api_vbdi_cap_nhat(request, pk):
         new_ngay = request.POST.get('ngay_ban_hanh')
         if new_ngay and new_ngay != (vb.NgayBanHanh.strftime('%Y-%m-%d') if vb.NgayBanHanh else None):
             from datetime import datetime
-            from django.utils import timezone
             try:
                 ngay_ban_hanh_date = datetime.strptime(new_ngay, '%Y-%m-%d').date()
                 if ngay_ban_hanh_date < timezone.now().date():
@@ -878,6 +1008,11 @@ def api_vbdi_cap_nhat(request, pk):
             # Nếu chuyển sang chờ phê duyệt, ghi nhận người gửi
             if new_trang_thai == 'CHO_PHE_DUYET' and not vb.NguoiGui:
                 vb.NguoiGui = request.user
+        
+        if request.user and hasattr(request.user, 'PhongBan'):
+            vb.DonViGuiID = request.user.PhongBan
+        
+        vb.save()
         
         new_nguoi_soan_id = request.POST.get('nguoi_soan_id')
         if new_nguoi_soan_id:
@@ -1036,6 +1171,11 @@ def api_vbdi_phat_hanh(request, pk):
             # Đồng bộ sang Văn bản đến (Theo yêu cầu luồng mới)
             sync_van_ban_den(vb)
 
+            # Xác định đơn vị gửi (phòng ban của người gửi phê duyệt)
+            dv_gui_trong = None
+            if vb.NguoiGui and vb.NguoiGui.PhongBan:
+                dv_gui_trong = vb.NguoiGui.PhongBan
+
             # 3. TẠO/CẬP NHẬT VĂN BẢN ĐẾN TƯƠNG ỨNG
             from .models import VanBanDen, PhanCong
             vbd, created = VanBanDen.objects.get_or_create(
@@ -1048,7 +1188,8 @@ def api_vbdi_phat_hanh(request, pk):
                     'NgayNhan': timezone.now(),
                     'NgayVanBan': vb.NgayBanHanh,
                     'TepDinhKem': vb.TepDinhKem,
-                    'TrangThai': 'DANG_XU_LY'
+                    'TrangThai': 'DANG_XU_LY',
+                    'DonViGuiID': dv_gui_trong
                 }
             )
             
@@ -1058,6 +1199,8 @@ def api_vbdi_phat_hanh(request, pk):
                 vbd.LoaiVanBan = vb.LoaiVanBan
                 vbd.NgayBanHanh = vb.NgayBanHanh
                 vbd.TepDinhKem = vb.TepDinhKem
+                vbd.DonViGuiID = dv_gui_trong
+                vbd.DonViNgoaiID = None
 
             # Gán người nhận/đơn vị nhận cho Văn bản đến
             if recipient_type == 'dept':
@@ -1073,17 +1216,6 @@ def api_vbdi_phat_hanh(request, pk):
             
             vbd.save()
             
-            # 4. Tự động tạo Phân công cho người nhận (nếu là cá nhân)
-            if recipient_type == 'user' and nguoi_nhan_id:
-                PhanCong.objects.get_or_create(
-                    VanBanDenID=vbd,
-                    UserID_id=nguoi_nhan_id,
-                    defaults={
-                        'NgayPhanCong': timezone.now(), 
-                        'TrangThaiXuLy': 'Đang xử lý', 
-                        'GhiChu': 'Văn bản chuyển từ Văn bản đi'
-                    }
-                )
 
             _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'PHAT_HANH', 'Phát hành văn bản và chuyển sang Văn bản đến', cu, vb.TrangThai)
             
@@ -1166,7 +1298,7 @@ def quan_ly_nguoi_dung_index(request):
     users = UserAccount.objects.all().select_related('VaiTroID').order_by('SoThuTu')
     return render(request, 'quan_ly_nguoi_dung/index.html', {
         'users': users,
-        'can_edit': request.user.can_perform_action('quan_ly_nguoi_dung'),  # Chỉ TP IT mới có nút Sửa/Xóa/Thêm
+        'can_edit': request.user.can_perform_action('quan_ly_nguoi_dung'),
         'total_users': users.count()
     })
 
@@ -1180,17 +1312,24 @@ def thong_tin_view(request):
         action = request.POST.get('action')
 
         if action == 'update_profile':
-            # Nếu là Giám đốc hoặc TP IT thì mới cho sửa các thông tin cơ bản
-            if can_edit_all:
-                user.HoTen = request.POST.get('HoTen')
-                ngay_sinh = request.POST.get('NgaySinh')
-                if ngay_sinh:
-                    user.NgaySinh = ngay_sinh
-                user.GioiTinh = request.POST.get('GioiTinh')
+            ho_ten = request.POST.get('HoTen', '').strip()
+            ngay_sinh = request.POST.get('NgaySinh', '').strip()
+            gioi_tinh = request.POST.get('GioiTinh', '').strip()
+            email = request.POST.get('email', '').strip()
+            so_dien_thoai = request.POST.get('SoDienThoai', '').strip()
+
+            # Kiểm tra không được để trống
+            if not ho_ten or not ngay_sinh or not gioi_tinh or not email or not so_dien_thoai:
+                messages.error(request, "Vui lòng nhập đầy đủ thông tin, không được để trống trường nào!")
+                return redirect('thong_tin')
+
+            # Cập nhật thông tin
+            user.HoTen = ho_ten
+            user.NgaySinh = ngay_sinh
+            user.GioiTinh = gioi_tinh
+            user.email = email
+            user.SoDienThoai = so_dien_thoai
             
-            # Email và Số điện thoại thì ai cũng được sửa (hoặc theo yêu cầu: Nhân viên được sửa 2 cái này)
-            user.email = request.POST.get('email')
-            user.SoDienThoai = request.POST.get('SoDienThoai')
             user.save()
             messages.success(request, "Cập nhật thông tin thành công!")
             return redirect('thong_tin')
@@ -1650,19 +1789,22 @@ def xu_ly_van_ban_index(request):
     # 3. Khởi tạo QuerySet theo yêu cầu III
     # Văn bản đến (web_vanbanden)
     # Hiển thị nếu: UserID_id == request.user.UserID HOẶC DonViTrongID_id == request.user.PhongBan_id
-    # Nếu là Superuser, Tổng giám đốc hoặc Trưởng phòng IT: Hiển thị tất cả
-    if user.is_superuser or user.is_giam_doc() or user.is_it_head():
+    # Nếu là Tổng giám đốc hoặc Superuser (không phải TP phòng ban khác và không phải TP IT): Hiển thị tất cả
+    if user.is_giam_doc() or (user.is_superuser and not user.is_department_head() and not user.is_it_head()):
         den_qs = VanBanDen.objects.all().select_related('DonViNgoaiID', 'UserID')
     else:
+        # Loại trừ văn bản đến đang chờ phê duyệt/phát hành từ phía văn bản đi (tránh trùng lặp dòng trong trang xử lý)
         den_qs = VanBanDen.objects.filter(
             Q(UserID=user) | Q(DonViTrongID=user.PhongBan)
+        ).exclude(
+            VanBanDiID__TrangThai__in=['CHO_PHE_DUYET', 'DA_PHE_DUYET']
         ).select_related('DonViNgoaiID', 'UserID')
 
     # Văn bản đi cần xử lý (web_vanbandi)
     # Hiển thị nếu: request.user.UserID == web_vanbandi.UserID (NguoiXuLyPheDuyet_id)
     # HOẶC request.user.UserID == phancong__UserID (NguoiPhuTrachPhanCong_id)
-    # Nếu là Superuser, Tổng giám đốc hoặc Trưởng phòng IT: Hiển thị tất cả văn bản đi cần xử lý
-    if user.is_superuser or user.is_giam_doc() or user.is_it_head():
+    # Nếu là Tổng giám đốc hoặc Superuser (không phải TP phòng ban khác và không phải TP IT): Hiển thị tất cả văn bản đi cần xử lý
+    if user.is_giam_doc() or (user.is_superuser and not user.is_department_head() and not user.is_it_head()):
         di_qs = VanBanDi.objects.all().select_related('DonViNgoaiID', 'DonViTrongID', 'UserID').distinct()
     else:
         di_qs = VanBanDi.objects.filter(

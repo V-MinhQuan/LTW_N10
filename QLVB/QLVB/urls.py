@@ -17,6 +17,7 @@ urlpatterns = [
     # Để trống đường dẫn '' để khi vào trang web là hiện trang login ngay
     path('', views.login_view, name='login'),
     path('index/', views.index, name='index'),
+    path('tim-kiem/', views.tim_kiem_tong_hop, name='tim_kiem'),
     path('logout/', views.logout_view, name='logout'),
 
     # --- Văn bản đến ---

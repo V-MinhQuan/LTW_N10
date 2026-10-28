@@ -12,9 +12,9 @@ function apiPost(url, data, onSuccess) {
         .then(r => r.json())
         .then(res => {
             if (res.status === 'success') onSuccess(res);
-            else alert('Lỗi: ' + res.message);
+            else App.showError(res.message);
         })
-        .catch(() => alert('Có lỗi xảy ra, vui lòng thử lại.'));
+        .catch(() => App.showError('Có lỗi xảy ra, vui lòng thử lại.'));
 }
 
 function apiPostForm(url, formData, onSuccess) {
@@ -26,9 +26,9 @@ function apiPostForm(url, formData, onSuccess) {
         .then(r => r.json())
         .then(res => {
             if (res.status === 'success') onSuccess(res);
-            else alert('Lỗi: ' + res.message);
+            else App.showError(res.message);
         })
-        .catch(() => alert('Có lỗi xảy ra, vui lòng thử lại.'));
+        .catch(() => App.showError('Có lỗi xảy ra, vui lòng thử lại.'));
 }
 
 function goPage(page) {
@@ -217,7 +217,7 @@ function _getFormData(trangThai) {
 function luuDuThao() {
     let fileInput = document.getElementById('fileInput');
     if (!fileInput || !fileInput.files[0]) {
-        alert('Vui lòng đính kèm tài liệu!');
+        App.showError('Vui lòng đính kèm tài liệu!');
         return;
     }
     apiPostForm('/api/van-ban-di/them-moi/', _getFormData('DU_THAO'), () => {
@@ -230,7 +230,7 @@ function luuDuThao() {
 function guiPheDuyet() {
     let fileInput = document.getElementById('fileInput');
     if (!fileInput || !fileInput.files[0]) {
-        alert('Vui lòng đính kèm tài liệu!');
+        App.showError('Vui lòng đính kèm tài liệu!');
         return;
     }
     apiPostForm('/api/van-ban-di/them-moi/', _getFormData('CHO_PHE_DUYET'), () => {

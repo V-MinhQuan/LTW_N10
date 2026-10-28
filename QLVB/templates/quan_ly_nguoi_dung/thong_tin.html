@@ -256,11 +256,23 @@
 
     .form-input-container-pwd {
         width: 60%;
+        position: relative;
+    }
+    
+    .toggle-password {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #1a73e8;
+        font-size: 14px;
+        z-index: 5;
     }
 
     .form-control-pwd {
         width: 100%;
-        padding: 8px 12px;
+        padding: 8px 35px 8px 12px;
         border: 1px solid #b3e5fc;
         border-radius: 4px;
         outline: none;
@@ -299,7 +311,7 @@
             <span class="edit-trigger" id="btnEnableEdit"><i class="fas fa-edit"></i> Chỉnh sửa</span>
         </div>
 
-        <form id="profileForm" method="POST" action="{% url 'thong_tin' %}">
+        <form id="profileForm" method="POST" action="{% url 'thong_tin' %}" novalidate>
             {% csrf_token %}
             <input type="hidden" name="action" value="update_profile">
 
@@ -315,38 +327,31 @@
                 <div class="info-row">
                     <span class="info-label">Họ và tên</span>
                     <span class="info-value-text">{{ user.HoTen|default:"---" }}</span>
-                    {% if can_edit_all %}
-                    <input type="text" name="HoTen" class="info-input" value="{{ user.HoTen|default:'' }}">
-                    {% endif %}
+                    <input type="text" name="HoTen" class="info-input" value="{{ user.HoTen|default:'' }}" required>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Ngày sinh</span>
                     <span class="info-value-text">{{ user.NgaySinh|date:"d/m/Y"|default:"---" }}</span>
-                    {% if can_edit_all %}
-                    <input type="date" name="NgaySinh" class="info-input" value="{{ user.NgaySinh|date:'Y-m-d' }}">
-                    {% endif %}
+                    <input type="date" name="NgaySinh" class="info-input" value="{{ user.NgaySinh|date:'Y-m-d' }}" required>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Giới tính</span>
                     <span class="info-value-text">{{ user.GioiTinh|default:"---" }}</span>
-                    {% if can_edit_all %}
-                    <select name="GioiTinh" class="info-input">
+                    <select name="GioiTinh" class="info-input" required>
                         <option value="" {% if not user.GioiTinh %}selected{% endif %}>--- Chọn ---</option>
                         <option value="Nam" {% if user.GioiTinh == 'Nam' %}selected{% endif %}>Nam</option>
                         <option value="Nữ" {% if user.GioiTinh == 'Nữ' %}selected{% endif %}>Nữ</option>
-                        <option value="Khác" {% if user.GioiTinh == 'Khác' %}selected{% endif %}>Khác</option>
                     </select>
-                    {% endif %}
                 </div>
                 <div class="info-row">
                     <span class="info-label">Email</span>
                     <span class="info-value-text">{{ user.email|default:"---" }}</span>
-                    <input type="email" name="email" class="info-input" value="{{ user.email|default:'' }}">
+                    <input type="email" name="email" class="info-input" value="{{ user.email|default:'' }}" required>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Số điện thoại</span>
                     <span class="info-value-text">{{ user.SoDienThoai|default:"---" }}</span>
-                    <input type="text" name="SoDienThoai" class="info-input" value="{{ user.SoDienThoai|default:'' }}">
+                    <input type="text" name="SoDienThoai" class="info-input" value="{{ user.SoDienThoai|default:'' }}" required>
                 </div>
             </div>
 
@@ -393,7 +398,7 @@
             <i class="fas fa-times btn-close-pwd" id="btnClosePwdSection"></i>
             <h3 class="section-h3-pwd">Đổi mật khẩu</h3>
 
-            <form method="POST" action="{% url 'thong_tin' %}">
+            <form id="pwdForm" method="POST" action="{% url 'thong_tin' %}" novalidate>
                 {% csrf_token %}
                 <input type="hidden" name="action" value="change_password">
 
@@ -401,6 +406,7 @@
                     <label class="form-label-pwd">Mật khẩu hiện tại:</label>
                     <div class="form-input-container-pwd">
                         <input type="password" name="old_password" class="form-control-pwd" required>
+                        <i class="fas fa-eye toggle-password"></i>
                     </div>
                 </div>
 
@@ -408,6 +414,7 @@
                     <label class="form-label-pwd">Mật khẩu mới:</label>
                     <div class="form-input-container-pwd">
                         <input type="password" name="new_password" class="form-control-pwd" required>
+                        <i class="fas fa-eye toggle-password"></i>
                     </div>
                 </div>
 
@@ -415,6 +422,7 @@
                     <label class="form-label-pwd">Nhập lại mật khẩu mới:</label>
                     <div class="form-input-container-pwd">
                         <input type="password" name="confirm_password" class="form-control-pwd" required>
+                        <i class="fas fa-eye toggle-password"></i>
                     </div>
                 </div>
 
@@ -445,11 +453,28 @@
             });
         }
 
+        // Toggle Password Visibility (Eye icon)
+        document.querySelectorAll('.toggle-password').forEach(icon => {
+            icon.onclick = function() {
+                const input = this.parentElement.querySelector('input');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    this.classList.remove('fa-eye');
+                    this.classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    this.classList.remove('fa-eye-slash');
+                    this.classList.add('fa-eye');
+                }
+            };
+        });
+
         // Toggle Edit Mode
         const btnEnableEdit = document.getElementById('btnEnableEdit');
         const actionButtons = document.getElementById('actionButtons');
         const valueTexts = document.querySelectorAll('.info-value-text');
         const inputs = document.querySelectorAll('.info-input');
+        const profileForm = document.getElementById('profileForm');
 
         if (btnEnableEdit) {
             btnEnableEdit.onclick = () => {
@@ -468,6 +493,33 @@
                 });
             };
         }
+
+        // Form Validation
+        const validateForm = (form, errorMsg) => {
+            if (!form) return;
+            form.onsubmit = (e) => {
+                const inputs = form.querySelectorAll('input[required], select[required]');
+                let hasEmpty = false;
+                
+                inputs.forEach(input => {
+                    if (!input.value.trim()) {
+                        hasEmpty = true;
+                        input.style.borderColor = '#E74C3C';
+                    } else {
+                        input.style.borderColor = '';
+                    }
+                });
+
+                if (hasEmpty) {
+                    e.preventDefault();
+                    App.showAlert(errorMsg || "Vui lòng nhập đầy đủ các trường thông tin bắt buộc!");
+                    return false;
+                }
+            };
+        };
+
+        validateForm(profileForm, "Thông tin không được để trống. Vui lòng nhập đầy đủ các trường!");
+        validateForm(document.getElementById('pwdForm'), "Vui lòng nhập đầy đủ thông tin mật khẩu!");
     });
 
     function cancelEdit() {
@@ -484,13 +536,17 @@
 
     // Handle auto-open for password errors
     {% if open_modal %}
-    document.getElementById('changePwdSection').style.display = "block";
+    if (document.getElementById('changePwdSection')) {
+        document.getElementById('changePwdSection').style.display = "block";
+    }
     {% endif %}
 
     {% if messages %}
     {% for message in messages %}
     {% if message.tags == 'success' %}
     App.showSuccess("{{ message }}");
+    {% elif message.tags == 'error' %}
+    App.showError("{{ message }}");
     {% endif %}
     {% endfor %}
     {% endif %}

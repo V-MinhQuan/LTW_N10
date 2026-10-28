@@ -399,16 +399,55 @@
             white-space: nowrap;
         }
 
-        .pill-active-modern, .pill-green { background-color: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; }
-        .pill-inactive-modern, .pill-gray { background-color: #F3F4F6; color: #4B5563; border: 1px solid #E5E7EB; }
-        .pill-red { background-color: #FEE2E2; color: #991B1B; }
-        .pill-blue { background-color: #EFF6FF; color: #1E40AF; border: 1px solid #DBEAFE; }
-        .pill-orange { background-color: #FFF7ED; color: #9A3412; border: 1px solid #FFEDD5; }
+        .pill-active-modern,
+        .pill-green {
+            background-color: #ECFDF5;
+            color: #059669;
+            border: 1px solid #A7F3D0;
+        }
 
-        .btn-red-outline { background: white; color: #DC2626; border: 1px solid #FECACA; }
-        .btn-red-outline:hover { background: #FEF2F2; }
-        .btn-restore { background-color: #F59E0B; color: white; }
-        .btn-restore:hover { background-color: #D97706; }
+        .pill-inactive-modern,
+        .pill-gray {
+            background-color: #F3F4F6;
+            color: #4B5563;
+            border: 1px solid #E5E7EB;
+        }
+
+        .pill-red {
+            background-color: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .pill-blue {
+            background-color: #EFF6FF;
+            color: #1E40AF;
+            border: 1px solid #DBEAFE;
+        }
+
+        .pill-orange {
+            background-color: #FFF7ED;
+            color: #9A3412;
+            border: 1px solid #FFEDD5;
+        }
+
+        .btn-red-outline {
+            background: white;
+            color: #DC2626;
+            border: 1px solid #FECACA;
+        }
+
+        .btn-red-outline:hover {
+            background: #FEF2F2;
+        }
+
+        .btn-restore {
+            background-color: #F59E0B;
+            color: white;
+        }
+
+        .btn-restore:hover {
+            background-color: #D97706;
+        }
 
         .action-btn {
             text-decoration: none;
@@ -628,7 +667,7 @@
                     <a href="{% url 'thong_tin' %}">Thông tin tài khoản</a>
                 </div>
                 <div class="dropdown-item logout">
-                    <a href="{% url 'login' %}">Đăng xuất</a>
+                    <a href="{% url 'logout' %}">Đăng xuất</a>
                 </div>
             </div>
         </div>
@@ -641,7 +680,7 @@
             <li class="{% block nav_xlvb %}{% endblock %}"><a href="{% url 'xlvb_index' %}">Xử lý văn bản điều hành</a>
             </li>
             <li class="{% block nav_vbdi %}{% endblock %}"><a href="{% url 'vbdi_index' %}">Văn bản đi</a></li>
-            
+
             {% can_manage_users user as manage_users %}
             {% if manage_users %}
             <li class="{% block nav_qldv %}{% endblock %}"><a href="{% url 'qldv_ngoai' %}">Quản lý đơn vị</a></li>
@@ -661,15 +700,15 @@
 
     <script>
         window.App = {
-            confirm: function(options) {
+            confirm: function (options) {
                 const { title, message, type, icon, onConfirm } = options;
                 const overlay = document.getElementById('appPopupOverlay');
                 if (!overlay) return;
-                
+
                 overlay.style.display = 'flex';
                 const iconClass = type === 'danger' ? 'danger' : 'success';
                 const btnClass = type === 'danger' ? 'app-btn-red' : 'app-btn-blue';
-                
+
                 overlay.innerHTML = `
                     <div class="app-popup">
                         <i class="fas ${icon} app-popup-icon ${iconClass}"></i>
@@ -728,7 +767,7 @@
                     </div>
                 `;
             },
-            showError: function(message, onDone) {
+            showError: function (message, onDone) {
                 const overlay = document.getElementById('appPopupOverlay');
                 if (!overlay) return;
                 overlay.style.display = 'flex';
@@ -746,7 +785,7 @@
                     if (onDone) onDone();
                 };
             },
-            closePopup: function() {
+            closePopup: function () {
                 document.getElementById('appPopupOverlay').style.display = 'none';
             }
         };

@@ -74,12 +74,24 @@ class VanBanDenForm(forms.Form):
         return cleaned_data
 
     def clean_don_vi_ngoai_id(self):
+        from django.db.models import Q
         don_vi_id = self.cleaned_data.get('don_vi_ngoai_id', '')
         if not don_vi_id:
-            dv = DonViBenNgoai.objects.first()
+            dv = DonViBenNgoai.objects.filter(TenDonVi="Chưa xác định").first()
             if not dv:
                 dv = DonViBenNgoai.objects.create(TenDonVi="Chưa xác định")
             return dv
+            
+        # Kiểm tra đơn vị trong trước (ID hoặc Tên)
+        if str(don_vi_id).isdigit():
+            dv_trong = DonViBenTrong.objects.filter(pk=don_vi_id).first()
+        else:
+            dv_trong = DonViBenTrong.objects.filter(TenDonVi=don_vi_id).first()
+        
+        if dv_trong:
+            return dv_trong
+
+        # Sau đó mới kiểm tra/tạo đơn vị ngoài
         if str(don_vi_id).isdigit():
             dv = DonViBenNgoai.objects.filter(pk=don_vi_id).first()
             if dv: return dv
@@ -107,8 +119,15 @@ class VanBanDenForm(forms.Form):
                     if field == 'loai_van_ban': model_field = 'LoaiVanBan'
                     if field == 'trich_yeu': model_field = 'TrichYeu'
                     if field == 'trang_thai': model_field = 'TrangThai'
-                    if field == 'don_vi_ngoai_id': model_field = 'DonViNgoaiID'
-                    if field == 'don_vi_trong_id': model_field = 'DonViTrongID'
+                    if field == 'don_vi_ngoai_id':
+                        dv = data[field]
+                        if isinstance(dv, DonViBenTrong):
+                            instance.DonViGuiID = dv
+                            instance.DonViNgoaiID = None
+                        else:
+                            instance.DonViNgoaiID = dv
+                            instance.DonViGuiID = None
+                        continue
                     
                     setattr(instance, model_field, data[field])
             
@@ -135,6 +154,15 @@ class VanBanDenForm(forms.Form):
             if not don_vi_trong and user and hasattr(user, 'PhongBan'):
                 don_vi_trong = user.PhongBan
 
+            # Xử lý đơn vị gửi (trong hoặc ngoài)
+            dv_gui = data.get('don_vi_ngoai_id')
+            dv_gui_trong = None
+            dv_gui_ngoai = None
+            if isinstance(dv_gui, DonViBenTrong):
+                dv_gui_trong = dv_gui
+            else:
+                dv_gui_ngoai = dv_gui
+
             # Create new instance
             vbd = VanBanDen.objects.create(
                 SoKyHieu=data.get('so_ky_hieu'),
@@ -142,7 +170,8 @@ class VanBanDenForm(forms.Form):
                 LoaiVanBan=data.get('loai_van_ban'),
                 NgayBanHanh=data.get('ngay_ban_hanh'),
                 NgayNhan=data.get('ngay_nhan'),
-                DonViNgoaiID=data.get('don_vi_ngoai_id'),
+                DonViNgoaiID=dv_gui_ngoai,
+                DonViGuiID=dv_gui_trong,
                 DonViTrongID=don_vi_trong,
                 TepDinhKem=file_upload,
                 TrangThai=data.get('trang_thai', 'DANG_XU_LY'),

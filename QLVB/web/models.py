@@ -43,36 +43,69 @@ class UserAccount(AbstractUser):
         return self.role_name and self.role_name.startswith("Nhân viên")
 
     def can_approve(self):
-        # Admin và Giám đốc có toàn quyền
-        if self.is_superuser or self.is_giam_doc():
+        # Giám đốc có toàn quyền phê duyệt
+        if self.is_giam_doc():
             return True
-        # Trưởng phòng IT không có quyền phê duyệt
+        # Trưởng phòng IT có quyền phê duyệt (có điều kiện, kiểm tra chi tiết ở can_perform_action)
         if self.is_it_head():
-            return False
-        return self.is_department_head()
+            return True
+        # Các Trưởng phòng ban có quyền
+        if self.is_department_head():
+            return True
+        # Admin hệ thống
+        return self.is_superuser
 
     def can_publish(self):
-        # Admin và Giám đốc có toàn quyền
-        if self.is_superuser or self.is_giam_doc():
+        # Giám đốc có toàn quyền phát hành
+        if self.is_giam_doc():
             return True
-        # Trưởng phòng IT không có quyền phát hành
+        # Trưởng phòng IT có quyền phát hành (có điều kiện, kiểm tra chi tiết ở can_perform_action)
         if self.is_it_head():
-            return False
-        return self.is_department_head()
+            return True
+        # Các Trưởng phòng ban có quyền
+        if self.is_department_head():
+            return True
+        # Admin hệ thống
+        return self.is_superuser
 
     def can_manage_users_and_units(self):
-        # Admin và Giám đốc có toàn quyền
-        if self.is_superuser or self.is_giam_doc():
+        # Chỉ Giám đốc và TP IT mới có quyền quản lý người dùng, đơn vị
+        if self.is_giam_doc() or self.is_it_head():
             return True
-        # Trưởng phòng các phòng không có quyền quản lý người dùng, đơn vị
+        # Trưởng phòng các phòng ban khác không có quyền này (kể cả khi là superuser)
         if self.is_department_head():
             return False
-        # IT Head có quyền này
-        return self.is_it_head()
+        # Admin hệ thống (superuser không thuộc vai trò Trưởng phòng ban khác)
+        return self.is_superuser
 
     def can_perform_action(self, action, obj=None):
-        # Admin và Giám đốc có toàn quyền hệ thống
-        if self.is_superuser or self.is_giam_doc():
+        # Giám đốc có toàn quyền hệ thống
+        if self.is_giam_doc():
+            return True
+
+        # --- Trưởng phòng IT: xử lý riêng ---
+        if self.is_it_head():
+            if action in ['phe_duyet', 'phat_hanh']:
+                # Không có đối tượng cụ thể: hiển thị nút chung (TP IT có quyền)
+                if not obj:
+                    return True
+                if hasattr(obj, 'VanBanDiID') or hasattr(obj, 'SoKyHieu'):
+                    # Quy tắc 1: Không được tự phê duyệt/phát hành văn bản do chính mình tạo
+                    if hasattr(obj, 'NguoiGui') and obj.NguoiGui == self:
+                        return False
+                    # Quy tắc 2: Chỉ được phê duyệt/phát hành văn bản thuộc phòng IT
+                    nguoi_gui_pb = obj.NguoiGui.PhongBan if (hasattr(obj, 'NguoiGui') and obj.NguoiGui) else None
+                    user_id_pb = obj.UserID.PhongBan if (hasattr(obj, 'UserID') and obj.UserID) else None
+                    if nguoi_gui_pb == self.PhongBan or user_id_pb == self.PhongBan:
+                        return True
+                return False
+            # Các action khác: TP IT toàn quyền
+            return True
+
+        # Nếu là Trưởng phòng ban nghiệp vụ khác: tuân thủ logic nghiệp vụ (kể cả superuser)
+        if self.is_department_head():
+            pass  # Tiếp tục xuống dưới
+        elif self.is_superuser:
             return True
 
         # Kiểm tra cực kỳ nghiêm ngặt cho các vai trò khác: Chỉ người phụ trách (UserID) mới có quyền duyệt/phát hành văn bản đi cụ thể.
@@ -209,15 +242,16 @@ class VanBanDen(models.Model):
         DA_PHAT_HANH = 'DA_PHAT_HANH', 'Đã phát hành'
 
     VanBanDenID = models.AutoField(primary_key=True)
-    DonViNgoaiID = models.ForeignKey(DonViBenNgoai, on_delete=models.CASCADE, null=True, blank=True)
-    VanBanDiID = models.ForeignKey('VanBanDi', on_delete=models.SET_NULL, null=True, blank=True, related_name='vbd_link_set')
-    UserID = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, null=True, blank=True)
-    SoKyHieu = models.CharField(max_length=50)
-    NgayBanHanh = models.DateTimeField(null=True, blank=True)
-    NgayNhan = models.DateTimeField(null=True, blank=True)
-    LoaiVanBan = models.CharField(max_length=50, null=True, blank=True)
+    DonViNgoaiID = models.ForeignKey(DonViBenNgoai, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
+    DonViGuiID = models.ForeignKey(DonViBenTrong, on_delete=models.SET_NULL, null=True, blank=True, related_name='vbd_den_gui_set', db_index=True)
+    VanBanDiID = models.ForeignKey('VanBanDi', on_delete=models.SET_NULL, null=True, blank=True, related_name='vbd_link_set', db_index=True)
+    UserID = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
+    SoKyHieu = models.CharField(max_length=50, db_index=True)
+    NgayBanHanh = models.DateTimeField(null=True, blank=True, db_index=True)
+    NgayNhan = models.DateTimeField(null=True, blank=True, db_index=True)
+    LoaiVanBan = models.CharField(max_length=50, null=True, blank=True, db_index=True)
     TrichYeu = models.CharField(max_length=255, null=True, blank=True)
-    DonViTrongID = models.ForeignKey(DonViBenTrong, on_delete=models.SET_NULL, null=True, blank=True)
+    DonViTrongID = models.ForeignKey(DonViBenTrong, on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
     TrangThai = models.CharField(max_length=50, choices=TrangThaiChoices.choices, default=TrangThaiChoices.DANG_XU_LY, db_index=True)
     NgayHoanThanh = models.DateTimeField(null=True, blank=True)
     TepDinhKem = models.FileField(upload_to='den/%Y/%m/', null=True, blank=True)
@@ -238,13 +272,14 @@ class VanBanDi(models.Model):
         CAN_XU_LY_LAI = 'CAN_XU_LY_LAI', 'Cần xử lý lại'
 
     VanBanDiID = models.AutoField(primary_key=True)
-    DonViTrongID = models.ForeignKey(DonViBenTrong, on_delete=models.CASCADE, null=True, blank=True)
-    DonViNgoaiID = models.ForeignKey(DonViBenNgoai, on_delete=models.CASCADE, null=True, blank=True)
-    UserID = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, null=True, blank=True)
-    NguoiGui = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, null=True, blank=True, related_name='vanbandi_gui_set')
+    DonViTrongID = models.ForeignKey(DonViBenTrong, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
+    DonViNgoaiID = models.ForeignKey(DonViBenNgoai, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
+    DonViGuiID = models.ForeignKey(DonViBenTrong, on_delete=models.SET_NULL, null=True, blank=True, related_name='vanbandi_gui_unit_set', db_index=True)
+    UserID = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
+    NguoiGui = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, null=True, blank=True, related_name='vanbandi_gui_set', db_index=True)
     SoKyHieu = models.CharField(max_length=50, db_index=True)
     NgayBanHanh = models.DateTimeField(null=True, blank=True, db_index=True)
-    LoaiVanBan = models.CharField(max_length=50, null=True, blank=True)
+    LoaiVanBan = models.CharField(max_length=50, null=True, blank=True, db_index=True)
     TrichYeu = models.CharField(max_length=255, null=True, blank=True)
     TrangThai = models.CharField(max_length=50, choices=TrangThaiChoices.choices, default=TrangThaiChoices.DU_THAO, db_index=True)
     TepDinhKem = models.FileField(upload_to='di/%Y/%m/', null=True, blank=True)
@@ -267,9 +302,9 @@ class PhanCong(models.Model):
         QUA_HAN = 'Quá hạn', 'Quá hạn'
 
     PhanCongID = models.AutoField(primary_key=True)
-    VanBanDenID = models.ForeignKey(VanBanDen, on_delete=models.CASCADE, null=True, blank=True)
-    VanBanDiID = models.ForeignKey(VanBanDi, on_delete=models.CASCADE, null=True, blank=True)
-    UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE)
+    VanBanDenID = models.ForeignKey(VanBanDen, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
+    VanBanDiID = models.ForeignKey(VanBanDi, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
+    UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE, db_index=True)
     NgayPhanCong = models.DateTimeField(null=True, blank=True)
     HanXuLy = models.DateTimeField(null=True, blank=True, db_index=True)
     MucDoUuTien = models.CharField(max_length=50, null=True, blank=True)
@@ -281,10 +316,10 @@ class PhanCong(models.Model):
 
 class ChuyenTiep(models.Model):
     ChuyenTiepID = models.AutoField(primary_key=True)
-    VanBanDenID = models.ForeignKey(VanBanDen, on_delete=models.CASCADE, null=True, blank=True)
-    VanBanDiID = models.ForeignKey(VanBanDi, on_delete=models.CASCADE, null=True, blank=True)
-    UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE)
-    NgayChuyenTiep = models.DateTimeField(null=True, blank=True)
+    VanBanDenID = models.ForeignKey(VanBanDen, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
+    VanBanDiID = models.ForeignKey(VanBanDi, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
+    UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE, db_index=True)
+    NgayChuyenTiep = models.DateTimeField(null=True, blank=True, db_index=True)
     NgayBatDau = models.DateTimeField(null=True, blank=True)
     NgayHetHan = models.DateTimeField(null=True, blank=True)
     MucDoUuTien = models.CharField(max_length=50, null=True, blank=True)
@@ -294,9 +329,9 @@ class ChuyenTiep(models.Model):
 
 class LichSuHoatDong(models.Model):
     LichSuID = models.AutoField(primary_key=True)
-    UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE)
-    LoaiDoiTuong = models.CharField(max_length=50, null=True, blank=True)
-    DoiTuongID = models.IntegerField(null=True, blank=True)
+    UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE, db_index=True)
+    LoaiDoiTuong = models.CharField(max_length=50, null=True, blank=True, db_index=True)
+    DoiTuongID = models.IntegerField(null=True, blank=True, db_index=True)
     HanhDong = models.CharField(max_length=50, null=True, blank=True)
     NoiDungThayDoi = models.TextField(null=True, blank=True)
     TrangThaiCu = models.CharField(max_length=50, null=True, blank=True)

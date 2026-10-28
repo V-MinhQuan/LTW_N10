@@ -233,6 +233,16 @@ function submitEditVBD() {
     const id = document.getElementById('edit_id').value;
     const formData = new FormData(form);
     
+    // Thu thập dữ liệu mới để cập nhật UI ngay lập tức
+    const newData = {
+        trich_yeu: document.getElementById('edit_trich_yeu').value,
+        so_ky_hieu: document.getElementById('edit_so_ky_hieu').value,
+        loai_vb: document.getElementById('edit_loai_van_ban').value,
+        ngay_nhan: document.getElementById('edit_ngay_nhan').value,
+        don_vi: document.getElementById('edit_don_vi_gui').value,
+        trang_thai: document.getElementById('edit_trang_thai').value
+    };
+
     fetch(`/van-ban-den/${id}/sua/`, {
         method: 'POST',
         headers: {
@@ -244,7 +254,47 @@ function submitEditVBD() {
     .then(data => {
         if (data.status === 'success') {
             App.showSuccess('Sửa thành công', () => {
-                window.location.reload();
+                closeVBD('popupEdit');
+                
+                // Cập nhật dòng trong bảng mà không reload
+                const row = document.querySelector(`tr[data-id="${id}"]`);
+                if (row) {
+                    const cells = row.cells;
+                    // Cột 2: Số ký hiệu (link)
+                    const link = cells[1].querySelector('a');
+                    if (link) link.textContent = newData.so_ky_hieu;
+                    
+                    // Cột 3: Loại văn bản
+                    cells[2].textContent = newData.loai_vb;
+                    
+                    // Cột 4: Trích yếu
+                    cells[3].textContent = newData.trich_yeu;
+                    cells[3].title = newData.trich_yeu;
+                    
+                    // Cột 5: Ngày nhận (Format lại date nếu cần, ở đây giả định yyyy-mm-dd -> dd/mm/yyyy)
+                    if (newData.ngay_nhan) {
+                        const parts = newData.ngay_nhan.split('-');
+                        if (parts.length === 3) cells[4].textContent = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    }
+                    
+                    // Cột 6: Đơn vị gửi
+                    cells[5].textContent = newData.don_vi;
+                    
+                    // Cột 7: Trạng thái
+                    const statusCell = cells[6];
+                    if (newData.trang_thai === 'HOAN_THANH') {
+                        statusCell.innerHTML = '<span class="status-pill pill-green">Hoàn thành</span>';
+                    } else {
+                        statusCell.innerHTML = '<span class="status-pill pill-orange">Đang xử lý</span>';
+                    }
+                    
+                    // Thêm hiệu ứng highlight để báo hiệu đã cập nhật
+                    row.style.transition = 'background-color 0.5s';
+                    row.style.backgroundColor = '#e8f5e9';
+                    setTimeout(() => {
+                        row.style.backgroundColor = '';
+                    }, 2000);
+                }
             });
         } else {
             App.showError(data.message);

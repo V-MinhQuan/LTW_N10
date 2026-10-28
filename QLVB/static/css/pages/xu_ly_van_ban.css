@@ -248,9 +248,19 @@
 }
 
 /* Action Buttons */
+.col-actions {
+    white-space: nowrap;
+}
+
+.col-actions > div {
+    flex-wrap: nowrap !important;
+    gap: 4px !important;
+    justify-content: center;
+}
+
 .action-btn {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     border: none !important;
     border-radius: 6px;
     color: white;
@@ -258,9 +268,10 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-right: 8px;
+    margin-right: 0;
+    flex-shrink: 0;
     transition: transform 0.1s;
-    font-size: 15px;
+    font-size: 14px;
 }
 
 .action-btn:hover {

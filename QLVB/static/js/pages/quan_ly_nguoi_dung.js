@@ -353,7 +353,7 @@ window.toggleUserStatusById = function (id, newStatus) {
                             loadUsers(currentPage);
                         });
                     } else {
-                        alert('Lỗi: ' + res.message);
+                        App.showError(res.message);
                     }
                 });
         }
@@ -374,12 +374,12 @@ window.saveData = function () {
     };
 
     if (!payload.username || !payload.fullname || !payload.email || !payload.dept || !payload.role_id) {
-        alert('Vui lòng điền đầy đủ các trường bắt buộc (*)');
+        App.showError('Vui lòng điền đầy đủ các trường bắt buộc (*)');
         return;
     }
 
     if (currentId === null && !payload.password) {
-        alert('Vui lòng nhập mật khẩu cho người dùng mới');
+        App.showError('Vui lòng nhập mật khẩu cho người dùng mới');
         return;
     }
 
@@ -399,12 +399,12 @@ window.saveData = function () {
                     loadUsers(currentPage);
                 });
             } else {
-                alert('Lỗi: ' + res.message);
+                App.showError(res.message);
             }
         })
         .catch(err => {
             console.error('Save error:', err);
-            alert('Đã xảy ra lỗi khi lưu.');
+            App.showError('Đã xảy ra lỗi khi lưu.');
         });
 }
 

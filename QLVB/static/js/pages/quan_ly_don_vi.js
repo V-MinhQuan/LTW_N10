@@ -21,7 +21,7 @@ function getCookie(name) {
     return cookieValue;
 }
 
-window.openUnitModal = function(title) {
+window.openUnitModal = function (title) {
     const overlay = document.getElementById('modalOverlay');
     const modal = document.getElementById('modalUnit');
     if (overlay && modal) {
@@ -31,7 +31,7 @@ window.openUnitModal = function(title) {
     }
 }
 
-window.closeUnitModal = function() {
+window.closeUnitModal = function () {
     const overlay = document.getElementById('modalOverlay');
     const modal = document.getElementById('modalUnit');
     if (overlay && modal) {
@@ -41,7 +41,7 @@ window.closeUnitModal = function() {
     currentId = null;
 }
 
-window.loadUnits = function(page = 1) {
+window.loadUnits = function (page = 1) {
     currentPage = page;
     const name = document.querySelector('input[name="name"]')?.value || '';
     const address = document.querySelector('input[name="address"]')?.value || '';
@@ -49,7 +49,7 @@ window.loadUnits = function(page = 1) {
     const status = document.querySelector('select[name="status"]')?.value || 'ALL';
 
     const url = `${window.location.pathname}?page=${page}&ajax=1&name=${encodeURIComponent(name)}&address=${encodeURIComponent(address)}&contact=${encodeURIComponent(contact)}&status=${encodeURIComponent(status)}`;
-    
+
     fetch(url)
         .then(response => response.json())
         .then(result => {
@@ -72,7 +72,7 @@ function renderTable(units, pagination) {
         const tr = document.createElement('tr');
         tr.dataset.id = unit.id;
         tr.dataset.type = currentType;
-        
+
         const isInactive = unit.status === 'INACTIVE';
         const stt = (pagination.current_page - 1) * 5 + index + 1;
 
@@ -84,7 +84,6 @@ function renderTable(units, pagination) {
             ? `<button type="button" class="action-btn btn-success" onclick="window.editUnitById(${unit.id})" title="Sửa"><i class="fas fa-edit"></i></button>`
             : '';
 
-        // 3. Nút Khôi phục: Chỉ hiện nếu là IT và đơn vị đang ngừng hợp tác
         const restoreBtn = (isInactive && CAN_EDIT_UNIT)
             ? `<button type="button" class="action-btn btn-warning" onclick="window.confirmReactivateById(${unit.id})" title="Khôi phục"><i class="fas fa-rotate-left"></i></button>`
             : '';
@@ -116,9 +115,9 @@ function renderPagination(pagination) {
     const container = document.getElementById('paginationControls');
     if (!container) return;
     container.innerHTML = '';
-    
+
     if (pagination.total_pages <= 1) return;
-    
+
     const addBtn = (text, page, active) => {
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -127,7 +126,7 @@ function renderPagination(pagination) {
         if (!active) btn.onclick = () => window.loadUnits(page);
         container.appendChild(btn);
     }
-    
+
     addBtn('Đầu', 1);
     if (pagination.current_page > 1) {
         addBtn('Trước', pagination.current_page - 1);
@@ -151,7 +150,7 @@ function renderPagination(pagination) {
     addBtn('Cuối', pagination.total_pages);
 }
 
-window.viewUnitById = function(id) {
+window.viewUnitById = function (id) {
     fetch(`${window.location.pathname}?id=${id}&ajax=1`).then(r => r.json()).then(res => {
         populateModal(res.data[0]);
         document.getElementById('modalUnit').querySelectorAll('input').forEach(i => i.disabled = true);
@@ -161,7 +160,7 @@ window.viewUnitById = function(id) {
     });
 };
 
-window.editUnitById = function(id) {
+window.editUnitById = function (id) {
     if (!CAN_EDIT_UNIT) { // Nếu không có quyền, chuyển sang Xem luôn[cite: 3]
         window.viewUnitById(id);
         return;
@@ -172,27 +171,27 @@ window.editUnitById = function(id) {
         populateModal(unit);
         document.getElementById('modalUnit').querySelectorAll('input').forEach(i => i.disabled = false);
         document.getElementById('btnSaveUnit').style.display = 'block';
-        
+
         // Show Deactivate button only if unit is ACTIVE
         const deactBtn = document.getElementById('btnDeactivateModal');
         if (deactBtn) {
             deactBtn.style.display = (unit.status === 'ACTIVE') ? 'block' : 'none';
         }
-        
+
         window.openUnitModal('Chỉnh sửa đơn vị');
     });
 };
 
-window.handleDeactivateFromModal = function() {
+window.handleDeactivateFromModal = function () {
     if (!currentId) return;
     window.confirmDeactivateById(currentId);
 }
 
-window.confirmDeactivateById = function(id) {
+window.confirmDeactivateById = function (id) {
     console.log('Action: confirmDeactivateById', id);
     if (window.App && window.App.confirm) {
         const title = currentType === 'trong' ? "Xác nhận ngừng hoạt động" : "Xác nhận ngừng hợp tác";
-        const message = currentType === 'trong' 
+        const message = currentType === 'trong'
             ? "Bạn có chắc muốn ngừng hoạt động đơn vị này? Dữ liệu vẫn được giữ lại."
             : "Bạn có chắc muốn ngừng hợp tác với đơn vị này? Dữ liệu vẫn được giữ lại.";
         window.App.confirm({
@@ -207,7 +206,7 @@ window.confirmDeactivateById = function(id) {
     }
 };
 
-window.confirmReactivateById = function(id) {
+window.confirmReactivateById = function (id) {
     if (window.App && window.App.confirm) {
         window.App.confirm({
             title: "Xác nhận khôi phục",
@@ -218,12 +217,8 @@ window.confirmReactivateById = function(id) {
     }
 };
 
-window.confirmDeactivate = function(btn) {
+window.confirmDeactivate = function (btn) {
     window.confirmDeactivateById(btn.getAttribute('data-id'));
-};
-
-window.confirmReactivate = function(btn) {
-    window.confirmReactivateById(btn.getAttribute('data-id'));
 };
 
 function updateUnitStatus(id, action) {
@@ -232,23 +227,19 @@ function updateUnitStatus(id, action) {
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify({ id: id, type: currentType, action: action })
     })
-    .then(r => r.json()).then(data => {
-        if (data.status === 'success') {
-            window.App.showSuccess(data.message, () => window.loadUnits(currentPage));
-        } else {
-            if (window.App && window.App.showAlert) {
-                window.App.showAlert(data.message);
+        .then(r => r.json()).then(data => {
+            if (data.status === 'success') {
+                window.App.showSuccess(data.message, () => window.loadUnits(currentPage));
             } else {
-                alert(data.message);
+                window.App.showError(data.message);
             }
-        }
-    }).catch(err => {
-        console.error(err);
-        if (window.App && window.App.showAlert) window.App.showAlert("Có lỗi xảy ra, vui lòng thử lại sau.");
-    });
+        }).catch(err => {
+            console.error(err);
+            if (window.App && window.App.showAlert) window.App.showAlert("Có lỗi xảy ra, vui lòng thử lại sau.");
+        });
 }
 
-window.viewUnit = function(btn) {
+window.viewUnit = function (btn) {
     populateModal(btn.dataset);
     document.getElementById('modalUnit').querySelectorAll('input').forEach(i => i.disabled = true);
     document.getElementById('btnSaveUnit').style.display = 'none';
@@ -256,7 +247,7 @@ window.viewUnit = function(btn) {
     window.openUnitModal('Chi tiết đơn vị');
 };
 
-window.editUnit = function(btn) {
+window.editUnit = function (btn) {
     if (!CAN_EDIT_UNIT) {
         window.viewUnit(btn);
         return;
@@ -266,12 +257,12 @@ window.editUnit = function(btn) {
     populateModal(data);
     document.getElementById('modalUnit').querySelectorAll('input').forEach(i => i.disabled = false);
     document.getElementById('btnSaveUnit').style.display = 'block';
-    
+
     const deactBtn = document.getElementById('btnDeactivateModal');
     if (deactBtn) {
         deactBtn.style.display = (data.status === 'ACTIVE') ? 'block' : 'none';
     }
-    
+
     window.openUnitModal('Chỉnh sửa đơn vị');
 };
 
@@ -283,7 +274,7 @@ function populateModal(data) {
     document.getElementById('unitContact').value = data.contact || data.NguoiLienHe || '';
 }
 
-window.saveUnit = function() {
+window.saveUnit = function () {
     const name = document.getElementById('unitName').value.trim();
     const address = document.getElementById('unitAddress').value.trim();
     const phone = document.getElementById('unitPhone').value.trim();
@@ -311,11 +302,7 @@ window.saveUnit = function() {
         if (data.status === 'success') {
             window.App.showSuccess(data.message, () => { window.closeUnitModal(); window.loadUnits(currentPage); });
         } else {
-            if (window.App && window.App.showAlert) {
-                window.App.showAlert(data.message);
-            } else {
-                alert(data.message);
-            }
+            window.App.showError(data.message);
         }
     }).catch(err => {
         console.error(err);
@@ -339,10 +326,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             document.getElementById('modalUnit').querySelectorAll('input').forEach(i => i.disabled = false);
             document.getElementById('btnSaveUnit').style.display = 'block';
-            
+
             const deactBtn = document.getElementById('btnDeactivateModal');
             if (deactBtn) deactBtn.style.display = 'none';
-            
+
             window.openUnitModal('Thêm mới đơn vị');
         };
     }

@@ -507,7 +507,7 @@
         </thead>
         <tbody>
           {% for vbd in danh_sach %}
-          <tr>
+          <tr data-id="{{ vbd.VanBanDenID }}">
             <td class="text-left">{{ page_obj.start_index|add:forloop.counter0 }}</td>
             <td class="text-left"><a href="javascript:void(0)" onclick="xemVBD({{ vbd.pk }})">{{ vbd.SoKyHieu }}</a></td>
             <td class="text-left">{{ vbd.LoaiVanBan|default:"" }}</td>
@@ -515,7 +515,13 @@
               style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
               title="{{ vbd.TrichYeu }}">{{ vbd.TrichYeu|default:"" }}</td>
             <td class="text-left">{{ vbd.NgayNhan|date:"d/m/Y" }}</td>
-            <td class="text-left">{{ vbd.DonViNgoaiID.TenDonVi|default:"" }}</td>
+            <td class="text-left">
+              {% if vbd.DonViGuiID %}
+                {{ vbd.DonViGuiID.TenDonVi }}
+              {% else %}
+                {{ vbd.DonViNgoaiID.TenDonVi|default:"" }}
+              {% endif %}
+            </td>
             <td class="text-center">
               {% if vbd.TrangThai == 'HOAN_THANH' %}
               <span class="status-pill pill-green">Hoàn thành</span>
@@ -999,7 +1005,10 @@
 <datalist id="don_vi_ngoai_list">
   {% for dv in don_vi_ngoai %}
   <option value="{{ dv.TenDonVi }}">
-    {% endfor %}
+  {% endfor %}
+  {% for dv in don_vi_trong %}
+  <option value="{{ dv.TenDonVi }}">
+  {% endfor %}
 </datalist>
 
 <datalist id="don_vi_trong_list">

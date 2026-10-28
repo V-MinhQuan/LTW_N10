@@ -265,6 +265,9 @@
             <th width="5%" class="col-stt">STT</th>
             <th width="12%">Số ký hiệu</th>
             <th width="20%">Trích yếu</th>
+            {% if request.user.is_tgd or request.user.is_it_head %}
+            <th width="12%">Đơn vị gửi</th>
+            {% endif %}
             <th width="15%">Đơn vị nhận</th>
             <th width="12%">Loại văn bản</th>
             <th width="12%">Người xử lý</th>
@@ -282,6 +285,9 @@
             <td class="text-left"
               style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
               title="{{ vb.TrichYeu }}">{{ vb.TrichYeu }}</td>
+            {% if request.user.is_tgd or request.user.is_it_head %}
+            <td class="text-left">{{ vb.DonViGuiID.TenDonVi|default:"-" }}</td>
+            {% endif %}
             <td class="text-left">
               {% if not vb.DonViTrongID and not vb.DonViNgoaiID %}
                 {% if tt == 'DA_PHAT_HANH' %}

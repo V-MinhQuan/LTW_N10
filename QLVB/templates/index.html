@@ -172,22 +172,34 @@
     }
     .search-input-group {
         position: relative;
+        display: flex;
+        align-items: center;
     }
     .search-input-group input {
-        width: 100%;
+        flex: 1;
         padding: 12px 15px;
-        padding-right: 40px;
+        padding-right: 44px;
         border-radius: 8px;
         border: none;
         font-size: 13px;
         outline: none;
+        width: 100%;
     }
-    .search-input-group .search-icon {
+    .search-submit-btn {
         position: absolute;
-        right: 15px;
-        top: 50%;
-        transform: translateY(-50%);
+        right: 10px;
+        background: none;
+        border: none;
         color: #94a3b8;
+        cursor: pointer;
+        font-size: 15px;
+        padding: 4px 6px;
+        display: flex;
+        align-items: center;
+        transition: color 0.2s;
+    }
+    .search-submit-btn:hover {
+        color: #1a73e8;
     }
 
     /* To-do List Card */
@@ -263,6 +275,34 @@
         background-color: #FEF3C7 !important;
         color: #92400E !important;
     }
+    .todo-item.orange { background-color: #fff7ed; border-left-color: #ea580c; }
+    .todo-icon {
+        display: flex;
+        align-items: flex-start;
+        padding-top: 2px;
+        flex-shrink: 0;
+    }
+    .highlight-orange { color: #ea580c; font-weight: 600; }
+    .badge-overdue {
+        display: inline-block;
+        background-color: #fee2e2;
+        color: #dc2626;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 7px;
+        border-radius: 999px;
+        letter-spacing: 0.3px;
+    }
+    .badge-soon {
+        display: inline-block;
+        background-color: #ffedd5;
+        color: #ea580c;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 7px;
+        border-radius: 999px;
+        letter-spacing: 0.3px;
+    }
 </style>
 
 {% endblock %}
@@ -288,7 +328,7 @@
     </div>
     <div class="stat-card red">
         <div class="stat-label">Quá hạn</div>
-        <div class="stat-value">{{ count_overdue|stringformat:"02d" }}</div>
+        <div class="stat-value">{{ count_overdue }}</div>
         <a href="{% url 'xlvb_index' %}" class="stat-link">Xem chi tiết</a>
     </div>
     <div class="stat-card green">
@@ -348,10 +388,16 @@
         <div class="search-card">
             <h3>Tra Cứu Nhanh</h3>
             <p>Tìm kiếm văn bản theo số hiệu hoặc trích yếu</p>
-            <div class="search-input-group">
-                <input type="text" placeholder="Nhập số hiệu văn bản...">
-                <i class="fas fa-search search-icon"></i>
-            </div>
+            <form method="GET" action="{% url 'tim_kiem' %}" class="search-input-group">
+                <input type="text"
+                       name="q"
+                       id="quick-search-input"
+                       placeholder="Nhập số hiệu văn bản..."
+                       autocomplete="off">
+                <button type="submit" class="search-submit-btn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
         </div>
 
         <!-- TODO LIST -->
@@ -362,13 +408,31 @@
             
             <div class="todo-list">
                 {% for todo in todo_list %}
-                <div class="todo-item {% if todo.HanXuLy < now %}red{% else %}blue{% endif %}">
-                    <div class="todo-checkbox"></div>
-                    <div class="todo-content">
-                        <h4>{{ todo.VanBanDenID.TrichYeu|default:todo.VanBanDiID.TrichYeu }}</h4>
-                        <p>Hạn chót: <span class="{% if todo.HanXuLy < now %}highlight-red{% endif %}">{{ todo.HanXuLy|date:"d/m/Y" }}</span></p>
+                {% with han=todo.HanXuLy ten=todo.VanBanDenID.TrichYeu|default:todo.VanBanDiID.TrichYeu skh=todo.VanBanDenID.SoKyHieu|default:todo.VanBanDiID.SoKyHieu %}
+                <div class="todo-item {% if han < now %}red{% else %}orange{% endif %}">
+                    <div class="todo-icon">
+                        {% if han < now %}
+                        <i class="fas fa-exclamation-circle" style="color:#e11d48; font-size:18px;"></i>
+                        {% else %}
+                        <i class="fas fa-clock" style="color:#ea580c; font-size:18px;"></i>
+                        {% endif %}
+                    </div>
+                    <div class="todo-content" style="flex:1; overflow:hidden;">
+                        <h4 style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ ten }}">
+                            {{ skh }} — {{ ten|truncatechars:40 }}
+                        </h4>
+                        <p>
+                            Hạn: <span class="{% if han < now %}highlight-red{% else %}highlight-orange{% endif %}">{{ han|date:"d/m/Y" }}</span>
+                            &nbsp;|&nbsp;
+                            {% if han < now %}
+                            <span class="badge-overdue">Quá hạn</span>
+                            {% else %}
+                            <span class="badge-soon">Sắp đến hạn</span>
+                            {% endif %}
+                        </p>
                     </div>
                 </div>
+                {% endwith %}
                 {% empty %}
                 <div style="padding: 20px; text-align: center; color: #999; font-size: 13px;">
                     Không có công việc nào cần xử lý.

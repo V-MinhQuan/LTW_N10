@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Kết quả tìm kiếm - Vietasia Travel{% endblock %}
+
+{% block extra_css %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    .search-page-header {
+        margin-bottom: 24px;
+    }
+    .search-page-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 6px;
+    }
+    .search-meta {
+        font-size: 13px;
+        color: #64748b;
+    }
+    .search-meta span {
+        color: #1a73e8;
+        font-weight: 600;
+    }
+
+    /* Search bar on results page */
+    .search-bar-wrap {
+        background: #fff;
+        border-radius: 12px;
+        padding: 16px 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 24px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    .search-bar-wrap form {
+        display: flex;
+        flex: 1;
+        gap: 10px;
+    }
+    .search-bar-wrap input[type="text"] {
+        flex: 1;
+        padding: 10px 16px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+        outline: none;
+        color: #1e293b;
+        transition: border-color 0.2s;
+    }
+    .search-bar-wrap input[type="text"]:focus {
+        border-color: #1a73e8;
+    }
+    .search-bar-wrap button {
+        background-color: #1a73e8;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 22px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background-color 0.2s;
+    }
+    .search-bar-wrap button:hover {
+        background-color: #1557b0;
+    }
+
+    /* Section cards */
+    .result-section {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+        margin-bottom: 24px;
+        overflow: hidden;
+    }
+    .result-section-header {
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 14px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .section-den { background-color: #e0f2fe; color: #0369a1; }
+    .section-di  { background-color: #f0fdf4; color: #15803d; }
+    .section-count {
+        margin-left: auto;
+        font-size: 12px;
+        font-weight: 500;
+        background: rgba(0,0,0,0.07);
+        padding: 2px 10px;
+        border-radius: 20px;
+    }
+
+    /* Table */
+    .result-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .result-table th {
+        padding: 10px 16px;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        border-bottom: 1px solid #f1f5f9;
+        background: #fafafa;
+    }
+    .result-table td {
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #334155;
+        border-bottom: 1px solid #f8fafc;
+        vertical-align: middle;
+    }
+    .result-table tr:last-child td { border-bottom: none; }
+    .result-table tr:hover td { background-color: #f8fafc; }
+
+    .doc-link {
+        color: #1a73e8;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    .doc-link:hover { text-decoration: underline; }
+
+    .status-pill {
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        display: inline-block;
+        white-space: nowrap;
+    }
+    .pill-orange { background: #FFEDD5; color: #C26844; }
+    .pill-green  { background: #E8F5E9; color: #2E7D32; }
+    .pill-blue   { background: #DBEAFE; color: #1D4ED8; }
+    .pill-teal   { background: #CCFBF1; color: #0F766E; }
+    .pill-gray   { background: #F3F4F6; color: #374151; }
+    .pill-yellow { background: #FEF9C3; color: #854D0E; }
+    .pill-red    { background: #FEE2E2; color: #B91C1C; }
+
+    .no-result {
+        padding: 30px;
+        text-align: center;
+        color: #94a3b8;
+        font-size: 13px;
+    }
+    .no-result i { font-size: 28px; margin-bottom: 8px; display: block; }
+
+    .empty-state {
+        background: #fff;
+        border-radius: 12px;
+        padding: 60px 20px;
+        text-align: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+        color: #64748b;
+    }
+    .empty-state i { font-size: 48px; color: #cbd5e1; margin-bottom: 16px; }
+    .empty-state h3 { font-size: 17px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+    .empty-state p { font-size: 13px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="search-page-header">
+    <div class="search-page-title">Kết quả tìm kiếm</div>
+    {% if query %}
+    <div class="search-meta">
+        Tìm thấy <span>{{ total }}</span> kết quả cho từ khóa "<span>{{ query }}</span>"
+    </div>
+    {% endif %}
+</div>
+
+<!-- Search bar -->
+<div class="search-bar-wrap">
+    <form method="GET" action="{% url 'tim_kiem' %}">
+        <input type="text" name="q" value="{{ query }}" placeholder="Nhập số ký hiệu hoặc trích yếu văn bản..." autofocus>
+        <button type="submit">
+            <i class="fas fa-search"></i> Tìm kiếm
+        </button>
+    </form>
+</div>
+
+{% if not query %}
+<!-- Chưa có từ khóa -->
+<div class="empty-state">
+    <i class="fas fa-search"></i>
+    <h3>Nhập từ khóa để tìm kiếm</h3>
+    <p>Tìm theo số ký hiệu hoặc trích yếu trong toàn bộ văn bản đến và văn bản đi.</p>
+</div>
+
+{% elif total == 0 %}
+<!-- Không tìm thấy -->
+<div class="empty-state">
+    <i class="fas fa-folder-open"></i>
+    <h3>Không tìm thấy kết quả</h3>
+    <p>Không có văn bản nào khớp với "<strong>{{ query }}</strong>". Hãy thử từ khóa khác.</p>
+</div>
+
+{% else %}
+
+<!-- Kết quả Văn bản đến -->
+<div class="result-section">
+    <div class="result-section-header section-den">
+        <i class="fas fa-inbox"></i> Văn bản đến
+        <span class="section-count">{{ results_den|length }} kết quả</span>
+    </div>
+    {% if results_den %}
+    <table class="result-table">
+        <thead>
+            <tr>
+                <th width="18%">Số ký hiệu</th>
+                <th width="47%">Trích yếu</th>
+                <th width="18%">Nơi gửi</th>
+                <th width="17%">Ngày nhận</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc in results_den %}
+            <tr>
+                <td>
+                    <a href="{% url 'vbd_index' %}?so_ky_hieu={{ doc.SoKyHieu }}" class="doc-link">
+                        {{ doc.SoKyHieu }}
+                    </a>
+                </td>
+                <td>{{ doc.TrichYeu|default:"—" }}</td>
+                <td>{{ doc.DonViNgoaiID.TenDonVi|default:"—" }}</td>
+                <td>{{ doc.NgayNhan|date:"d/m/Y"|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="no-result">
+        <i class="fas fa-inbox"></i>
+        Không có văn bản đến nào khớp với từ khóa này.
+    </div>
+    {% endif %}
+</div>
+
+<!-- Kết quả Văn bản đi -->
+<div class="result-section">
+    <div class="result-section-header section-di">
+        <i class="fas fa-paper-plane"></i> Văn bản đi
+        <span class="section-count">{{ results_di|length }} kết quả</span>
+    </div>
+    {% if results_di %}
+    <table class="result-table">
+        <thead>
+            <tr>
+                <th width="18%">Số ký hiệu</th>
+                <th width="47%">Trích yếu</th>
+                <th width="18%">Nơi gửi đến</th>
+                <th width="17%">Ngày ban hành</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc in results_di %}
+            <tr>
+                <td>
+                    <a href="{% url 'vbdi_index' %}?so_ky_hieu={{ doc.SoKyHieu }}" class="doc-link">
+                        {{ doc.SoKyHieu }}
+                    </a>
+                </td>
+                <td>{{ doc.TrichYeu|default:"—" }}</td>
+                <td>{{ doc.DonViNgoaiID.TenDonVi|default:doc.DonViTrongID.TenDonVi|default:"—" }}</td>
+                <td>{{ doc.NgayBanHanh|date:"d/m/Y"|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="no-result">
+        <i class="fas fa-paper-plane"></i>
+        Không có văn bản đi nào khớp với từ khóa này.
+    </div>
+    {% endif %}
+</div>
+
+{% endif %}
+
+{% endblock %}
