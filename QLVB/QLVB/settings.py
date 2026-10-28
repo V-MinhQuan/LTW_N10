@@ -10,20 +10,15 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
-# Cài thư viện: pip install python-dotenv
-from dotenv import load_dotenv
-
-load_dotenv()
 from pathlib import Path
-
-import os
-# Cài thư viện: pip install python-dotenv
 from dotenv import load_dotenv
-
-load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load .env từ QLVB/.env hoặc thư mục cha LTW_N10/.env
+load_dotenv(BASE_DIR / '.env')
+load_dotenv(BASE_DIR.parent / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -98,6 +93,7 @@ DATABASES = {
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
         'DISABLE_SERVER_SIDE_CURSORS': True,
+        'CONN_MAX_AGE': 600,
     }
 }
 
@@ -169,9 +165,15 @@ SESSION_COOKIE_AGE = 86400
 
 # Đảm bảo Cookie có thể dùng chung trên các tab
 SESSION_COOKIE_DOMAIN = None # Hoặc điền domain của ông nếu chạy web thật
-SESSION_SAVE_EVERY_REQUEST = True
+SESSION_SAVE_EVERY_REQUEST = False
 
-# Cấu hình gửi mail (Dùng Gmail)
+# Cấu hình AI API Keys (Hỗ trợ Multi-Provider Waterfall & Free AI Pool)
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')       # Hỗ trợ nhiều key: key1,key2,key3
+GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')           # 100% FREE (Llama 3.3 70B, 14.400 RPD)
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')           # 100% FREE (GPT-4o-mini qua GitHub account)
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587

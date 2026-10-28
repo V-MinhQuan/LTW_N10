@@ -9,6 +9,11 @@ venv/
 env/
 .venv/
 
+# Environment Variables & Secrets
+.env
+**/.env
+*.env
+
 # Django
 db.sqlite3
 /media
@@ -16,3 +21,4 @@ db.sqlite3
 
 # IDE
 .idea/
+.vscode/

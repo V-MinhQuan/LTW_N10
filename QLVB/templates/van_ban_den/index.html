@@ -10,6 +10,16 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/pages/van_ban_den.css' %}">
 <style>
+  .btn-forward {
+    background-color: #8E44AD !important;
+    color: white !important;
+  }
+
+  .btn-forward:hover {
+    background-color: #732D91 !important;
+    transform: scale(1.08);
+  }
+
   /* INTERNAL OVERRIDE FOR POPUP VIEW */
   .vbd-popup[style*="width: 900px"] {
     width: 900px !important;
@@ -498,18 +508,19 @@
             <th width="5%" class="text-center">STT</th>
             <th width="15%" class="text-center">Số ký hiệu</th>
             <th width="12%" class="text-center">Loại văn bản</th>
-            <th width="28%" class="text-center">Trích yếu</th>
+            <th width="25%" class="text-center">Trích yếu</th>
             <th width="10%" class="text-center">Ngày nhận</th>
             <th width="15%" class="text-center">Đơn vị gửi</th>
             <th width="10%" class="text-center">Trạng thái</th>
-            <th width="5%" class="text-center">Thao tác</th>
+            <th width="8%" class="text-center">Thao tác</th>
           </tr>
         </thead>
         <tbody>
           {% for vbd in danh_sach %}
           <tr data-id="{{ vbd.VanBanDenID }}">
             <td class="text-left">{{ page_obj.start_index|add:forloop.counter0 }}</td>
-            <td class="text-left"><a href="javascript:void(0)" onclick="xemVBD({{ vbd.pk }})">{{ vbd.SoKyHieu }}</a></td>
+            <td class="text-left"><a href="javascript:void(0)" onclick="xemVBD({{ vbd.pk }})">{{ vbd.SoKyHieu }}</a>
+            </td>
             <td class="text-left">{{ vbd.LoaiVanBan|default:"" }}</td>
             <td class="text-left"
               style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
@@ -517,9 +528,9 @@
             <td class="text-left">{{ vbd.NgayNhan|date:"d/m/Y" }}</td>
             <td class="text-left">
               {% if vbd.DonViGuiID %}
-                {{ vbd.DonViGuiID.TenDonVi }}
+              {{ vbd.DonViGuiID.TenDonVi }}
               {% else %}
-                {{ vbd.DonViNgoaiID.TenDonVi|default:"" }}
+              {{ vbd.DonViNgoaiID.TenDonVi|default:"" }}
               {% endif %}
             </td>
             <td class="text-center">
@@ -540,6 +551,14 @@
               {% if can_edit %}
               <button class="action-btn btn-success" onclick="suaVBD({{ vbd.VanBanDenID }})" title="Sửa"><i
                   class="fas fa-edit"></i></button>
+              {% endif %}
+
+              {% check_perm request.user 'xem' vbd as can_forward %}
+              {% if can_forward %}
+              <button class="action-btn btn-forward" type="button" data-id="{{ vbd.VanBanDenID }}"
+                data-so-ky-hieu="{{ vbd.SoKyHieu }}" onclick="chuyenTiepGiamDoc(this)" title="Chuyển tiếp cho Giám đốc">
+                <i class="fas fa-share"></i>
+              </button>
               {% endif %}
             </td>
           </tr>
@@ -685,9 +704,22 @@
             </div>
             <p>Kéo thả tệp tin vào đây hoặc nhấn nút<br>bên dưới để chọn tệp từ máy tính</p>
             <input type="file" id="popupAddFileInput" name="tep_dinh_kem" style="display:none;" required>
-            <button type="button" class="btn-attach-new" onclick="document.getElementById('popupAddFileInput').click()">
-              <i class="fas fa-paperclip"></i> Đính kèm tập tin
-            </button>
+            <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 6px;">
+              <button type="button" class="btn-attach-new"
+                onclick="document.getElementById('popupAddFileInput').click()">
+                <i class="fas fa-paperclip"></i> Chọn tập tin
+              </button>
+              <button type="button" class="btn-attach-new"
+                style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);" id="btnOcrScan"
+                onclick="quyetDuLieuOCRVanBanDen()">
+                <i class="fas fa-magic"></i> Quét & Điền tự động (OCR)
+              </button>
+            </div>
+          </div>
+          <div id="ocr_status_badge"
+            style="display:none; margin-top: 8px; padding: 10px 14px; border-radius: 6px; font-size: 13px; background: #f0fdf4; border: 1px solid #86efac; color: #166534;">
+            <i class="fas fa-check-circle text-success me-1"></i> <span id="ocr_status_text">Đã trích xuất thông tin
+              thành công!</span>
           </div>
           <div class="vbd-file-list" id="add_tep_dinh_kem_container" style="display:none; margin-top: 10px;">
             <div class="vbd-file-item">
@@ -701,7 +733,14 @@
                     chọn</span>
                 </div>
               </div>
-              <i class="fas fa-trash-alt vbd-file-delete" onclick="removeAddSelectedFile()" title="Bỏ chọn tệp"></i>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button type="button" class="btn btn-sm"
+                  style="background: #f0fdf4; border: 1px solid #86efac; color: #166534; padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"
+                  onclick="quyetDuLieuOCRVanBanDen()" title="Quét lại OCR">
+                  <i class="fas fa-magic"></i> Quét lại OCR
+                </button>
+                <i class="fas fa-trash-alt vbd-file-delete" onclick="removeAddSelectedFile()" title="Bỏ chọn tệp"></i>
+              </div>
             </div>
           </div>
         </div>
@@ -840,6 +879,37 @@
             <div class="vbd-file-details">
               <a href="#" target="_blank" class="vbd-file-name" id="view_tep_dinh_kem_name"></a>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUTO-08: AI SMART SUMMARY (TÓM TẮT THÔNG MINH BẰNG AI) -->
+      <div class="ai-summary-card" id="view_ai_summary_card"
+        style="margin: 16px 0; border: 1px solid #c7d2fe; border-radius: 8px; background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%); padding: 14px 18px; box-shadow: 0 2px 6px rgba(99, 102, 241, 0.08);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span
+              style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
+              <i class="fas fa-brain"></i> Trợ lý AI
+            </span>
+            <span style="font-weight: 700; color: #3730a3; font-size: 14px;">Tóm tắt thông minh & Phân tích chuyên
+              sâu</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn btn-sm" id="btnRunAISummary" onclick="yeuCauTomTatAI('den')"
+              style="background: #fff; border: 1px solid #c7d2fe; color: #4338ca; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 4px;">
+              <i class="fas fa-sparkles"></i> <span id="btnRunAISummaryText">Tóm tắt văn bản</span>
+            </button>
+            <button type="button" class="btn btn-sm" id="btnCopyAISummary" onclick="saoChepTomTatAI()"
+              style="background: #fff; border: 1px solid #cbd5e1; color: #64748b; font-size: 12px; padding: 4px 10px; border-radius: 4px; display: none;">
+              <i class="fas fa-copy"></i> Sao chép
+            </button>
+          </div>
+        </div>
+        <div id="ai_summary_content" style="font-size: 13px; color: #334155; line-height: 1.6;">
+          <div style="color: #64748b; font-style: italic;">
+            <i class="fas fa-info-circle text-primary me-1"></i> Nhấn <b>"Tóm tắt văn bản"</b> để tự động trích xuất nội
+            dung tài liệu đính kèm, tóm tắt 3-5 ý chính, xác định mốc thời hạn và trách nhiệm xử lý.
           </div>
         </div>
       </div>
@@ -1002,13 +1072,15 @@
 </div>
 
 
+
+
 <datalist id="don_vi_ngoai_list">
   {% for dv in don_vi_ngoai %}
   <option value="{{ dv.TenDonVi }}">
-  {% endfor %}
-  {% for dv in don_vi_trong %}
+    {% endfor %}
+    {% for dv in don_vi_trong %}
   <option value="{{ dv.TenDonVi }}">
-  {% endfor %}
+    {% endfor %}
 </datalist>
 
 <datalist id="don_vi_trong_list">
@@ -1020,5 +1092,93 @@
 
 
 {% block extra_js %}
-<script src="{% static 'js/pages/van_ban_den.js' %}?v=2"></script>
+<script src="{% static 'js/pages/van_ban_den.js' %}?v=20261028_phase3"></script>
+<script>
+  // Chức năng chuyển tiếp tự động 1-chạm lên role Giám đốc
+  function chuyenTiepGiamDoc(btn) {
+    let id, soKyHieu;
+    if (typeof btn === 'object' && btn !== null) {
+      id = btn.getAttribute('data-id') || btn.dataset.id;
+      soKyHieu = btn.getAttribute('data-so-ky-hieu') || btn.dataset.soKyHieu || '';
+    } else {
+      id = btn;
+      soKyHieu = arguments[1] || '';
+      btn = document.querySelector(`button[data-id="${id}"].btn-forward`);
+    }
+
+    if (!id) {
+      if (window.App && window.App.showError) {
+        window.App.showError('Không xác định được ID văn bản để chuyển tiếp!');
+      } else {
+        alert('Không xác định được ID văn bản để chuyển tiếp!');
+      }
+      return;
+    }
+
+    let originalHtml = '<i class="fas fa-share"></i>';
+    if (btn) {
+      originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+
+    fetch('/api/van-ban-den/chuyen-tiep-giam-doc/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({
+        van_ban_den_id: id,
+        noi_dung: 'Kính trình Giám đốc xem xét và cho ý kiến chỉ đạo.'
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        }
+
+        if (data.status === 'success') {
+          const successMsg = data.message || `Đã chuyển tiếp văn bản '${soKyHieu}' lên Giám đốc thành công!`;
+          if (window.App && window.App.showSuccess) {
+            window.App.showSuccess(successMsg, () => {
+              const row = btn ? btn.closest('tr') : document.querySelector(`tr[data-id="${id}"]`);
+              if (row) {
+                row.style.transition = 'background-color 0.5s';
+                row.style.backgroundColor = '#f3e8ff';
+                setTimeout(() => { row.style.backgroundColor = ''; }, 3500);
+              }
+            });
+          } else {
+            alert(successMsg);
+          }
+          window.dispatchEvent(new Event('notif-update'));
+        } else {
+          const errMsg = data.message || 'Chuyển tiếp thất bại!';
+          if (window.App && window.App.showError) {
+            window.App.showError(errMsg);
+          } else {
+            alert(errMsg);
+          }
+        }
+      })
+      .catch(err => {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        }
+        console.error('Lỗi chuyển tiếp Giám đốc:', err);
+        if (window.App && window.App.showError) {
+          window.App.showError('Có lỗi xảy ra khi kết nối máy chủ!');
+        } else {
+          alert('Có lỗi xảy ra khi kết nối máy chủ!');
+        }
+      });
+  }
+  function openChuyenTiepGD(id, soKyHieu) {
+    chuyenTiepGiamDoc(id, soKyHieu);
+  }
+</script>
 {% endblock %}

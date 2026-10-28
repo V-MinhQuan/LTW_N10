@@ -408,23 +408,22 @@
             
             <div class="todo-list">
                 {% for todo in todo_list %}
-                {% with han=todo.HanXuLy ten=todo.VanBanDenID.TrichYeu|default:todo.VanBanDiID.TrichYeu skh=todo.VanBanDenID.SoKyHieu|default:todo.VanBanDiID.SoKyHieu %}
-                <div class="todo-item {% if han < now %}red{% else %}orange{% endif %}">
+                <div class="todo-item {% if todo.HanXuLy < now %}red{% else %}orange{% endif %}">
                     <div class="todo-icon">
-                        {% if han < now %}
+                        {% if todo.HanXuLy < now %}
                         <i class="fas fa-exclamation-circle" style="color:#e11d48; font-size:18px;"></i>
                         {% else %}
                         <i class="fas fa-clock" style="color:#ea580c; font-size:18px;"></i>
                         {% endif %}
                     </div>
                     <div class="todo-content" style="flex:1; overflow:hidden;">
-                        <h4 style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ ten }}">
-                            {{ skh }} — {{ ten|truncatechars:40 }}
+                        <h4 style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ todo.trich_yeu }}">
+                            {{ todo.so_ky_hieu }} — {{ todo.trich_yeu|truncatechars:40 }}
                         </h4>
                         <p>
-                            Hạn: <span class="{% if han < now %}highlight-red{% else %}highlight-orange{% endif %}">{{ han|date:"d/m/Y" }}</span>
+                            Hạn: <span class="{% if todo.HanXuLy < now %}highlight-red{% else %}highlight-orange{% endif %}">{{ todo.HanXuLy|date:"d/m/Y" }}</span>
                             &nbsp;|&nbsp;
-                            {% if han < now %}
+                            {% if todo.HanXuLy < now %}
                             <span class="badge-overdue">Quá hạn</span>
                             {% else %}
                             <span class="badge-soon">Sắp đến hạn</span>
@@ -432,7 +431,6 @@
                         </p>
                     </div>
                 </div>
-                {% endwith %}
                 {% empty %}
                 <div style="padding: 20px; text-align: center; color: #999; font-size: 13px;">
                     Không có công việc nào cần xử lý.

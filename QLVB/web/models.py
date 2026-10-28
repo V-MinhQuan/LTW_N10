@@ -40,7 +40,8 @@ class UserAccount(AbstractUser):
         return self.role_name and self.role_name.startswith("Trưởng phòng") and not self.is_it_head()
 
     def is_nhan_vien(self):
-        return self.role_name and self.role_name.startswith("Nhân viên")
+        chuc_vu = self.role_name or ""
+        return 'Nhân viên' in chuc_vu or 'Chuyên viên' in chuc_vu or 'CSKH' in chuc_vu or 'viên' in chuc_vu or 'Văn thư' in chuc_vu
 
     def can_approve(self):
         # Giám đốc có toàn quyền phê duyệt
@@ -115,10 +116,13 @@ class UserAccount(AbstractUser):
         
         # Nếu thao tác với một đối tượng cụ thể (Văn bản)
         if obj and action in ['xem', 'sua', 'xoa']:
+            is_vbd = getattr(obj, '_meta', None) and obj._meta.model_name == 'vanbanden'
+            is_vbdi = getattr(obj, '_meta', None) and obj._meta.model_name == 'vanbandi'
+
             # Trưởng phòng (bao gồm cả IT): Chỉ được thao tác văn bản thuộc phòng mình soạn/xử lý
             if self.is_department_head() or self.is_it_head():
                 # 1. Kiểm tra đơn vị nhận nội bộ (Chỉ áp dụng cho Văn bản đến)
-                if hasattr(obj, 'VanBanDenID') and hasattr(obj, 'DonViTrongID') and obj.DonViTrongID == self.PhongBan:
+                if is_vbd and hasattr(obj, 'DonViTrongID') and obj.DonViTrongID == self.PhongBan:
                     return True
                 
                 # 2. Kiểm tra người soạn/người xử lý chính (Cả đến và đi)
@@ -126,14 +130,14 @@ class UserAccount(AbstractUser):
                     return True
                 
                 # 3. Kiểm tra người gửi (Chỉ áp dụng cho Văn bản đi)
-                if hasattr(obj, 'VanBanDiID') and hasattr(obj, 'NguoiGui') and obj.NguoiGui and obj.NguoiGui.PhongBan == self.PhongBan:
+                if is_vbdi and hasattr(obj, 'NguoiGui') and obj.NguoiGui and obj.NguoiGui.PhongBan == self.PhongBan:
                     return True
                 # 4. Kiểm tra nhân viên trong phòng có được phân công/chuyển tiếp không
                 from .models import PhanCong, ChuyenTiep
-                if hasattr(obj, 'VanBanDenID'):
+                if is_vbd:
                     if PhanCong.objects.filter(VanBanDenID=obj, UserID__PhongBan=self.PhongBan).exists(): return True
                     if ChuyenTiep.objects.filter(VanBanDenID=obj, UserID__PhongBan=self.PhongBan).exists(): return True
-                if hasattr(obj, 'VanBanDiID'):
+                elif is_vbdi:
                     if PhanCong.objects.filter(VanBanDiID=obj, UserID__PhongBan=self.PhongBan).exists(): return True
                     if ChuyenTiep.objects.filter(VanBanDiID=obj, UserID__PhongBan=self.PhongBan).exists(): return True
                 
@@ -147,10 +151,10 @@ class UserAccount(AbstractUser):
                 # 2. Kiểm tra phân công/chuyển tiếp
                 from .models import PhanCong, ChuyenTiep
                 is_assigned = False
-                if hasattr(obj, 'VanBanDenID'):
+                if is_vbd:
                     is_assigned = PhanCong.objects.filter(VanBanDenID=obj, UserID=self).exists() or \
                                   ChuyenTiep.objects.filter(VanBanDenID=obj, UserID=self).exists()
-                elif hasattr(obj, 'VanBanDiID'):
+                elif is_vbdi:
                     is_assigned = PhanCong.objects.filter(VanBanDiID=obj, UserID=self).exists() or \
                                   ChuyenTiep.objects.filter(VanBanDiID=obj, UserID=self).exists()
                 
@@ -255,6 +259,9 @@ class VanBanDen(models.Model):
     TrangThai = models.CharField(max_length=50, choices=TrangThaiChoices.choices, default=TrangThaiChoices.DANG_XU_LY, db_index=True)
     NgayHoanThanh = models.DateTimeField(null=True, blank=True)
     TepDinhKem = models.FileField(upload_to='den/%Y/%m/', null=True, blank=True)
+    TomTatAI = models.TextField(null=True, blank=True, verbose_name="Bản tóm tắt thông minh AI")
+    LinhVucAI = models.CharField(max_length=100, null=True, blank=True, verbose_name="Lĩnh vực AI")
+    GoiYPhanCongAI = models.JSONField(default=dict, blank=True, verbose_name="Gợi ý phân công AI")
 
     def __str__(self):
         return self.SoKyHieu
@@ -283,6 +290,8 @@ class VanBanDi(models.Model):
     TrichYeu = models.CharField(max_length=255, null=True, blank=True)
     TrangThai = models.CharField(max_length=50, choices=TrangThaiChoices.choices, default=TrangThaiChoices.DU_THAO, db_index=True)
     TepDinhKem = models.FileField(upload_to='di/%Y/%m/', null=True, blank=True)
+    TomTatAI = models.TextField(null=True, blank=True, verbose_name="Bản tóm tắt thông minh AI")
+    LinhVucAI = models.CharField(max_length=100, null=True, blank=True, verbose_name="Lĩnh vực AI")
     
     # Các trường bổ sung theo yêu cầu luồng mới
     NgayGuiPheDuyet = models.DateTimeField(null=True, blank=True)
@@ -310,9 +319,42 @@ class PhanCong(models.Model):
     MucDoUuTien = models.CharField(max_length=50, null=True, blank=True)
     TrangThaiXuLy = models.CharField(max_length=50, choices=TrangThaiXuLyChoices.choices, null=True, blank=True, db_index=True)
     GhiChu = models.CharField(max_length=255, null=True, blank=True)
+    
+    # Các trường theo dõi tiến độ & xử lý chậm tiến độ theo quy trình BPMN
+    HanXuLyCu = models.DateTimeField(null=True, blank=True, verbose_name="Hạn xử lý trước khi gia hạn")
+    SoLanGiaHan = models.IntegerField(default=0, verbose_name="Số lần gia hạn")
+    LyDoChamTienDo = models.TextField(null=True, blank=True, verbose_name="Lý do chậm tiến độ / gia hạn")
+    PhuongAnXuLyCham = models.CharField(max_length=50, null=True, blank=True, verbose_name="Phương án xử lý chậm") # GIA_HAN, CHUYEN_NGUOI, GIAI_TRINH
+    NgayCanhBaoCuoi = models.DateTimeField(null=True, blank=True, verbose_name="Thời điểm cảnh báo gần nhất")
+
+    @property
+    def van_ban(self):
+        return self.VanBanDenID if self.VanBanDenID_id else self.VanBanDiID
+
+    @property
+    def trich_yeu(self):
+        if hasattr(self, '_trich_yeu') and self._trich_yeu is not None:
+            return self._trich_yeu
+        vb = self.van_ban
+        return vb.TrichYeu if vb else ""
+
+    @trich_yeu.setter
+    def trich_yeu(self, value):
+        self._trich_yeu = value
+
+    @property
+    def so_ky_hieu(self):
+        if hasattr(self, '_so_ky_hieu') and self._so_ky_hieu is not None:
+            return self._so_ky_hieu
+        vb = self.van_ban
+        return vb.SoKyHieu if vb else ""
+
+    @so_ky_hieu.setter
+    def so_ky_hieu(self, value):
+        self._so_ky_hieu = value
 
     class Meta:
-        verbose_name_plural = "Phân công"
+        verbose_name_plural = "Phân công" 
 
 class ChuyenTiep(models.Model):
     ChuyenTiepID = models.AutoField(primary_key=True)
@@ -404,3 +446,75 @@ class Butphe(models.Model):
 
     class Meta:
         verbose_name_plural = "Bút phê"
+
+
+class ThongBao(models.Model):
+    class LoaiThongBaoChoices(models.TextChoices):
+        SAP_QUA_HAN = 'SAP_QUA_HAN', 'Sắp quá hạn'
+        QUA_HAN = 'QUA_HAN', 'Quá hạn'
+        NHAC_NHO = 'NHAC_NHO', 'Nhắc nhở đôn đốc'
+        PHAN_CONG = 'PHAN_CONG', 'Phân công xử lý'
+        HE_THONG = 'HE_THONG', 'Hệ thống'
+
+    ThongBaoID = models.AutoField(primary_key=True)
+    UserID = models.ForeignKey(UserAccount, on_delete=models.CASCADE, related_name='thong_bao_set', db_index=True)
+    PhanCongID = models.ForeignKey(PhanCong, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
+    VanBanDenID = models.ForeignKey(VanBanDen, on_delete=models.CASCADE, null=True, blank=True)
+    VanBanDiID = models.ForeignKey(VanBanDi, on_delete=models.CASCADE, null=True, blank=True)
+    TieuDe = models.CharField(max_length=255)
+    NoiDung = models.TextField()
+    LoaiThongBao = models.CharField(max_length=30, choices=LoaiThongBaoChoices.choices, default=LoaiThongBaoChoices.HE_THONG)
+    LienKet = models.CharField(max_length=255, null=True, blank=True)
+    DaDoc = models.BooleanField(default=False, db_index=True)
+    NgayTao = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name_plural = "Thông báo hệ thống"
+        ordering = ['-NgayTao']
+
+    def __str__(self):
+        return f"[{self.LoaiThongBao}] {self.TieuDe} -> {self.UserID.username}"
+
+
+class NgoaiLeHeThong(models.Model):
+    """
+    AUTO-06: Xử lý sự cố kết nối và ngoại lệ hệ thống
+    Tự động lưu trạng thái công việc bị gián đoạn (như lỗi mất mạng khi gửi mail,
+    lỗi đồng bộ liên phòng ban, lỗi lưu tệp), hỗ trợ thử lại theo cơ chế cấu hình
+    và thông báo cho quản trị viên.
+    """
+    class LoaiNgoaiLeChoices(models.TextChoices):
+        GUI_EMAIL = 'GUI_EMAIL', 'Gửi email phát hành'
+        DONG_BO_VAN_BAN = 'DONG_BO_VAN_BAN', 'Đồng bộ văn bản'
+        LUU_TEP_TIN = 'LUU_TEP_TIN', 'Lưu trữ tệp tin'
+        KET_NOI_MANG = 'KET_NOI_MANG', 'Kết nối mạng / Dịch vụ ngoại vi'
+
+    class TrangThaiChoices(models.TextChoices):
+        CHO_XU_LY = 'CHO_XU_LY', 'Chờ thử lại'
+        DANG_THU_LAI = 'DANG_THU_LAI', 'Đang thử lại'
+        THANH_CONG = 'THANH_CONG', 'Thành công (Đã khắc phục)'
+        THAT_BAI = 'THAT_BAI', 'Thất bại (Cần can thiệp)'
+        DA_HUY = 'DA_HUY', 'Đã hủy bỏ'
+
+    NgoaiLeID = models.AutoField(primary_key=True)
+    LoaiNgoaiLe = models.CharField(max_length=50, choices=LoaiNgoaiLeChoices.choices, default=LoaiNgoaiLeChoices.GUI_EMAIL, db_index=True)
+    TieuDe = models.CharField(max_length=255)
+    MoTaLoi = models.TextField()
+    ChiTietNgoaiLe = models.TextField(null=True, blank=True)
+    DuLieuPayload = models.JSONField(default=dict, help_text="Dữ liệu ngữ cảnh để thực thi lại tác vụ")
+    SoLanThuLai = models.IntegerField(default=0)
+    SoLanToiDa = models.IntegerField(default=3)
+    TrangThai = models.CharField(max_length=30, choices=TrangThaiChoices.choices, default=TrangThaiChoices.CHO_XU_LY, db_index=True)
+    VanBanDiID = models.ForeignKey(VanBanDi, on_delete=models.SET_NULL, null=True, blank=True)
+    VanBanDenID = models.ForeignKey(VanBanDen, on_delete=models.SET_NULL, null=True, blank=True)
+    UserID = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, null=True, blank=True)
+    NgayTao = models.DateTimeField(auto_now_add=True, db_index=True)
+    NgayThuLaiCuoi = models.DateTimeField(null=True, blank=True)
+    GhiChuKhacPhuc = models.TextField(null=True, blank=True)
+
+    class Meta:
+        verbose_name_plural = "Ngoại lệ và Hàng đợi thử lại"
+        ordering = ['-NgayTao']
+
+    def __str__(self):
+        return f"[{self.LoaiNgoaiLe}][{self.TrangThai}] {self.TieuDe} (Thử lại: {self.SoLanThuLai}/{self.SoLanToiDa})"

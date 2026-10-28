@@ -344,23 +344,66 @@ function openHistory(id) {
 
 document.addEventListener('DOMContentLoaded', function() {
     const addFileInput = document.getElementById('popupAddFileInput');
-    if(addFileInput) {
+    const uploadArea = document.getElementById('add_upload_area');
+
+    function xuLyChonFileVBDen(file) {
+        if (!file) return;
+        const container = document.getElementById('add_tep_dinh_kem_container');
+        const nameEl = document.getElementById('add_tep_dinh_kem_name');
+        const sizeEl = document.getElementById('add_tep_dinh_kem_size');
+        if (nameEl) nameEl.textContent = file.name;
+        if (sizeEl) sizeEl.textContent = (file.size / 1024).toFixed(2) + " KB";
+        if (container) container.style.display = 'block';
+        if (uploadArea) uploadArea.style.setProperty('display', 'none', 'important');
+
+        // TỰ ĐỘNG KÍCH HOẠT QUÉT OCR & ĐIỀN THÔNG TIN TỨC THÌ
+        quyetDuLieuOCRVanBanDen(file);
+    }
+
+    if (addFileInput) {
         addFileInput.addEventListener('change', function() {
-            const container = document.getElementById('add_tep_dinh_kem_container');
-            const nameEl = document.getElementById('add_tep_dinh_kem_name');
-            const sizeEl = document.getElementById('add_tep_dinh_kem_size');
-            const uploadArea = document.getElementById('add_upload_area');
-            if(this.files.length > 0) {
-                const file = this.files[0];
-                nameEl.textContent = file.name;
-                sizeEl.textContent = (file.size / 1024).toFixed(2) + " KB";
-                container.style.display = 'block';
-                if (uploadArea) uploadArea.style.setProperty('display', 'none', 'important');
+            if (this.files && this.files.length > 0) {
+                xuLyChonFileVBDen(this.files[0]);
             } else {
-                container.style.display = 'none';
+                const container = document.getElementById('add_tep_dinh_kem_container');
+                if (container) container.style.display = 'none';
                 if (uploadArea) uploadArea.style.setProperty('display', 'flex', 'important');
             }
         });
+    }
+
+    // Hỗ trợ kéo & thả (Drag & Drop) tệp tin vào vùng đính kèm
+    if (uploadArea) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadArea.style.borderColor = '#4f46e5';
+                uploadArea.style.backgroundColor = '#eef2ff';
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadArea.style.borderColor = '';
+                uploadArea.style.backgroundColor = '';
+            }, false);
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            const dt = e.dataTransfer;
+            if (dt && dt.files && dt.files.length > 0) {
+                const file = dt.files[0];
+                if (addFileInput) {
+                    try {
+                        addFileInput.files = dt.files;
+                    } catch (err) {}
+                }
+                xuLyChonFileVBDen(file);
+            }
+        }, false);
     }
 
     const editFileInput = document.getElementById('popupEditFileInput');
@@ -476,4 +519,315 @@ function applyFilterVBD() {
     
     // Chuyển hướng
     window.location.href = window.location.pathname + '?' + params.toString();
+}
+
+
+// ================= CHUYỂN TIẾP VĂN BẢN LÊN GIÁM ĐỐC =================
+function chuyenTiepGiamDoc(btn) {
+    let id, soKyHieu;
+    if (typeof btn === 'object' && btn !== null) {
+        id = btn.getAttribute('data-id') || btn.dataset.id;
+        soKyHieu = btn.getAttribute('data-so-ky-hieu') || btn.dataset.soKyHieu || '';
+    } else {
+        id = btn;
+        soKyHieu = arguments[1] || '';
+        btn = document.querySelector(`button[data-id="${id}"].btn-forward`);
+    }
+
+    if (!id) {
+        if (window.App && window.App.showError) {
+            window.App.showError('Không xác định được ID văn bản để chuyển tiếp!');
+        } else {
+            alert('Không xác định được ID văn bản để chuyển tiếp!');
+        }
+        return;
+    }
+
+    let originalHtml = '<i class="fas fa-share"></i>';
+    if (btn) {
+        originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+
+    fetch('/api/van-ban-den/chuyen-tiep-giam-doc/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            van_ban_den_id: id,
+            noi_dung: 'Kính trình Giám đốc xem xét và cho ý kiến chỉ đạo.'
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+
+        if (data.status === 'success') {
+            const successMsg = data.message || `Đã chuyển tiếp văn bản '${soKyHieu}' lên Giám đốc thành công!`;
+            if (window.App && window.App.showSuccess) {
+                window.App.showSuccess(successMsg, () => {
+                    const row = btn ? btn.closest('tr') : document.querySelector(`tr[data-id="${id}"]`);
+                    if (row) {
+                        row.style.transition = 'background-color 0.5s';
+                        row.style.backgroundColor = '#f3e8ff';
+                        setTimeout(() => { row.style.backgroundColor = ''; }, 3500);
+                    }
+                });
+            } else {
+                alert(successMsg);
+            }
+            window.dispatchEvent(new Event('notif-update'));
+        } else {
+            const errMsg = data.message || 'Chuyển tiếp thất bại!';
+            if (window.App && window.App.showError) {
+                window.App.showError(errMsg);
+            } else {
+                alert(errMsg);
+            }
+        }
+    })
+    .catch(err => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+        console.error('Lỗi chuyển tiếp Giám đốc:', err);
+        if (window.App && window.App.showError) {
+            window.App.showError('Có lỗi xảy ra khi kết nối máy chủ!');
+        } else {
+            alert('Có lỗi xảy ra khi kết nối máy chủ!');
+        }
+    });
+}
+function openChuyenTiepGD(id, soKyHieu) {
+    chuyenTiepGiamDoc(id, soKyHieu);
+}
+
+
+// ==============================================================================
+// GIAI ĐOẠN 3 (PHASE 3): AI OCR & TÓM TẮT THÔNG MINH BẰNG AI (VAN BAN DEN)
+// ==============================================================================
+
+let _currentViewVBDId = null;
+
+// Hook vào hàm xemVBD để lưu ID và hiển thị tóm tắt AI nếu có
+const _origXemVBD = window.xemVBD;
+window.xemVBD = function(id) {
+    _currentViewVBDId = id;
+    fetch('/van-ban-den/' + id + '/xem/')
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const v = data.data;
+            const aiSummaryContent = document.getElementById('ai_summary_content');
+            const btnCopy = document.getElementById('btnCopyAISummary');
+            if (aiSummaryContent) {
+                if (v.tom_tat_ai) {
+                    aiSummaryContent.innerHTML = v.tom_tat_ai;
+                    if (btnCopy) btnCopy.style.display = 'inline-block';
+                } else {
+                    aiSummaryContent.innerHTML = `
+                        <div style="color: #64748b; font-style: italic;">
+                            <i class="fas fa-info-circle text-primary me-1"></i> Chưa có bản tóm tắt AI. Nhấn <b>"Phân tích AI"</b> để hệ thống tự động đọc và tóm tắt văn bản này.
+                        </div>
+                    `;
+                    if (btnCopy) btnCopy.style.display = 'none';
+                }
+            }
+        }
+    })
+    .catch(() => {});
+
+    if (typeof _origXemVBD === 'function') {
+        _origXemVBD(id);
+    }
+};
+
+function _highlightOCRField(input) {
+    if (!input) return;
+    input.style.transition = 'all 0.3s ease';
+    input.style.borderColor = '#10b981';
+    input.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.25)';
+    input.style.backgroundColor = '#f0fdf4';
+    setTimeout(() => {
+        input.style.borderColor = '';
+        input.style.boxShadow = '';
+        input.style.backgroundColor = '';
+    }, 3500);
+}
+
+function quyetDuLieuOCRVanBanDen(customFile) {
+    let file = customFile;
+    if (!file) {
+        const fileInput = document.getElementById('popupAddFileInput');
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            file = fileInput.files[0];
+        }
+    }
+
+    if (!file) {
+        alert("Vui lòng chọn hoặc kéo thả tệp văn bản trước khi quét OCR!");
+        const fi = document.getElementById('popupAddFileInput');
+        if (fi) fi.click();
+        return;
+    }
+
+    const btn = document.getElementById('btnOcrScan');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang quét OCR...';
+    }
+
+    const badge = document.getElementById('ocr_status_badge');
+    const badgeText = document.getElementById('ocr_status_text');
+    if (badge) {
+        badge.style.display = 'block';
+        badge.style.background = '#eff6ff';
+        badge.style.borderColor = '#93c5fd';
+        badge.style.color = '#1e40af';
+        badgeText.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> <b>AI OCR đang quét tệp:</b> Đang trích xuất Số ký hiệu, Loại văn bản, Ngày tháng, Cơ quan ban hành...';
+    }
+
+    const fd = new FormData();
+    fd.append('tep_dinh_kem', file);
+
+    fetch('/api/ai/ocr-extract/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        body: fd
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.status === 'success') {
+            const d = res.data;
+            const form = document.getElementById('formAddVBD');
+            if (form) {
+                if (d.trich_yeu && form.elements['trich_yeu']) {
+                    form.elements['trich_yeu'].value = d.trich_yeu;
+                    _highlightOCRField(form.elements['trich_yeu']);
+                }
+                if (d.so_ky_hieu && form.elements['so_ky_hieu']) {
+                    form.elements['so_ky_hieu'].value = d.so_ky_hieu;
+                    _highlightOCRField(form.elements['so_ky_hieu']);
+                }
+                if (d.loai_van_ban && form.elements['loai_van_ban']) {
+                    form.elements['loai_van_ban'].value = d.loai_van_ban;
+                    _highlightOCRField(form.elements['loai_van_ban']);
+                }
+                if (d.ngay_ban_hanh && form.elements['ngay_ban_hanh']) {
+                    form.elements['ngay_ban_hanh'].value = d.ngay_ban_hanh;
+                    _highlightOCRField(form.elements['ngay_ban_hanh']);
+                }
+                if ((d.co_quan_ban_hanh || d.don_vi_ngoai_ten) && form.elements['don_vi_ngoai_id']) {
+                    form.elements['don_vi_ngoai_id'].value = d.don_vi_ngoai_ten || d.co_quan_ban_hanh;
+                    _highlightOCRField(form.elements['don_vi_ngoai_id']);
+                }
+            }
+
+            if (badge) {
+                badge.style.background = '#f0fdf4';
+                badge.style.borderColor = '#86efac';
+                badge.style.color = '#166534';
+                badgeText.innerHTML = `✨ <b>AI OCR thành công:</b> Đã tự động điền các trường văn bản (Số: <b>${d.so_ky_hieu || 'N/A'}</b> | Loại: <b>${d.loai_van_ban}</b> | Ngày: <b>${d.ngay_ban_hanh}</b>)!`;
+            }
+            if (window.App && App.showSuccess) {
+                App.showSuccess("AI đã quét OCR và tự động điền các ô dữ liệu thành công!");
+            }
+        } else {
+            if (badge) {
+                badge.style.background = '#fef2f2';
+                badge.style.borderColor = '#fca5a5';
+                badge.style.color = '#991b1b';
+                badgeText.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i> ${res.message || 'Không thể quét OCR nội dung văn bản này'}`;
+            }
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        if (badge) {
+            badge.style.background = '#fef2f2';
+            badge.style.borderColor = '#fca5a5';
+            badge.style.color = '#991b1b';
+            badgeText.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Lỗi kết nối khi quét OCR!';
+        }
+    })
+    .finally(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    });
+}
+
+function yeuCauTomTatAI(docType) {
+    const id = _currentViewVBDId;
+    if (!id) {
+        alert("Không tìm thấy mã văn bản cần tóm tắt!");
+        return;
+    }
+
+    const contentDiv = document.getElementById('ai_summary_content');
+    const btn = document.getElementById('btnRunAISummary');
+    const btnText = document.getElementById('btnRunAISummaryText');
+    const btnCopy = document.getElementById('btnCopyAISummary');
+
+    if (btn) btn.disabled = true;
+    if (btnText) btnText.textContent = 'Đang phân tích...';
+    if (contentDiv) {
+        contentDiv.innerHTML = `
+            <div style="padding: 15px; text-align: center; color: #6366f1;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 20px; display: block; margin-bottom: 6px;"></i>
+                AI đang đọc hiểu nội dung tệp đính kèm và tổng hợp 3-5 ý chính...
+            </div>
+        `;
+    }
+
+    fetch('/api/ai/' + id + '/summarize/?type=' + (docType || 'den') + '&refresh=1', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.status === 'success') {
+            if (contentDiv) contentDiv.innerHTML = res.summary_html;
+            if (btnCopy) {
+                btnCopy.style.display = 'inline-block';
+                btnCopy.dataset.plain = res.plain_text || '';
+            }
+        } else {
+            if (contentDiv) {
+                contentDiv.innerHTML = `<div style="color: #ef4444;"><i class="fas fa-exclamation-triangle me-1"></i> Lỗi phân tích: ${res.message}</div>`;
+            }
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        if (contentDiv) {
+            contentDiv.innerHTML = '<div style="color: #ef4444;"><i class="fas fa-exclamation-triangle me-1"></i> Lỗi kết nối máy chủ khi tóm tắt AI.</div>';
+        }
+    })
+    .finally(() => {
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.textContent = 'Phân tích lại';
+    });
+}
+
+function saoChepTomTatAI() {
+    const btnCopy = document.getElementById('btnCopyAISummary');
+    const plain = btnCopy ? btnCopy.dataset.plain : '';
+    if (plain && navigator.clipboard) {
+        navigator.clipboard.writeText(plain).then(() => {
+            if (window.App && App.showSuccess) App.showSuccess("Đã sao chép bản tóm tắt AI vào clipboard!");
+            else alert("Đã sao chép bản tóm tắt vào clipboard!");
+        });
+    } else {
+        alert("Không có nội dung để sao chép!");
+    }
 }

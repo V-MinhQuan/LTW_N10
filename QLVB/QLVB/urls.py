@@ -27,10 +27,13 @@ urlpatterns = [
     path('van-ban-den/<int:pk>/sua/', views.van_ban_den_sua, name='vbd_sua'),
     path('van-ban-den/<int:pk>/xoa/', views.van_ban_den_xoa, name='vbd_xoa'),
     path('van-ban-den/lich-su/', views.van_ban_den_lich_su, name='vbd_lich_su'),
+    path('api/van-ban-den/chuyen-tiep-giam-doc/', views.api_vbd_chuyen_tiep_giam_doc, name='api_vbd_chuyen_tiep_giam_doc'),
+    path('van-ban-den/<int:pk>/chuyen-tiep-giam-doc/', views.api_vbd_chuyen_tiep_giam_doc, name='vbd_chuyen_tiep_giam_doc'),
 
     # --- Văn bản đi ---
     path('van-ban-di/', views.van_ban_di_index, name='vbdi_index'),
     path('api/van-ban-di/goi-y-so-ky-hieu/', views.api_vbdi_goi_y_so_ky_hieu, name='api_vbdi_goi_y_so_ky_hieu'),
+    path('api/van-ban-di/tao-bieu-mau/', views.api_vbdi_tao_bieu_mau, name='api_vbdi_tao_bieu_mau'),
     path('api/van-ban-di/them-moi/', views.api_vbdi_them_moi, name='api_vbdi_them_moi'),
     path('api/van-ban-di/<int:pk>/chi-tiet/', views.api_vbdi_chi_tiet, name='api_vbdi_chi_tiet'),
     path('api/van-ban-di/<int:pk>/cap-nhat/', views.api_vbdi_cap_nhat, name='api_vbdi_cap_nhat'),
@@ -76,5 +79,27 @@ urlpatterns = [
     path('api/xu-ly-van-ban/document-details/', views.api_get_document_details, name='api_get_document_details'),
     path('api/xu-ly-van-ban/danh-sach-bao-cao/', views.api_lay_danh_sach_bao_cao, name='api_lay_danh_sach_bao_cao'),
     path('api/xu-ly-van-ban/thuc-hien-xu-ly-bao-cao/', views.api_xu_ly_bao_cao_action, name='api_xu_ly_bao_cao_action'),
+
+    # --- Quản lý tiến độ ---
+    path('quan-ly-tien-do/', views.quan_ly_tien_do_index, name='qltd_index'),
+    path('api/quan-ly-tien-do/canh-bao/', views.api_canh_bao_tien_do, name='api_canh_bao_tien_do'),
+    path('api/quan-ly-tien-do/xu-ly-qua-han/', views.api_xu_ly_qua_han, name='api_xu_ly_qua_han'),
+    path('api/quan-ly-tien-do/<int:pk>/chi-tiet/', views.api_chi_tiet_tien_do, name='api_chi_tiet_tien_do'),
+    path('quan-ly-tien-do/phieu-trinh-giam-doc/', views.phieu_trinh_giam_doc, name='phieu_trinh_giam_doc'),
+
+    # --- Thông báo hệ thống ---
+    path('api/thong-bao/danh-sach/', views.api_thong_bao_danh_sach, name='api_thong_bao_danh_sach'),
+    path('api/thong-bao/danh-dau-da-doc/', views.api_thong_bao_danh_dau_da_doc, name='api_thong_bao_danh_dau_da_doc'),
+
+    # --- AI OCR, Smart Summary & Gợi ý phân công (Phase 3) ---
+    path('api/ai/ocr-extract/', views.api_ocr_extract_document, name='api_ocr_extract_document'),
+    path('api/ai/<int:pk>/summarize/', views.api_ai_summarize_document, name='api_ai_summarize_document'),
+    path('api/ai/suggest-assignment/', views.api_ai_suggest_assignment, name='api_ai_suggest_assignment'),
+
+    # --- Ngoại lệ & Hàng đợi thử lại (AUTO-06) ---
+    path('api/ngoai-le/danh-sach/', views.api_ngoai_le_danh_sach, name='api_ngoai_le_danh_sach'),
+    path('api/ngoai-le/<int:pk>/thu-lai/', views.api_ngoai_le_thu_lai, name='api_ngoai_le_thu_lai'),
+    path('api/ngoai-le/thu-lai-tat-ca/', views.api_ngoai_le_thu_lai_tat_ca, name='api_ngoai_le_thu_lai_tat_ca'),
+    path('api/ngoai-le/<int:pk>/huy/', views.api_ngoai_le_huy, name='api_ngoai_le_huy'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

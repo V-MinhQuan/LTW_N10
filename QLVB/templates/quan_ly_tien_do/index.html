@@ -1,0 +1,647 @@
+{% extends "base.html" %}
+{% load static %}
+{% load auth_extras %}
+
+{% block title %}Quản lý tiến độ - Vietasia Travel{% endblock %}
+
+{% block nav_qltd %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/quan_ly_tien_do.css' %}?v=3">
+{% endblock %}
+
+{% block content %}
+
+<!-- 1. PANEL TÌM KIẾM VÀ THEO DÕI TIẾN ĐỘ -->
+<div class="panel">
+  <div class="panel-header header-blue">Tìm kiếm và theo dõi tiến độ văn bản</div>
+  <div class="panel-body">
+    <form method="GET" action="{% url 'qltd_index' %}">
+      <div class="search-grid">
+        <input type="text" name="keyword" class="form-control" placeholder="Số ký hiệu, trích yếu..." value="{{ keyword }}" />
+
+        {% if is_manager and don_vi_list %}
+        <select name="phong_ban" class="form-control">
+          <option value="">-- Tất cả phòng ban --</option>
+          {% for dv in don_vi_list %}
+          <option value="{{ dv.DonViTrongID }}" {% if filter_phong_ban == dv.DonViTrongID|stringformat:"s" %}selected{% endif %}>{{ dv.TenDonVi }}</option>
+          {% endfor %}
+        </select>
+        {% else %}
+        <input type="text" class="form-control" value="{{ user.PhongBan.TenDonVi|default:'Ban Giám đốc' }}" readonly title="Phòng ban trực thuộc" />
+        {% endif %}
+
+        <input type="text" name="nguoi_xu_ly" class="form-control" placeholder="Người phụ trách xử lý..." value="{{ filter_nguoi_xu_ly }}" />
+
+        <select name="tab" class="form-control">
+          <option value="can_xu_ly" {% if current_tab == 'can_xu_ly' %}selected{% endif %}>Chỉ hiện: Cần xử lý gấp (Quá hạn & Sắp quá hạn)</option>
+          <option value="sap_qua_han" {% if current_tab == 'sap_qua_han' %}selected{% endif %}>Chỉ hiện: Sắp quá hạn (&le; 2 ngày)</option>
+          <option value="qua_han" {% if current_tab == 'qua_han' %}selected{% endif %}>Chỉ hiện: Đã quá hạn</option>
+          <option value="da_gia_han" {% if current_tab == 'da_gia_han' %}selected{% endif %}>Chỉ hiện: Đã gia hạn / Đã xử lý trễ</option>
+          <option value="tat_ca" {% if current_tab == 'tat_ca' %}selected{% endif %}>Hiện tất cả tiến độ</option>
+        </select>
+      </div>
+
+      <div class="btn-group">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Tìm kiếm</button>
+        <a href="{% url 'qltd_index' %}" class="btn btn-secondary"><i class="fas fa-sync-alt"></i> Làm mới</a>
+
+        {% if is_manager %}
+        <!-- NÚT 1: CẢNH BÁO SẮP QUÁ HẠN -->
+        <button type="button" class="btn btn-warning" onclick="openBulkWarningModal()">
+          <i class="fas fa-bell"></i> Cảnh báo sắp quá hạn
+          {% if count_coming_soon > 0 %}
+          <span class="badge-count" style="margin-left: 4px; background: rgba(0,0,0,0.15); color: inherit;">{{ count_coming_soon }}</span>
+          {% endif %}
+        </button>
+
+        <!-- NÚT 2: TỔNG HỢP TIẾN ĐỘ TRÌNH GIÁM ĐỐC -->
+        <a href="{% url 'phieu_trinh_giam_doc' %}{% if filter_phong_ban %}?phong_ban={{ filter_phong_ban }}{% endif %}" target="_blank" class="btn btn-success" style="display: inline-flex; align-items: center; gap: 6px; text-decoration: none;">
+          <i class="fas fa-file-invoice"></i> Tổng hợp tiến độ trình Giám đốc
+        </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 2. KHU VỰC THÔNG BÁO TÌNH HÌNH TIẾN ĐỘ -->
+<div class="alert-box-progress">
+  <div class="alert-main">
+    <i class="fas fa-exclamation-triangle alert-icon"></i>
+    <div class="alert-stats">
+      <strong>Tình hình tiến độ:</strong>
+      <span class="stat-overdue" style="margin-left: 6px;">{{ count_overdue }} văn bản quá hạn</span>,
+      <span class="stat-warning" style="margin-left: 6px;">{{ count_coming_soon }} văn bản sắp đến hạn</span>,
+      <span class="stat-extended" style="margin-left: 6px;">{{ count_extended }} văn bản đã gia hạn</span>
+    </div>
+  </div>
+  <div class="alert-total">
+    Tổng số theo dõi: <strong>{{ count_total }}</strong> văn bản
+  </div>
+</div>
+
+<!-- 3. PANEL BẢNG THEO DÕI TIẾN ĐỘ CHI TIẾT -->
+<div class="panel flex-fill">
+  <div class="panel-header header-gray" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <span>Bảng theo dõi tiến độ chi tiết</span>
+      <span class="header-subtext">
+        {% if current_tab == 'can_xu_ly' %}
+          <strong style="color: #dc2626;">(Mặc định: Chỉ hiện văn bản Cần xử lý gấp - Sắp quá hạn & Quá hạn)</strong>
+        {% elif current_tab == 'sap_qua_han' %}
+          (Đang lọc: Văn bản Sắp quá hạn)
+        {% elif current_tab == 'qua_han' %}
+          (Đang lọc: Văn bản Đã quá hạn)
+        {% elif current_tab == 'da_gia_han' %}
+          (Đang lọc: Văn bản Đã gia hạn / Đã xử lý trễ)
+        {% else %}
+          (Đang lọc: Tất cả tiến độ)
+        {% endif %}
+      </span>
+    </div>
+    <div class="total" style="font-weight: bold; font-size: 13px;">Tổng số: {{ page_obj.paginator.count }} văn bản</div>
+  </div>
+
+  <div class="panel-body">
+    <!-- Quick filter tabs -->
+    <div class="quick-filter-tabs">
+      <a href="?tab=can_xu_ly{% if filter_phong_ban %}&phong_ban={{ filter_phong_ban }}{% endif %}{% if keyword %}&keyword={{ keyword }}{% endif %}" class="quick-tab-btn {% if current_tab == 'can_xu_ly' %}active{% endif %}">
+        <i class="fas fa-fire" style="color: #ef4444;"></i> Cần xử lý gấp (Sắp & Quá hạn)
+        <span class="badge-count">{{ count_urgent }}</span>
+      </a>
+      <a href="?tab=sap_qua_han{% if filter_phong_ban %}&phong_ban={{ filter_phong_ban }}{% endif %}{% if keyword %}&keyword={{ keyword }}{% endif %}" class="quick-tab-btn {% if current_tab == 'sap_qua_han' %}active{% endif %}">
+        <i class="fas fa-clock" style="color: #f59e0b;"></i> Sắp quá hạn
+        <span class="badge-count">{{ count_coming_soon }}</span>
+      </a>
+      <a href="?tab=qua_han{% if filter_phong_ban %}&phong_ban={{ filter_phong_ban }}{% endif %}{% if keyword %}&keyword={{ keyword }}{% endif %}" class="quick-tab-btn {% if current_tab == 'qua_han' %}active{% endif %}">
+        <i class="fas fa-calendar-times" style="color: #dc2626;"></i> Đã quá hạn
+        <span class="badge-count">{{ count_overdue }}</span>
+      </a>
+      <a href="?tab=da_gia_han{% if filter_phong_ban %}&phong_ban={{ filter_phong_ban }}{% endif %}{% if keyword %}&keyword={{ keyword }}{% endif %}" class="quick-tab-btn {% if current_tab == 'da_gia_han' %}active{% endif %}">
+        <i class="fas fa-history" style="color: #8b5cf6;"></i> Đã gia hạn / Đã xử lý
+        <span class="badge-count">{{ count_extended }}</span>
+      </a>
+      <a href="?tab=tat_ca{% if filter_phong_ban %}&phong_ban={{ filter_phong_ban }}{% endif %}{% if keyword %}&keyword={{ keyword }}{% endif %}" class="quick-tab-btn {% if current_tab == 'tat_ca' %}active{% endif %}">
+        <i class="fas fa-list"></i> Tất cả tiến độ
+        <span class="badge-count">{{ count_total }}</span>
+      </a>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th width="4%" class="text-center col-stt">STT</th>
+            <th width="15%" class="text-center">Số ký hiệu</th>
+            <th width="12%" class="text-center">Loại văn bản</th>
+            <th width="28%" class="text-left">Trích yếu nội dung</th>
+            <th width="16%" class="text-left">Người phụ trách</th>
+            <th width="10%" class="text-center">Hạn xử lý</th>
+            <th width="9%" class="col-status text-center">Tiến độ</th>
+            <th width="6%" class="col-actions text-center">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pc in page_obj %}
+          <tr>
+            <td class="text-center col-stt">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+            <td class="text-center">
+              <a href="javascript:void(0)" onclick="openDetailProgressModal('{{ pc.PhanCongID }}')" class="text-blue" style="cursor: pointer; text-decoration: none;" title="Bấm để xem chi tiết văn bản & tiến độ">
+                <strong>{{ pc.so_ky_hieu }}</strong>
+              </a>
+              <div style="font-size: 11px; color: #64748b;">
+                {% if pc.doc_type == 'den' %}<span style="color:#0284c7;">VB Đến</span>{% else %}<span style="color:#059669;">VB Đi</span>{% endif %}
+              </div>
+            </td>
+            <td class="text-center">{{ pc.loai_vb }}</td>
+            <td class="text-left" style="max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ pc.trich_yeu }}">
+              {{ pc.trich_yeu }}
+            </td>
+            <td class="text-left">
+              <strong>{{ pc.UserID.HoTen|default:"Chưa phân công" }}</strong>
+              <div style="font-size: 11.5px; color: #64748b;">
+                {{ pc.UserID.PhongBan.TenDonVi|default:"Ban Giám đốc" }}
+              </div>
+            </td>
+            <td class="text-center">
+              <span style="font-weight: 600;">{{ pc.HanXuLy|date:"d/m/Y"|default:"---" }}</span>
+              {% if pc.HanXuLyCu %}
+              <div style="font-size: 10.5px; color: #94a3b8; text-decoration: line-through;">Hạn cũ: {{ pc.HanXuLyCu|date:"d/m/Y" }}</div>
+              {% endif %}
+            </td>
+            <td class="col-status text-center">
+              {% if pc.status_key == 'qua_han' %}
+                <span class="status-pill pill-red">{{ pc.status_text }}</span>
+              {% elif pc.status_key == 'sap_qua_han' %}
+                <span class="status-pill pill-orange">{{ pc.status_text }}</span>
+              {% elif pc.status_key == 'da_gia_han' %}
+                <span class="status-pill pill-purple">{{ pc.status_text }}</span>
+              {% elif pc.status_key == 'da_giai_trinh' %}
+                <span class="status-pill pill-blue">{{ pc.status_text }}</span>
+              {% elif pc.status_key == 'hoan_thanh' %}
+                <span class="status-pill pill-green">{{ pc.status_text }}</span>
+              {% else %}
+                <span class="status-pill pill-gray">Đúng hạn</span>
+              {% endif %}
+
+              {% if pc.NgayCanhBaoCuoi %}
+              <div style="font-size: 10px; color: #d97706; margin-top: 3px;" title="Thời điểm gửi cảnh báo đôn đốc gần nhất">
+                <i class="fas fa-bell"></i> Đã nhắc: {{ pc.NgayCanhBaoCuoi|date:"H:i d/m" }}
+              </div>
+              {% endif %}
+            </td>
+            <td class="col-actions text-center">
+              <div style="display: inline-flex; gap: 4px; justify-content: center;">
+                {% if is_manager %}
+                  <!-- Nút Cảnh báo đôn đốc nếu sắp quá hạn -->
+                  {% if pc.status_key == 'sap_qua_han' or pc.status_key == 'dung_han' %}
+                  <button type="button" class="action-btn btn-warning" onclick="openSingleWarningModal('{{ pc.PhanCongID }}', '{{ pc.so_ky_hieu }}', '{{ pc.UserID.HoTen }}')" title="Gửi cảnh báo đôn đốc">
+                    <i class="fas fa-bell"></i>
+                  </button>
+                  {% endif %}
+
+                  <!-- Nút Xử lý chậm tiến độ nếu quá hạn -->
+                  {% if pc.status_key == 'qua_han' or pc.status_key == 'da_gia_han' or pc.status_key == 'da_giai_trinh' %}
+                  <button type="button" class="action-btn btn-danger" onclick="openOverdueModal('{{ pc.PhanCongID }}', '{{ pc.so_ky_hieu }}', '{{ pc.UserID.HoTen }}', '{{ pc.HanXuLy|date:"Y-m-d" }}')" title="Quy trình xử lý chậm tiến độ">
+                    <i class="fas fa-bolt"></i>
+                  </button>
+                  {% endif %}
+                {% endif %}
+
+                <!-- Nút Xem chi tiết văn bản & lịch sử tiến độ -->
+                <button type="button" class="action-btn btn-primary" onclick="openDetailProgressModal('{{ pc.PhanCongID }}')" title="Xem chi tiết văn bản & tiến độ">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center" style="padding: 35px 20px; color: #64748b;">
+              <i class="fas fa-check-circle" style="font-size: 32px; color: #22c55e; margin-bottom: 10px; display: block;"></i>
+              Không có văn bản nào trong danh mục này. Tiến độ đang được đảm bảo rất tốt!
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Table Footer with Pagination -->
+    <div class="table-footer">
+      <div>
+        Hiển thị {{ page_obj.start_index|default:0 }} - {{ page_obj.end_index|default:0 }} / Tổng số: {{ page_obj.paginator.count }} văn bản
+      </div>
+      <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page=1&tab={{ current_tab }}{% if filter_phong_ban %}&phong_ban={{ filter_phong_ban }}{% endif %}{% if keyword %}&keyword={{ keyword }}{% endif %}" class="page-btn">Đầu</a>
+        <a href="?page={{ page_obj.previous_page_number }}&tab={{ current_tab }}{% if filter_phong_ban %}&phong_ban={{ filter_phong_ban }}{% endif %}{% if keyword %}&keyword={{ keyword }}{% endif %}" class="page-btn">Trước</a>
+        {% endif %}
+
+        <span class="page-btn active">{{ page_obj.number }}</span>
+
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&tab={{ current_tab }}{% if filter_phong_ban %}&phong_ban={{ filter_phong_ban }}{% endif %}{% if keyword %}&keyword={{ keyword }}{% endif %}" class="page-btn">Sau</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}&tab={{ current_tab }}{% if filter_phong_ban %}&phong_ban={{ filter_phong_ban }}{% endif %}{% if keyword %}&keyword={{ keyword }}{% endif %}" class="page-btn">Cuối</a>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================= MODAL 1: XEM CHI TIẾT VĂN BẢN & LỊCH SỬ TIẾN ĐỘ ================= -->
+<div id="detailModal" class="qltd-modal-overlay">
+  <div class="qltd-modal-box modal-lg">
+    <div class="qltd-modal-header">
+      <div><i class="fas fa-file-invoice"></i> Chi tiết tiến độ văn bản: <span id="dt_so_ky_hieu" style="font-weight: 700; color: #0284c7;">---</span></div>
+      <button type="button" class="qltd-modal-close" onclick="closeModal('detailModal')">&times;</button>
+    </div>
+    <div class="qltd-modal-body">
+      <!-- 1. Thông tin văn bản -->
+      <div class="detail-section-title"><i class="fas fa-info-circle" style="color: #0284c7;"></i> Thông tin văn bản</div>
+      <div class="detail-grid-2">
+        <div class="detail-item">
+          <span class="detail-item-label">Số ký hiệu:</span>
+          <span class="detail-item-value" id="dt_skh_text">---</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-item-label">Loại văn bản:</span>
+          <span class="detail-item-value" id="dt_loai_vb">---</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-item-label">Luồng văn bản:</span>
+          <span class="detail-item-value" id="dt_doc_type">---</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-item-label">Ngày văn bản:</span>
+          <span class="detail-item-value" id="dt_ngay_vb">---</span>
+        </div>
+        <div class="detail-item" style="grid-column: span 2;">
+          <span class="detail-item-label">Đơn vị liên quan:</span>
+          <span class="detail-item-value" id="dt_don_vi">---</span>
+        </div>
+        <div class="detail-item" style="grid-column: span 2;">
+          <span class="detail-item-label">Trích yếu:</span>
+          <span class="detail-item-value" id="dt_trich_yeu" style="font-weight: 500; line-height: 1.4;">---</span>
+        </div>
+        <div class="detail-item" style="grid-column: span 2;" id="dt_file_row">
+          <span class="detail-item-label">Tệp đính kèm:</span>
+          <span class="detail-item-value" id="dt_file_container">Chưa có tệp đính kèm</span>
+        </div>
+      </div>
+
+      <!-- 2. Thông tin xử lý tiến độ -->
+      <div class="detail-section-title"><i class="fas fa-tasks" style="color: #f59e0b;"></i> Tình trạng xử lý & Thời hạn</div>
+      <div class="detail-grid-2">
+        <div class="detail-item">
+          <span class="detail-item-label">Người phụ trách:</span>
+          <span class="detail-item-value" id="dt_nguoi_xu_ly">---</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-item-label">Phòng ban:</span>
+          <span class="detail-item-value" id="dt_phong_ban">---</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-item-label">Hạn xử lý hiện tại:</span>
+          <span class="detail-item-value" id="dt_han_xu_ly" style="color: #dc2626;">---</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-item-label">Trạng thái:</span>
+          <span class="detail-item-value" id="dt_trang_thai">---</span>
+        </div>
+        <div class="detail-item" id="dt_gia_han_row" style="grid-column: span 2; display: none;">
+          <span class="detail-item-label">Thông tin gia hạn:</span>
+          <span class="detail-item-value" id="dt_gia_han_text">---</span>
+        </div>
+        <div class="detail-item" id="dt_ly_do_row" style="grid-column: span 2; display: none;">
+          <span class="detail-item-label">Lý do chậm trễ:</span>
+          <span class="detail-item-value" id="dt_ly_do_text" style="color: #b45309; font-weight: 500;">---</span>
+        </div>
+      </div>
+
+      <!-- 3. Lịch sử đôn đốc & tiến độ -->
+      <div class="detail-section-title"><i class="fas fa-history" style="color: #7c3aed;"></i> Lịch sử hoạt động & Đôn đốc tiến độ</div>
+      <div class="detail-timeline-container">
+        <table class="detail-timeline-table">
+          <thead>
+            <tr>
+              <th width="20%">Thời gian</th>
+              <th width="20%">Người thực hiện</th>
+              <th width="22%">Hành động</th>
+              <th width="38%">Nội dung ghi nhận</th>
+            </tr>
+          </thead>
+          <tbody id="dt_timeline_body">
+            <tr><td colspan="4" class="text-center" style="padding: 15px; color: #94a3b8;">Chưa có lịch sử hoạt động ghi nhận</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="qltd-modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('detailModal')">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL 2: CẢNH BÁO ĐÔN ĐỐC TIẾN ĐỘ ================= -->
+<div id="warningModal" class="qltd-modal-overlay">
+  <div class="qltd-modal-box">
+    <div class="qltd-modal-header">
+      <div><i class="fas fa-bell"></i> <span id="warningModalHeader">Gửi cảnh báo đôn đốc tiến độ</span></div>
+      <button type="button" class="qltd-modal-close" onclick="closeModal('warningModal')">&times;</button>
+    </div>
+    <form id="warningForm" onsubmit="submitWarning(event)">
+      {% csrf_token %}
+      <div class="qltd-modal-body">
+        <input type="hidden" id="warning_pc_id" name="phan_cong_id">
+        <input type="hidden" id="warning_is_bulk" name="is_bulk" value="0">
+
+        <div id="warningTargetInfo" style="background: #fff8e1; border: 1px solid #ffe082; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 13.5px; color: #856404;">
+          Đang chuẩn bị gửi cảnh báo...
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="font-weight: 500; font-size: 13.5px; margin-bottom: 5px; display: block;">Lời nhắn đôn đốc gửi người phụ trách:</label>
+          <textarea id="warning_message" name="loi_nhan" rows="3" class="form-control" style="width: 100%;" placeholder="Nhập nội dung nhắc nhở..."></textarea>
+        </div>
+      </div>
+      <div class="qltd-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('warningModal')">Hủy bỏ</button>
+        <button type="submit" class="btn btn-warning" id="btnSubmitWarning">
+          <i class="fas fa-paper-plane"></i> Gửi cảnh báo
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ================= MODAL 3: XỬ LÝ CHẬM TIẾN ĐỘ (QUÁ HẠN) ================= -->
+<div id="overdueModal" class="qltd-modal-overlay">
+  <div class="qltd-modal-box" style="max-width: 620px;">
+    <div class="qltd-modal-header header-danger">
+      <div><i class="fas fa-bolt"></i> Quy trình xử lý chậm tiến độ</div>
+      <button type="button" class="qltd-modal-close" onclick="closeModal('overdueModal')">&times;</button>
+    </div>
+    <form id="overdueForm" onsubmit="submitOverdueAction(event)">
+      {% csrf_token %}
+      <div class="qltd-modal-body">
+        <input type="hidden" id="overdue_pc_id" name="phan_cong_id">
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 14px; border-radius: 4px; margin-bottom: 15px; font-size: 13.5px;">
+          <div>Văn bản: <strong id="overdue_skh" style="color: #0369a1;">---</strong></div>
+          <div style="margin-top: 4px;">Người đang xử lý: <strong id="overdue_user">---</strong></div>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label style="font-weight: 600; font-size: 13.5px; margin-bottom: 6px; display: block;">Chọn phương án xử lý chậm tiến độ:</label>
+          <div class="method-radio-group">
+            <label class="method-radio-card">
+              <input type="radio" name="phuong_an" value="GIA_HAN" checked onchange="toggleOverdueMethod(this.value)">
+              <div style="font-weight: bold; color: #6b21a8;">1. Gia hạn hạn mới</div>
+            </label>
+            <label class="method-radio-card">
+              <input type="radio" name="phuong_an" value="CHUYEN_NGUOI" onchange="toggleOverdueMethod(this.value)">
+              <div style="font-weight: bold; color: #0369a1;">2. Điều chuyển người</div>
+            </label>
+            <label class="method-radio-card">
+              <input type="radio" name="phuong_an" value="GIAI_TRINH" onchange="toggleOverdueMethod(this.value)">
+              <div style="font-weight: bold; color: #166534;">3. Giải trình trễ hạn</div>
+            </label>
+          </div>
+        </div>
+
+        <div id="section_gia_han" style="margin-bottom: 15px;">
+          <label style="font-weight: 500; font-size: 13.5px; margin-bottom: 5px; display: block;">Thời hạn xử lý mới:</label>
+          <input type="date" id="overdue_han_moi" name="han_moi" class="form-control" style="width: 100%;">
+        </div>
+
+        <div id="section_chuyen_nguoi" style="display: none; margin-bottom: 15px;">
+          <label style="font-weight: 500; font-size: 13.5px; margin-bottom: 5px; display: block;">Chọn nhân sự tiếp quản thay thế:</label>
+          <select id="overdue_user_moi" name="user_moi_id" class="form-control" style="width: 100%;">
+            <option value="">-- Chọn nhân sự trong phòng --</option>
+            {% for u in user_assign_list %}
+            <option value="{{ u.UserID }}">{{ u.HoTen }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="margin-bottom: 10px;">
+          <label style="font-weight: 500; font-size: 13.5px; margin-bottom: 5px; display: block;">Lý do / Giải trình nguyên nhân chậm tiến độ:</label>
+          <textarea id="overdue_ly_do" name="ly_do" rows="3" class="form-control" style="width: 100%;" placeholder="Nhập lý do chậm tiến độ hoặc cam kết hoàn thành..." required></textarea>
+        </div>
+      </div>
+      <div class="qltd-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('overdueModal')">Đóng</button>
+        <button type="submit" class="btn btn-primary" id="btnSubmitOverdue">
+          <i class="fas fa-check"></i> Xác nhận xử lý
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // ================= XEM CHI TIẾT TIẾN ĐỘ & VĂN BẢN =================
+  async function openDetailProgressModal(pcId) {
+    document.getElementById('dt_so_ky_hieu').innerText = 'Đang tải...';
+    document.getElementById('detailModal').classList.add('active');
+
+    try {
+      const resp = await fetch(`/api/quan-ly-tien-do/${pcId}/chi-tiet/`);
+      const res = await resp.json();
+      if (res.status !== 'success') {
+        alert("Lỗi: " + res.message);
+        closeModal('detailModal');
+        return;
+      }
+
+      const d = res.data;
+      document.getElementById('dt_so_ky_hieu').innerText = d.so_ky_hieu;
+      document.getElementById('dt_skh_text').innerText = d.so_ky_hieu;
+      document.getElementById('dt_loai_vb').innerText = d.loai_vb;
+      document.getElementById('dt_doc_type').innerText = d.doc_type;
+      document.getElementById('dt_ngay_vb').innerText = d.ngay_vb;
+      document.getElementById('dt_don_vi').innerText = d.don_vi;
+      document.getElementById('dt_trich_yeu').innerText = d.trich_yeu;
+
+      // File
+      const fileBox = document.getElementById('dt_file_container');
+      if (d.file_url) {
+        fileBox.innerHTML = `
+          <a href="${d.file_url}" target="_blank" class="detail-file-badge">
+            <i class="fas fa-paperclip"></i> ${d.file_name || 'Xem tệp đính kèm'}
+          </a>
+        `;
+      } else {
+        fileBox.innerHTML = '<span style="color: #94a3b8; font-style: italic;">Không có tệp đính kèm</span>';
+      }
+
+      // Xử lý tiến độ
+      document.getElementById('dt_nguoi_xu_ly').innerText = d.nguoi_xu_ly;
+      document.getElementById('dt_phong_ban').innerText = d.phong_ban;
+
+      let hanText = d.han_xu_ly;
+      if (d.han_xu_ly_cu) {
+        hanText += ` (Hạn cũ: <span style="text-decoration: line-through; color: #94a3b8;">${d.han_xu_ly_cu}</span>)`;
+      }
+      document.getElementById('dt_han_xu_ly').innerHTML = hanText;
+      document.getElementById('dt_trang_thai').innerText = d.trang_thai;
+
+      // Gia hạn & lý do
+      const giaHanRow = document.getElementById('dt_gia_han_row');
+      const lyDoRow = document.getElementById('dt_ly_do_row');
+      if (d.so_lan_gia_han > 0 || d.phuong_an_xu_ly) {
+        giaHanRow.style.display = 'flex';
+        document.getElementById('dt_gia_han_text').innerText = `Phương án: ${d.phuong_an_xu_ly || 'Gia hạn'} (Đã gia hạn: ${d.so_lan_gia_han} lần)`;
+      } else {
+        giaHanRow.style.display = 'none';
+      }
+
+      if (d.ly_do_cham) {
+        lyDoRow.style.display = 'flex';
+        document.getElementById('dt_ly_do_text').innerText = d.ly_do_cham;
+      } else {
+        lyDoRow.style.display = 'none';
+      }
+
+      // Timeline Lịch sử
+      const timelineBody = document.getElementById('dt_timeline_body');
+      if (d.lich_su && d.lich_su.length > 0) {
+        let html = '';
+        d.lich_su.forEach(item => {
+          html += `
+            <tr>
+              <td><strong>${item.time}</strong></td>
+              <td>${item.user}</td>
+              <td><span style="color: #0369a1; font-weight: 600;">${item.action}</span></td>
+              <td>${item.content || '---'}</td>
+            </tr>
+          `;
+        });
+        timelineBody.innerHTML = html;
+      } else {
+        timelineBody.innerHTML = '<tr><td colspan="4" class="text-center" style="padding: 15px; color: #94a3b8;">Chưa có lịch sử hoạt động ghi nhận</td></tr>';
+      }
+
+    } catch (err) {
+      alert("Lỗi tải dữ liệu chi tiết: " + err);
+      closeModal('detailModal');
+    }
+  }
+
+  // ================= CẢNH BÁO TIẾN ĐỘ =================
+  function openSingleWarningModal(pcId, skh, hoTen) {
+    document.getElementById('warning_pc_id').value = pcId;
+    document.getElementById('warning_is_bulk').value = "0";
+    document.getElementById('warningModalHeader').innerText = "Gửi cảnh báo đôn đốc: " + skh;
+    document.getElementById('warningTargetInfo').innerHTML = `
+      <div>Văn bản: <strong>${skh}</strong></div>
+      <div style="margin-top: 4px;">Gửi đôn đốc đến: <strong>${hoTen}</strong></div>
+    `;
+    document.getElementById('warning_message').value = "Đề nghị đồng chí khẩn trương hoàn thiện văn bản " + skh + " trước ngày quy định để đảm bảo tiến độ chung.";
+    document.getElementById('warningModal').classList.add('active');
+  }
+
+  function openBulkWarningModal() {
+    document.getElementById('warning_pc_id').value = "";
+    document.getElementById('warning_is_bulk').value = "1";
+    document.getElementById('warningModalHeader').innerText = "Cảnh báo tiến độ hàng loạt";
+    document.getElementById('warningTargetInfo').innerHTML = `
+      <div>Hệ thống sẽ gửi thông báo đôn đốc đến <strong>tất cả nhân viên</strong> có văn bản sắp quá hạn (&le; 2 ngày) trong phạm vi quản lý của bạn.</div>
+    `;
+    document.getElementById('warning_message').value = "Nhắc nhở: Quý đồng chí có công việc sắp đến hạn hoàn thành. Vui lòng rà soát và hoàn thiện gấp.";
+    document.getElementById('warningModal').classList.add('active');
+  }
+
+  // ================= XỬ LÝ QUÁ HẠN =================
+  function openOverdueModal(pcId, skh, hoTen, currentHan) {
+    document.getElementById('overdue_pc_id').value = pcId;
+    document.getElementById('overdue_skh').innerText = skh;
+    document.getElementById('overdue_user').innerText = hoTen;
+    document.getElementById('overdue_ly_do').value = "";
+
+    const nextDate = new Date();
+    nextDate.setDate(nextDate.getDate() + 3);
+    document.getElementById('overdue_han_moi').value = nextDate.toISOString().split('T')[0];
+
+    toggleOverdueMethod('GIA_HAN');
+    document.getElementById('overdueModal').classList.add('active');
+  }
+
+  function toggleOverdueMethod(val) {
+    const secGiaHan = document.getElementById('section_gia_han');
+    const secChuyen = document.getElementById('section_chuyen_nguoi');
+    if (val === 'GIA_HAN') {
+      secGiaHan.style.display = 'block';
+      secChuyen.style.display = 'none';
+    } else if (val === 'CHUYEN_NGUOI') {
+      secGiaHan.style.display = 'none';
+      secChuyen.style.display = 'block';
+    } else {
+      secGiaHan.style.display = 'none';
+      secChuyen.style.display = 'none';
+    }
+  }
+
+  function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+  }
+
+  async function submitWarning(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitWarning');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
+
+    const formData = new FormData(document.getElementById('warningForm'));
+    try {
+      const resp = await fetch("{% url 'api_canh_bao_tien_do' %}", {
+        method: 'POST',
+        body: formData
+      });
+      const data = await resp.json();
+      if (data.status === 'success') {
+        alert(data.message);
+        location.reload();
+      } else {
+        alert("Lỗi: " + data.message);
+      }
+    } catch (err) {
+      alert("Lỗi kết nối máy chủ: " + err);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i> Gửi cảnh báo';
+    }
+  }
+
+  async function submitOverdueAction(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitOverdue');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+
+    const formData = new FormData(document.getElementById('overdueForm'));
+    try {
+      const resp = await fetch("{% url 'api_xu_ly_qua_han' %}", {
+        method: 'POST',
+        body: formData
+      });
+      const data = await resp.json();
+      if (data.status === 'success') {
+        alert(data.message);
+        location.reload();
+      } else {
+        alert("Lỗi: " + data.message);
+      }
+    } catch (err) {
+      alert("Lỗi kết nối máy chủ: " + err);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-check"></i> Xác nhận xử lý';
+    }
+  }
+</script>
+{% endblock %}
