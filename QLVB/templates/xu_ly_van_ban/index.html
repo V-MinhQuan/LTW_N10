@@ -319,12 +319,6 @@
                         <td class="col-actions">
                             {% with phan_cong=doc.first_phancong %}
                             <div style="display: flex; gap: 5px; justify-content: center; width: 100%; flex-wrap: wrap;">
-                                {% if doc.is_xin_y_kien %}
-                                <button onclick="openModalB('modalBaoCao', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
-                                    class="action-btn btn-decision pulse-purple" title="Ý kiến chỉ đạo & Quyết định xử lý">
-                                    <i class="fas fa-gavel"></i>
-                                </button>
-                                {% endif %}
                                 
                                 {% if doc.doc_type == 'di' %}
                                     <!-- LUỒNG VĂN BẢN ĐI: Phê duyệt -> Phát hành -> Phân công -> Xử lý -->
@@ -354,10 +348,16 @@
                                                     class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
                                                 <button onclick="openModalT('modalChuyenTiep', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
                                                     class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
+                                                {% if doc.is_xin_y_kien %}
                                                 <button onclick="openModalB('modalBaoCao', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
-                                                    class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
+                                                    class="action-btn btn-report" title="Ý kiến chỉ đạo & Quyết định xử lý"><i class="fas fa-gavel"></i></button>
+                                                {% endif %}
                                             {% endif %}
                                         {% else %}
+                                            {% if doc.is_xin_y_kien %}
+                                            <button onclick="openModalB('modalBaoCao', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
+                                                class="action-btn btn-report" title="Ý kiến chỉ đạo & Quyết định xử lý"><i class="fas fa-gavel"></i></button>
+                                            {% endif %}
                                             <button onclick="openModalP('modalPhanCong', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu|escapejs }}', '{{ doc.doc_type }}')"
                                                 class="btn-assign-wide" title="Phân công"><i class="fas fa-user-plus"></i>&nbsp;Phân công</button>
                                         {% endif %}
@@ -373,10 +373,16 @@
                                                 class="action-btn btn-update" title="Cập nhật"><i class="fas fa-edit"></i></button>
                                             <button onclick="openModalT('modalChuyenTiep', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
                                                 class="action-btn btn-forward" title="Chuyển tiếp"><i class="fas fa-file-export"></i></button>
-                                            <button onclick="openModalB('modalBaoCao', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
-                                                class="action-btn btn-report" title="Báo cáo"><i class="fas fa-exclamation-triangle"></i></button>
+                                            {% if doc.is_xin_y_kien %}
+                                                <button onclick="openModalB('modalBaoCao', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
+                                                    class="action-btn btn-report" title="Ý kiến chỉ đạo & Quyết định xử lý"><i class="fas fa-gavel"></i></button>
+                                                {% endif %}
                                         {% endif %}
                                     {% else %}
+                                        {% if doc.is_xin_y_kien %}
+                                        <button onclick="openModalB('modalBaoCao', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
+                                            class="action-btn btn-report" title="Ý kiến chỉ đạo & Quyết định xử lý"><i class="fas fa-gavel"></i></button>
+                                        {% endif %}
                                         <button onclick="openModalP('modalPhanCong', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.TrichYeu|escapejs }}', '{{ doc.doc_type }}')"
                                             class="btn-assign-wide" title="Phân công"><i class="fas fa-user-plus"></i>&nbsp;Phân công</button>
                                     {% endif %}

@@ -2738,15 +2738,18 @@ def xu_ly_van_ban_index(request):
     # Lấy danh sách các yêu cầu Xin ý kiến đang chờ xử lý gửi đến người dùng hiện tại (hoặc tất cả nếu là TGĐ)
     if user.is_giam_doc():
         active_xin_y_kien = list(BaoCao.objects.filter(
-            LoaiBaoCao='XIN_Y_KIEN',
             TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']
-        ).select_related('UserID', 'UserID__PhongBan', 'VanBanDenID', 'VanBanDiID').order_by('-NgayBaoCao'))
+        ).exclude(LoaiBaoCao='Báo cáo tháng').select_related('UserID', 'UserID__PhongBan', 'VanBanDenID', 'VanBanDiID').order_by('-NgayBaoCao'))
+    elif user.is_department_head() or user.is_it_head():
+        active_xin_y_kien = list(BaoCao.objects.filter(
+            Q(RecipientID=user) | (Q(RecipientID__isnull=True) & Q(UserID__PhongBan=user.PhongBan)),
+            TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']
+        ).exclude(LoaiBaoCao='Báo cáo tháng').select_related('UserID', 'UserID__PhongBan', 'VanBanDenID', 'VanBanDiID').order_by('-NgayBaoCao'))
     else:
         active_xin_y_kien = list(BaoCao.objects.filter(
             RecipientID=user,
-            LoaiBaoCao='XIN_Y_KIEN',
             TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']
-        ).select_related('UserID', 'UserID__PhongBan', 'VanBanDenID', 'VanBanDiID').order_by('-NgayBaoCao'))
+        ).exclude(LoaiBaoCao='Báo cáo tháng').select_related('UserID', 'UserID__PhongBan', 'VanBanDenID', 'VanBanDiID').order_by('-NgayBaoCao'))
 
     xyk_den_map = {r.VanBanDenID_id: r for r in active_xin_y_kien if r.VanBanDenID_id}
     xyk_di_map = {r.VanBanDiID_id: r for r in active_xin_y_kien if r.VanBanDiID_id}
@@ -3413,19 +3416,24 @@ def api_get_document_details(request):
 
         # Kiểm tra yêu cầu xin ý kiến đang chờ xử lý
         user = request.user
+        filter_doc = Q(VanBanDenID=vb) if doc_type == 'den' else Q(VanBanDiID=vb)
         if user.is_giam_doc():
             r = BaoCao.objects.filter(
-                Q(VanBanDenID=vb) if doc_type == 'den' else Q(VanBanDiID=vb),
-                LoaiBaoCao='XIN_Y_KIEN',
+                filter_doc,
                 TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']
-            ).select_related('UserID', 'UserID__PhongBan').order_by('-NgayBaoCao').first()
+            ).exclude(LoaiBaoCao='Báo cáo tháng').select_related('UserID', 'UserID__PhongBan').order_by('-NgayBaoCao').first()
+        elif user.is_department_head() or user.is_it_head():
+            r = BaoCao.objects.filter(
+                filter_doc,
+                Q(RecipientID=user) | (Q(RecipientID__isnull=True) & Q(UserID__PhongBan=user.PhongBan)),
+                TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']
+            ).exclude(LoaiBaoCao='Báo cáo tháng').select_related('UserID', 'UserID__PhongBan').order_by('-NgayBaoCao').first()
         else:
             r = BaoCao.objects.filter(
-                Q(VanBanDenID=vb) if doc_type == 'den' else Q(VanBanDiID=vb),
+                filter_doc,
                 RecipientID=user,
-                LoaiBaoCao='XIN_Y_KIEN',
                 TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']
-            ).select_related('UserID', 'UserID__PhongBan').order_by('-NgayBaoCao').first()
+            ).exclude(LoaiBaoCao='Báo cáo tháng').select_related('UserID', 'UserID__PhongBan').order_by('-NgayBaoCao').first()
 
         xyk_info = None
         if r:
@@ -3477,9 +3485,14 @@ def api_lay_danh_sach_bao_cao(request):
     """Lấy danh sách các báo cáo gửi cho mình (hoặc tất cả nếu là TGĐ)"""
     user = request.user
     if is_tgd(user):
-        reports = BaoCao.objects.filter(TrangThai__in=['CHUA_XEM', 'DANG_XU_LY'])
+        reports = BaoCao.objects.filter(TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']).exclude(LoaiBaoCao='Báo cáo tháng')
+    elif user.is_department_head() or user.is_it_head():
+        reports = BaoCao.objects.filter(
+            Q(RecipientID=user) | (Q(RecipientID__isnull=True) & Q(UserID__PhongBan=user.PhongBan)),
+            TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']
+        ).exclude(LoaiBaoCao='Báo cáo tháng')
     else:
-        reports = BaoCao.objects.filter(RecipientID=user, TrangThai__in=['CHUA_XEM', 'DANG_XU_LY'])
+        reports = BaoCao.objects.filter(RecipientID=user, TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']).exclude(LoaiBaoCao='Báo cáo tháng')
     
     reports = reports.select_related('UserID', 'VanBanDiID', 'VanBanDenID').order_by('-NgayBaoCao')
     
