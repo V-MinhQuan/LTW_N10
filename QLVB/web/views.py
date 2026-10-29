@@ -29,7 +29,7 @@ from django.views.decorators.cache import never_cache
 
 from .forms import VanBanDenForm
 from .models import DonViBenTrong, UserAccount, VaiTro
-from .models import PhanCong, ChuyenTiep, BaoCao, Butphe
+from .models import PhanCong, ChuyenTiep, BaoCao, Butphe, ThongBao
 from .models import VanBanDen, DonViBenNgoai, LichSuHoatDong
 from .models import VanBanDi, PheDuyet, PhatHanh
 
@@ -955,6 +955,229 @@ def api_vbd_chuyen_tiep_giam_doc(request, pk=None):
 
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@login_required
+def api_vbd_thong_tin_xin_y_kien(request):
+    """
+    API cung cấp thông tin văn bản và xác định người nhận ý kiến theo phân cấp vai trò:
+    - Nếu người gửi là Nhân viên: Gửi đến Trưởng phòng cùng phòng ban.
+    - Nếu người gửi là Trưởng phòng: Chuyển văn bản đến Ban Giám đốc.
+    """
+    vbd_id = request.GET.get('vbd_id') or request.GET.get('id')
+    if not vbd_id:
+        return JsonResponse({'status': 'error', 'message': 'Thiếu ID văn bản!'}, status=400)
+
+    vbd = get_object_or_404(VanBanDen, pk=vbd_id)
+    user = request.user
+
+    is_tp = user.is_department_head() or user.is_it_head()
+    is_nv = user.is_nhan_vien() and not is_tp
+
+    recipients_data = []
+    target_type = ''
+    target_type_label = ''
+
+    if is_tp:
+        target_type = 'GIAM_DOC'
+        target_type_label = 'Ban Giám đốc'
+        # Trưởng phòng chuyển lên Giám đốc
+        gds = UserAccount.objects.filter(
+            Q(VaiTroID__ChucVu__icontains='Giám đốc') | Q(is_superuser=True)
+        ).exclude(VaiTroID__ChucVu__icontains='Trưởng phòng').exclude(username='admin_temp').distinct()
+
+        for gd in gds:
+            recipients_data.append({
+                'id': gd.UserID,
+                'name': gd.HoTen or gd.username,
+                'role': gd.role_name or 'Giám đốc',
+                'dept': gd.PhongBan.TenDonVi if gd.PhongBan else 'Ban Giám đốc'
+            })
+    elif is_nv:
+        target_type = 'TRUONG_PHONG'
+        target_type_label = 'Trưởng phòng'
+        # Nhân viên gửi đến Trưởng phòng cùng phòng ban
+        tps = UserAccount.objects.filter(
+            Q(PhongBan=user.PhongBan) | Q(VaiTroID__PhongBan=user.PhongBan)
+        ).filter(
+            Q(VaiTroID__ChucVu__startswith='Trưởng phòng') | Q(VaiTroID__ChucVu__icontains='Trưởng phòng')
+        ).distinct()
+
+        for tp in tps:
+            recipients_data.append({
+                'id': tp.UserID,
+                'name': tp.HoTen or tp.username,
+                'role': tp.role_name or 'Trưởng phòng',
+                'dept': tp.PhongBan.TenDonVi if tp.PhongBan else (user.PhongBan.TenDonVi if user.PhongBan else '')
+            })
+
+        # Nếu phòng ban chưa có trưởng phòng, fallback sang Giám đốc
+        if not recipients_data:
+            target_type = 'GIAM_DOC'
+            target_type_label = 'Ban Giám đốc (do phòng ban chưa có Trưởng phòng)'
+            gds = UserAccount.objects.filter(
+                Q(VaiTroID__ChucVu__icontains='Giám đốc') | Q(is_superuser=True)
+            ).exclude(VaiTroID__ChucVu__icontains='Trưởng phòng').exclude(username='admin_temp').distinct()
+            for gd in gds:
+                recipients_data.append({
+                    'id': gd.UserID,
+                    'name': gd.HoTen or gd.username,
+                    'role': gd.role_name or 'Giám đốc',
+                    'dept': gd.PhongBan.TenDonVi if gd.PhongBan else 'Ban Giám đốc'
+                })
+    else:
+        target_type = 'GIAM_DOC'
+        target_type_label = 'Ban Giám đốc'
+        gds = UserAccount.objects.filter(
+            Q(VaiTroID__ChucVu__icontains='Giám đốc') | Q(is_superuser=True)
+        ).exclude(UserID=user.UserID).exclude(username='admin_temp').distinct()
+        for gd in gds:
+            recipients_data.append({
+                'id': gd.UserID,
+                'name': gd.HoTen or gd.username,
+                'role': gd.role_name or 'Giám đốc',
+                'dept': gd.PhongBan.TenDonVi if gd.PhongBan else 'Ban Giám đốc'
+            })
+
+    return JsonResponse({
+        'status': 'success',
+        'data': {
+            'vbd_id': vbd.VanBanDenID,
+            'so_ky_hieu': vbd.SoKyHieu,
+            'trich_yeu': vbd.TrichYeu or 'Không có trích yếu',
+            'current_user': {
+                'id': user.UserID,
+                'name': user.HoTen or user.username,
+                'role': user.role_name or 'Cán bộ',
+                'dept': user.PhongBan.TenDonVi if user.PhongBan else ''
+            },
+            'target_type': target_type,
+            'target_type_label': target_type_label,
+            'recipients': recipients_data,
+            'default_recipient': recipients_data[0] if recipients_data else None
+        }
+    })
+
+
+@login_required
+@csrf_exempt
+def api_vbd_xin_y_kien(request):
+    """
+    Chức năng Xin ý kiến văn bản đến:
+    - Nhân viên gửi lên Trưởng phòng cùng phòng ban.
+    - Trưởng phòng chuyển tiếp lên Giám đốc.
+    - Tự động tạo bản ghi BaoCao với LoaiBaoCao='XIN_Y_KIEN'
+    - Cập nhật trạng thái văn bản sang CAN_XU_LY_LAI để kích hoạt luồng xử lý
+    - Tạo ChuyenTiep và gửi thông báo chuông (ThongBao)
+    - Ghi lịch sử hoạt động
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Phương thức không hợp lệ!'}, status=405)
+
+    try:
+        import json
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            vbd_id = data.get('van_ban_den_id') or data.get('id')
+            recipient_id = data.get('recipient_id')
+            ly_do = data.get('ly_do', '').strip()
+            muc_do_khan = data.get('muc_do_khan', 'Bình thường')
+        else:
+            vbd_id = request.POST.get('van_ban_den_id') or request.POST.get('id')
+            recipient_id = request.POST.get('recipient_id')
+            ly_do = request.POST.get('ly_do', '').strip()
+            muc_do_khan = request.POST.get('muc_do_khan', 'Bình thường')
+
+        if not vbd_id:
+            return JsonResponse({'status': 'error', 'message': 'Thiếu ID văn bản đến!'}, status=400)
+
+        if not ly_do:
+            return JsonResponse({'status': 'error', 'message': 'Vui lòng nhập lý do / nội dung xin ý kiến!'}, status=400)
+
+        vbd = get_object_or_404(VanBanDen, pk=vbd_id)
+        user = request.user
+
+        # Xác định người nhận nếu client chưa truyền recipient_id
+        if not recipient_id:
+            is_tp = user.is_department_head() or user.is_it_head()
+            is_nv = user.is_nhan_vien() and not is_tp
+            if is_tp:
+                gd = UserAccount.objects.filter(
+                    Q(VaiTroID__ChucVu__icontains='Giám đốc') | Q(is_superuser=True)
+                ).exclude(VaiTroID__ChucVu__icontains='Trưởng phòng').exclude(username='admin_temp').first()
+                if gd:
+                    recipient_id = gd.UserID
+            elif is_nv:
+                tp = UserAccount.objects.filter(
+                    Q(PhongBan=user.PhongBan) | Q(VaiTroID__PhongBan=user.PhongBan)
+                ).filter(
+                    Q(VaiTroID__ChucVu__startswith='Trưởng phòng') | Q(VaiTroID__ChucVu__icontains='Trưởng phòng')
+                ).first()
+                if tp:
+                    recipient_id = tp.UserID
+
+        if not recipient_id:
+            return JsonResponse({'status': 'error', 'message': 'Không tìm thấy người nhận ý kiến phù hợp!'}, status=400)
+
+        recipient = get_object_or_404(UserAccount, pk=recipient_id)
+
+        # Lưu trạng thái cũ và chuyển văn bản sang CAN_XU_LY_LAI để đưa vào danh sách cần xử lý
+        trang_thai_cu = vbd.TrangThai
+        vbd.TrangThai = 'CAN_XU_LY_LAI'
+        vbd.save()
+
+        now = timezone.now()
+
+        # Tạo bản ghi BaoCao với LoaiBaoCao='XIN_Y_KIEN'
+        report = BaoCao.objects.create(
+            VanBanDenID=vbd,
+            UserID=user,
+            RecipientID=recipient,
+            NgayBaoCao=now,
+            LoaiBaoCao='XIN_Y_KIEN',
+            GhiChu=ly_do[:250],
+            TrangThai='CHUA_XEM',
+            TrangThaiVBCu=trang_thai_cu
+        )
+
+        # Đảm bảo quyền truy cập cho người nhận
+        ChuyenTiep.objects.create(
+            VanBanDenID=vbd,
+            UserID=recipient,
+            NgayChuyenTiep=now,
+            MucDoUuTien=muc_do_khan
+        )
+
+        # Gửi thông báo chuông (ThongBao) cho người nhận
+        sender_dept = f" - {user.PhongBan.TenDonVi}" if user.PhongBan else ""
+        ThongBao.objects.create(
+            UserID=recipient,
+            VanBanDenID=vbd,
+            TieuDe=f"❓ [Xin ý kiến] Văn bản đến {vbd.SoKyHieu}",
+            NoiDung=f"Đ/c {user.HoTen} ({user.role_name}{sender_dept}) xin ý kiến chỉ đạo về văn bản '{vbd.SoKyHieu}'. Lý do: {ly_do}",
+            LoaiThongBao=ThongBao.LoaiThongBaoChoices.HE_THONG,
+            LienKet=f"/xu-ly-van-ban/?so_ky_hieu={vbd.SoKyHieu}"
+        )
+
+        # Ghi lịch sử hoạt động
+        LichSuHoatDong.objects.create(
+            UserID=user,
+            LoaiDoiTuong='VanBanDen',
+            DoiTuongID=vbd.VanBanDenID,
+            HanhDong='Xin ý kiến',
+            NoiDungThayDoi=f"Gửi xin ý kiến tới {recipient.HoTen} ({recipient.role_name}). Lý do: {ly_do}"
+        )
+
+        return JsonResponse({
+            'status': 'success',
+            'message': f"Đã gửi xin ý kiến văn bản '{vbd.SoKyHieu}' đến {recipient.HoTen} ({recipient.role_name}) thành công!",
+            'recipient_name': recipient.HoTen,
+            'recipient_role': recipient.role_name
+        })
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
 
 
 # --- QUẢN LÝ VĂN BẢN ĐI ---
@@ -2512,6 +2735,29 @@ def xu_ly_van_ban_index(request):
     doc_list = []
     now = timezone.now()
 
+    # Lấy danh sách các yêu cầu Xin ý kiến đang chờ xử lý gửi đến người dùng hiện tại (hoặc tất cả nếu là TGĐ)
+    if user.is_giam_doc():
+        active_xin_y_kien = list(BaoCao.objects.filter(
+            LoaiBaoCao='XIN_Y_KIEN',
+            TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']
+        ).select_related('UserID', 'UserID__PhongBan', 'VanBanDenID', 'VanBanDiID').order_by('-NgayBaoCao'))
+    else:
+        active_xin_y_kien = list(BaoCao.objects.filter(
+            RecipientID=user,
+            LoaiBaoCao='XIN_Y_KIEN',
+            TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']
+        ).select_related('UserID', 'UserID__PhongBan', 'VanBanDenID', 'VanBanDiID').order_by('-NgayBaoCao'))
+
+    xyk_den_map = {r.VanBanDenID_id: r for r in active_xin_y_kien if r.VanBanDenID_id}
+    xyk_di_map = {r.VanBanDiID_id: r for r in active_xin_y_kien if r.VanBanDiID_id}
+
+    # Bổ sung các văn bản đến đang được xin ý kiến nếu chưa có trong den_qs
+    if query_loai_xu_ly in ['', 'den'] and xyk_den_map:
+        missing_den_ids = [vid for vid in xyk_den_map.keys() if not den_qs.filter(pk=vid).exists()]
+        if missing_den_ids:
+            extra_den = VanBanDen.objects.filter(pk__in=missing_den_ids).select_related('DonViNgoaiID', 'DonViTrongID', 'DonViGuiID', 'UserID')
+            den_qs = den_qs | extra_den
+
     # Prefetch tối ưu hoá sẵn UserID tránh N+1 query
     pc_prefetch = Prefetch('phancong_set', queryset=PhanCong.objects.select_related('UserID'))
     ct_prefetch = Prefetch('chuyentiep_set', queryset=ChuyenTiep.objects.select_related('UserID'))
@@ -2525,20 +2771,36 @@ def xu_ly_van_ban_index(request):
             cts = list(doc.chuyentiep_set.all())
             doc.first_phancong = pcs[0] if pcs else None
             doc.last_chuyentiep = cts[-1] if cts else None
-            # Gán Tag màu
-            if doc.TrangThai == 'CAN_XU_LY_LAI':
-                doc.last_action_tag, doc.last_action_name = "tag-bao-cao", "Đang báo cáo"
+
+            # Kiểm tra trạng thái Xin ý kiến
+            if doc.pk in xyk_den_map:
+                r = xyk_den_map[doc.pk]
+                doc.is_xin_y_kien = True
+                doc.xin_y_kien_data = {
+                    'report_id': r.PhanHoiID,
+                    'nguoi_gui': r.UserID.HoTen or r.UserID.username,
+                    'role_nguoi_gui': r.UserID.role_name or 'Cán bộ',
+                    'phong_ban': r.UserID.PhongBan.TenDonVi if r.UserID.PhongBan else '',
+                    'ly_do': r.GhiChu or '',
+                    'ngay_gui': r.NgayBaoCao.strftime('%d/%m/%Y %H:%M') if r.NgayBaoCao else '',
+                }
+                doc.last_action_tag, doc.last_action_name = "tag-xin-y-kien", "Cần cho ý kiến"
             else:
-                pc = doc.first_phancong
-                if not pc:
-                    doc.last_action_tag, doc.last_action_name = "tag-phan-cong", "Phân công"
+                doc.is_xin_y_kien = False
+                # Gán Tag màu
+                if doc.TrangThai == 'CAN_XU_LY_LAI':
+                    doc.last_action_tag, doc.last_action_name = "tag-bao-cao", "Đang báo cáo"
                 else:
-                    if pc.TrangThaiXuLy == 'Hoàn thành':
-                        doc.last_action_tag, doc.last_action_name = "tag-chuyen-tiep", "Chuyển tiếp"
-                    elif pc.TrangThaiXuLy == 'Quá hạn':
-                        doc.last_action_tag, doc.last_action_name = "tag-canh-bao", "Cảnh báo"
+                    pc = doc.first_phancong
+                    if not pc:
+                        doc.last_action_tag, doc.last_action_name = "tag-phan-cong", "Phân công"
                     else:
-                        doc.last_action_tag, doc.last_action_name = "tag-cap-nhat", "Cập nhật"
+                        if pc.TrangThaiXuLy == 'Hoàn thành':
+                            doc.last_action_tag, doc.last_action_name = "tag-chuyen-tiep", "Chuyển tiếp"
+                        elif pc.TrangThaiXuLy == 'Quá hạn':
+                            doc.last_action_tag, doc.last_action_name = "tag-canh-bao", "Cảnh báo"
+                        else:
+                            doc.last_action_tag, doc.last_action_name = "tag-cap-nhat", "Cập nhật"
             doc_list.append(doc)
 
     # Xử lý Văn bản đi (Chỉ add nếu chọn 'Tất cả' hoặc 'Văn bản đi')
@@ -2565,24 +2827,40 @@ def xu_ly_van_ban_index(request):
             cts = list(doc.chuyentiep_set.all())
             doc.first_phancong = pcs[0] if pcs else None
             doc.last_chuyentiep = cts[-1] if cts else None
-            # Gán Tag màu
-            if doc.TrangThai == 'CAN_XU_LY_LAI':
-                doc.last_action_tag, doc.last_action_name = "tag-bao-cao", "Đang báo cáo"
+
+            # Kiểm tra trạng thái Xin ý kiến
+            if doc.pk in xyk_di_map:
+                r = xyk_di_map[doc.pk]
+                doc.is_xin_y_kien = True
+                doc.xin_y_kien_data = {
+                    'report_id': r.PhanHoiID,
+                    'nguoi_gui': r.UserID.HoTen or r.UserID.username,
+                    'role_nguoi_gui': r.UserID.role_name or 'Cán bộ',
+                    'phong_ban': r.UserID.PhongBan.TenDonVi if r.UserID.PhongBan else '',
+                    'ly_do': r.GhiChu or '',
+                    'ngay_gui': r.NgayBaoCao.strftime('%d/%m/%Y %H:%M') if r.NgayBaoCao else '',
+                }
+                doc.last_action_tag, doc.last_action_name = "tag-xin-y-kien", "Cần cho ý kiến"
             else:
-                pc = doc.first_phancong
-                if not pc:
-                    doc.last_action_tag, doc.last_action_name = "tag-phan-cong", "Phân công"
+                doc.is_xin_y_kien = False
+                # Gán Tag màu
+                if doc.TrangThai == 'CAN_XU_LY_LAI':
+                    doc.last_action_tag, doc.last_action_name = "tag-bao-cao", "Đang báo cáo"
                 else:
-                    if pc.TrangThaiXuLy == 'Hoàn thành':
-                        doc.last_action_tag, doc.last_action_name = "tag-chuyen-tiep", "Chuyển tiếp"
-                    elif pc.TrangThaiXuLy == 'Quá hạn':
-                        doc.last_action_tag, doc.last_action_name = "tag-canh-bao", "Cảnh báo"
+                    pc = doc.first_phancong
+                    if not pc:
+                        doc.last_action_tag, doc.last_action_name = "tag-phan-cong", "Phân công"
                     else:
-                        doc.last_action_tag, doc.last_action_name = "tag-cap-nhat", "Cập nhật"
+                        if pc.TrangThaiXuLy == 'Hoàn thành':
+                            doc.last_action_tag, doc.last_action_name = "tag-chuyen-tiep", "Chuyển tiếp"
+                        elif pc.TrangThaiXuLy == 'Quá hạn':
+                            doc.last_action_tag, doc.last_action_name = "tag-canh-bao", "Cảnh báo"
+                        else:
+                            doc.last_action_tag, doc.last_action_name = "tag-cap-nhat", "Cập nhật"
             doc_list.append(doc)
 
-    # 6. Sắp xếp và Phân trang
-    documents = sorted(doc_list, key=lambda x: x.ngay_sort, reverse=True)
+    # 6. Sắp xếp và Phân trang: Văn bản có Xin ý kiến (is_xin_y_kien) LUÔN đứng ở hàng đầu tiên (Top 1)
+    documents = sorted(doc_list, key=lambda x: (1 if getattr(x, 'is_xin_y_kien', False) else 0, x.ngay_sort or now), reverse=True)
     paginator = Paginator(documents, 10)
     page_obj = paginator.get_page(page_number)
 
@@ -2925,90 +3203,193 @@ def api_chuyen_tiep_xlvb(request):
 @login_required
 @csrf_exempt
 def api_bao_cao_xlvb(request):
-    if request.method == 'POST':
-        try:
-            if request.content_type == 'application/json':
-                data = json.loads(request.body)
-                so_ky_hieu = data.get('so_ky_hieu')
-                loai_van_de = data.get('loai_van_de')
-                mo_ta = data.get('mo_ta')
-                doc_type = data.get('doc_type', 'den')
-                recipient_id = data.get('recipient_id')
-                tep_moi = None
+    """
+    Nơi đưa ra các quyết định, hành động cho các văn bản cần ý kiến
+    và tiếp nhận báo cáo xử lý văn bản không phù hợp:
+    - Nếu xử lý văn bản có yêu cầu xin ý kiến:
+        * Đồng ý / Phê duyệt đề xuất (DONG_Y)
+        * Ý kiến chỉ đạo thực hiện (CHI_DAO)
+        * Yêu cầu chỉnh sửa / Bổ sung (YEU_CAU_CHINH_SUA)
+        * Chuyển tiếp xin ý kiến cấp trên (Giám đốc) (CHUYEN_TIEP_CAP_TREN)
+        * Báo cáo không phù hợp / Trả lại (KHONG_PHU_HOP)
+        * Cập nhật trạng thái BaoCao sang DA_GIAI_QUYET, gửi thông báo chuông cho người xin ý kiến
+    - Nếu báo cáo vấn đề mới: tạo bản ghi BaoCao tương ứng.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            so_ky_hieu = data.get('so_ky_hieu')
+            action = data.get('action') or data.get('huong_xu_ly') or data.get('loai_van_de')
+            mo_ta = data.get('mo_ta') or data.get('noi_dung_chi_dao') or ''
+            doc_type = data.get('doc_type', 'den')
+            recipient_id = data.get('recipient_id')
+            report_id = data.get('report_id')
+            tep_moi = None
+        else:
+            so_ky_hieu = request.POST.get('so_ky_hieu')
+            action = request.POST.get('action') or request.POST.get('huong_xu_ly') or request.POST.get('loai_van_de')
+            mo_ta = request.POST.get('mo_ta') or request.POST.get('noi_dung_chi_dao') or ''
+            doc_type = request.POST.get('doc_type', 'den')
+            recipient_id = request.POST.get('recipient_id')
+            report_id = request.POST.get('report_id')
+            tep_moi = request.FILES.get('tep_dinh_kem')
+
+        if doc_type == 'di':
+            vb = get_object_or_404(VanBanDi, SoKyHieu=so_ky_hieu)
+            loai_doi_tuong = 'VanBanDi'
+            id_doituong = vb.VanBanDiID
+        else:
+            vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
+            loai_doi_tuong = 'VanBanDen'
+            id_doituong = vb.VanBanDenID
+
+        now = timezone.now()
+
+        # Kiểm tra xem có BaoCao xin ý kiến đang chờ giải quyết cho văn bản này không
+        report = None
+        if report_id:
+            report = BaoCao.objects.filter(pk=report_id).first()
+        if not report:
+            if request.user.is_giam_doc():
+                report = BaoCao.objects.filter(
+                    Q(VanBanDenID=vb) if doc_type == 'den' else Q(VanBanDiID=vb),
+                    LoaiBaoCao='XIN_Y_KIEN',
+                    TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']
+                ).order_by('-NgayBaoCao').first()
             else:
-                so_ky_hieu = request.POST.get('so_ky_hieu')
-                loai_van_de = request.POST.get('loai_van_de')
-                mo_ta = request.POST.get('mo_ta')
-                doc_type = request.POST.get('doc_type', 'den')
-                recipient_id = request.POST.get('recipient_id')
-                tep_moi = request.FILES.get('tep_dinh_kem')
+                report = BaoCao.objects.filter(
+                    Q(VanBanDenID=vb) if doc_type == 'den' else Q(VanBanDiID=vb),
+                    RecipientID=request.user,
+                    LoaiBaoCao='XIN_Y_KIEN',
+                    TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']
+                ).order_by('-NgayBaoCao').first()
 
-            if doc_type == 'di':
-                vb = get_object_or_404(VanBanDi, SoKyHieu=so_ky_hieu)
-                loai_doi_tuong = 'VanBanDi'
-                id_doituong = vb.VanBanDiID
-                # Lưu trạng thái cũ
-                trang_thai_cu = vb.TrangThai
-                # Chuyển trạng thái văn bản sang Cần xử lý lại
+        action_names = {
+            'DONG_Y': 'Phê duyệt / Đồng ý đề xuất',
+            'CHI_DAO': 'Ý kiến chỉ đạo thực hiện',
+            'YEU_CAU_CHINH_SUA': 'Yêu cầu chỉnh sửa / Bổ sung',
+            'CHUYEN_TIEP_CAP_TREN': 'Chuyển tiếp xin ý kiến cấp trên (Giám đốc)',
+            'KHONG_PHU_HOP': 'Báo cáo không phù hợp / Trả lại',
+            'v1': 'Sai sót nội dung',
+            'v2': 'Chậm trễ xử lý',
+            'v3': 'Lỗi file đính kèm',
+            'v4': 'Vấn đề khác'
+        }
+        action_label = action_names.get(action, action or 'Xử lý văn bản')
+
+        if report:
+            # Đang đưa ra quyết định / chỉ đạo cho văn bản xin ý kiến
+            report.HuongXuLy = action
+            report.NoiDungXuLy = mo_ta
+            report.ResolvedAt = now
+            report.TrangThai = 'DA_GIAI_QUYET'
+            report.save()
+
+            # Cập nhật trạng thái văn bản theo quyết định
+            if action in ['DONG_Y', 'CHI_DAO']:
+                vb.TrangThai = 'DANG_XU_LY'
+            elif action == 'YEU_CAU_CHINH_SUA':
                 vb.TrangThai = 'CAN_XU_LY_LAI'
-                vb.save()
-                
-                BaoCao.objects.create(
-                    VanBanDiID=vb, 
-                    UserID=request.user, 
-                    RecipientID_id=recipient_id,
-                    NgayBaoCao=timezone.now(),
-                    LoaiBaoCao=loai_van_de,
-                    GhiChu=mo_ta,
-                    TrangThai='CHUA_XEM',
-                    TrangThaiVBCu=trang_thai_cu
-                )
-            else:
-                vb = get_object_or_404(VanBanDen, SoKyHieu=so_ky_hieu)
-                loai_doi_tuong = 'VanBanDen'
-                id_doituong = vb.VanBanDenID
-                trang_thai_cu = vb.TrangThai
+            elif action == 'CHUYEN_TIEP_CAP_TREN':
                 vb.TrangThai = 'CAN_XU_LY_LAI'
-                vb.save()
+                # Trưởng phòng chuyển tiếp lên Giám đốc
+                gds = UserAccount.objects.filter(
+                    Q(VaiTroID__ChucVu__icontains='Giám đốc') | Q(is_superuser=True)
+                ).exclude(VaiTroID__ChucVu__icontains='Trưởng phòng').exclude(username='admin_temp').distinct()
+                target_gd = gds.first()
+                if target_gd:
+                    BaoCao.objects.create(
+                        VanBanDenID=vb if doc_type == 'den' else None,
+                        VanBanDiID=vb if doc_type == 'di' else None,
+                        UserID=request.user,
+                        RecipientID=target_gd,
+                        NgayBaoCao=now,
+                        LoaiBaoCao='XIN_Y_KIEN',
+                        GhiChu=f"Trưởng phòng {request.user.HoTen} chuyển tiếp lên Giám đốc: {mo_ta[:180]}",
+                        TrangThai='CHUA_XEM',
+                        TrangThaiVBCu=vb.TrangThai
+                    )
+                    ChuyenTiep.objects.create(
+                        VanBanDenID=vb if doc_type == 'den' else None,
+                        VanBanDiID=vb if doc_type == 'di' else None,
+                        UserID=target_gd,
+                        NgayChuyenTiep=now,
+                        MucDoUuTien='Khẩn cấp'
+                    )
+                    ThongBao.objects.create(
+                        UserID=target_gd,
+                        VanBanDenID=vb if doc_type == 'den' else None,
+                        VanBanDiID=vb if doc_type == 'di' else None,
+                        TieuDe=f"📨 [Chuyển tiếp ý kiến] Văn bản {vb.SoKyHieu}",
+                        NoiDung=f"Trưởng phòng {request.user.HoTen} ({request.user.role_name}) chuyển tiếp văn bản '{vb.SoKyHieu}' xin ý kiến Giám đốc. Ý kiến: {mo_ta}",
+                        LoaiThongBao=ThongBao.LoaiThongBaoChoices.HE_THONG,
+                        LienKet=f"/xu-ly-van-ban/?so_ky_hieu={vb.SoKyHieu}"
+                    )
+            elif action == 'KHONG_PHU_HOP':
+                vb.TrangThai = 'CAN_XU_LY_LAI'
+            vb.save()
 
-                BaoCao.objects.create(
-                    VanBanDenID=vb, 
-                    UserID=request.user, 
-                    RecipientID_id=recipient_id,
-                    NgayBaoCao=timezone.now(),
-                    LoaiBaoCao=loai_van_de,
-                    GhiChu=mo_ta,
-                    TrangThai='CHUA_XEM',
-                    TrangThaiVBCu=trang_thai_cu
+            # Thông báo chuông cho người gửi yêu cầu xin ý kiến ban đầu
+            if report.UserID and report.UserID != request.user:
+                ThongBao.objects.create(
+                    UserID=report.UserID,
+                    VanBanDenID=vb if doc_type == 'den' else None,
+                    VanBanDiID=vb if doc_type == 'di' else None,
+                    TieuDe=f"📢 [Ý kiến chỉ đạo] Văn bản {vb.SoKyHieu}",
+                    NoiDung=f"Lãnh đạo {request.user.HoTen} ({request.user.role_name}) đã ra quyết định: {action_label}. Ý kiến chỉ đạo: {mo_ta}",
+                    LoaiThongBao=ThongBao.LoaiThongBaoChoices.HE_THONG,
+                    LienKet=f"/xu-ly-van-ban/?so_ky_hieu={vb.SoKyHieu}"
                 )
 
-            # Cập nhật tệp mới nếu có
-            if tep_moi:
-                vb.TepDinhKem = tep_moi
-                vb.save()
+            success_msg = f"Đã ban hành quyết định ({action_label}) cho văn bản '{vb.SoKyHieu}' thành công!"
+        else:
+            # Tạo báo cáo vấn đề mới thông thường
+            trang_thai_cu = vb.TrangThai
+            vb.TrangThai = 'CAN_XU_LY_LAI'
+            vb.save()
 
-            # Ghi lịch sử
-            msg_history = f"Báo cáo vấn đề: {loai_van_de}. Mô tả: {mo_ta}"
-            if tep_moi:
-                msg_history += f" (Đã đính kèm tệp: {tep_moi.name})"
-
-            LichSuHoatDong.objects.create(
+            BaoCao.objects.create(
+                VanBanDenID=vb if doc_type == 'den' else None,
+                VanBanDiID=vb if doc_type == 'di' else None,
                 UserID=request.user,
-                LoaiDoiTuong=loai_doi_tuong,
-                DoiTuongID=id_doituong,
-                HanhDong='Báo cáo',
-                NoiDungThayDoi=msg_history
+                RecipientID_id=recipient_id,
+                NgayBaoCao=now,
+                LoaiBaoCao=action,
+                GhiChu=mo_ta[:250],
+                TrangThai='CHUA_XEM',
+                TrangThaiVBCu=trang_thai_cu
             )
+            success_msg = f"Đã gửi báo cáo xử lý cho văn bản '{vb.SoKyHieu}' thành công!"
 
-            return JsonResponse({'status': 'success', 'message': 'Gửi báo cáo thành công!'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+        # Cập nhật tệp mới nếu có
+        if tep_moi:
+            vb.TepDinhKem = tep_moi
+            vb.save()
+
+        # Ghi lịch sử hoạt động
+        msg_history = f"Quyết định / Báo cáo xử lý: {action_label}. Nội dung: {mo_ta}"
+        if tep_moi:
+            msg_history += f" (Đã đính kèm tệp: {tep_moi.name})"
+
+        LichSuHoatDong.objects.create(
+            UserID=request.user,
+            LoaiDoiTuong=loai_doi_tuong,
+            DoiTuongID=id_doituong,
+            HanhDong='Chỉ đạo / Quyết định',
+            NoiDungThayDoi=msg_history
+        )
+
+        return JsonResponse({'status': 'success', 'message': success_msg})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
 @login_required
 def api_get_document_details(request):
-    """API lấy thông tin chi tiết của văn bản based on ID and doc_type"""
+    """API lấy thông tin chi tiết của văn bản based on ID and doc_type, kèm thông tin xin ý kiến nếu có"""
     doc_id = request.GET.get('id')
     doc_type = request.GET.get('doc_type', 'den')
 
@@ -3027,15 +3408,47 @@ def api_get_document_details(request):
                 file_url = vb.TepDinhKem.url
                 file_name = vb.TepDinhKem.name
             except ValueError:
-                # Trường hợp có tên tệp trong DB nhưng tệp thực tế không tồn tại/không có URL
                 file_url = ''
                 file_name = ''
+
+        # Kiểm tra yêu cầu xin ý kiến đang chờ xử lý
+        user = request.user
+        if user.is_giam_doc():
+            r = BaoCao.objects.filter(
+                Q(VanBanDenID=vb) if doc_type == 'den' else Q(VanBanDiID=vb),
+                LoaiBaoCao='XIN_Y_KIEN',
+                TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']
+            ).select_related('UserID', 'UserID__PhongBan').order_by('-NgayBaoCao').first()
+        else:
+            r = BaoCao.objects.filter(
+                Q(VanBanDenID=vb) if doc_type == 'den' else Q(VanBanDiID=vb),
+                RecipientID=user,
+                LoaiBaoCao='XIN_Y_KIEN',
+                TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']
+            ).select_related('UserID', 'UserID__PhongBan').order_by('-NgayBaoCao').first()
+
+        xyk_info = None
+        if r:
+            xyk_info = {
+                'report_id': r.PhanHoiID,
+                'nguoi_gui': r.UserID.HoTen or r.UserID.username,
+                'role_nguoi_gui': r.UserID.role_name or 'Cán bộ',
+                'phong_ban': r.UserID.PhongBan.TenDonVi if r.UserID.PhongBan else '',
+                'ly_do': r.GhiChu or '',
+                'ngay_gui': r.NgayBaoCao.strftime('%d/%m/%Y %H:%M') if r.NgayBaoCao else '',
+                'loai_bao_cao': r.LoaiBaoCao,
+                'trang_thai': r.TrangThai
+            }
 
         data = {
             'SoKyHieu': vb.SoKyHieu,
             'TrichYeu': vb.TrichYeu,
             'TepDinhKemUrl': file_url,
-            'TepDinhKemName': file_name
+            'TepDinhKemName': file_name,
+            'xin_y_kien': xyk_info,
+            'is_xin_y_kien': bool(xyk_info),
+            'is_truong_phong': user.is_department_head() or user.is_it_head(),
+            'is_giam_doc': user.is_giam_doc()
         }
         return JsonResponse({'status': 'success', 'data': data, 'message': 'Lấy dữ liệu thành công'})
     except Exception as e:

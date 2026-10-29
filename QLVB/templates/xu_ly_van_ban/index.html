@@ -11,6 +11,62 @@
 <link rel="stylesheet" href="{% static 'css/pages/xu_ly_van_ban.css' %}?v=14">
 {% endblock %}
 
+
+<style>
+    /* STYLES CHO VĂN BẢN ĐƯỢC XIN Ý KIẾN (TOP 1) */
+    .row-xin-y-kien {
+        background-color: #faf5ff !important;
+        border-left: 5px solid #8e44ad !important;
+        box-shadow: inset 0 0 0 1px rgba(142, 68, 173, 0.12) !important;
+    }
+    .row-xin-y-kien:hover {
+        background-color: #f3e8ff !important;
+    }
+    .badge-xin-y-kien {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%);
+        color: white !important;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 10px;
+        margin-top: 3px;
+        box-shadow: 0 2px 4px rgba(142, 68, 173, 0.2);
+    }
+    .tag-xin-y-kien {
+        background-color: #8e44ad !important;
+        color: white !important;
+    }
+    .status-xin-y-kien {
+        background-color: #f3e8ff !important;
+        color: #6b21a8 !important;
+        border: 1px solid #c084fc !important;
+        font-weight: 600 !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .btn-decision {
+        background-color: #8e44ad !important;
+        color: white !important;
+        box-shadow: 0 2px 6px rgba(142, 68, 173, 0.35) !important;
+    }
+    .btn-decision:hover {
+        background-color: #732d91 !important;
+        transform: scale(1.1) !important;
+    }
+    @keyframes pulse-purple {
+        0% { box-shadow: 0 0 0 0 rgba(142, 68, 173, 0.6); }
+        70% { box-shadow: 0 0 0 8px rgba(142, 68, 173, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(142, 68, 173, 0); }
+    }
+    .pulse-purple {
+        animation: pulse-purple 2s infinite !important;
+    }
+</style>
+
 {% block content %}
 <div class="panel">
     <div class="panel-header header-gray">
@@ -145,9 +201,20 @@
                 </thead>
                 <tbody>
                     {% for doc in page_obj %}
-                    <tr>
-                        <td class="col-stt">{{ page_obj.start_index|add:forloop.counter0 }}</td>
-                        <td class="text-left"><a href="javascript:void(0)" class="text-blue">{{ doc.SoKyHieu }}</a></td>
+                    <tr {% if doc.is_xin_y_kien %}class="row-xin-y-kien"{% endif %}>
+                        <td class="col-stt">
+                            {% if doc.is_xin_y_kien %}
+                            <span title="Cần cho ý kiến chỉ đạo"><i class="fas fa-thumbtack" style="color: #8e44ad;"></i></span>
+                            {% else %}
+                            {{ page_obj.start_index|add:forloop.counter0 }}
+                            {% endif %}
+                        </td>
+                        <td class="text-left">
+                            <a href="javascript:void(0)" class="text-blue">{{ doc.SoKyHieu }}</a>
+                            {% if doc.is_xin_y_kien %}
+                            <br><span class="badge-xin-y-kien"><i class="fas fa-comment-dots"></i> Xin ý kiến</span>
+                            {% endif %}
+                        </td>
                         <td class="text-left"
                             style="max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
                             title="{{ doc.TrichYeu }}">{{ doc.TrichYeu }}</td>
@@ -183,6 +250,9 @@
                             {% endwith %}
                         </td>
                         <td class="col-status">
+                            {% if doc.is_xin_y_kien %}
+                            <span class="status-badge status-xin-y-kien"><i class="fas fa-comment-dots"></i> Cần cho ý kiến</span>
+                            {% else %}
                             {% with phan_cong=doc.first_phancong %}
                             {% if doc.doc_type == 'di' %}
                                 <!-- TRẠNG THÁI VĂN BẢN ĐI -->
@@ -222,8 +292,13 @@
                                 {% endif %}
                             {% endif %}
                             {% endwith %}
+                            {% endif %}
                         </td>
                         <td class="mo-ta-cell">
+                            {% if doc.is_xin_y_kien and doc.xin_y_kien_data %}
+                            <span style="font-size:12px; color:#4b5563;">Hỏi: <strong>{{ doc.xin_y_kien_data.nguoi_gui }}</strong> ({{ doc.xin_y_kien_data.role_nguoi_gui }})</span><br>
+                            Thao tác: <span class="mo-ta-action tag-xin-y-kien"><i class="fas fa-gavel"></i> Cần cho ý kiến</span>
+                            {% else %}
                             {% with phan_cong=doc.first_phancong %}
                             {% if phan_cong %}
                             <!-- Hiển thị Chuyển tới -->
@@ -238,10 +313,17 @@
                             Thao tác: <span class="mo-ta-action tag-phan-cong">Phân công</span>
                             {% endif %}
                             {% endwith %}
+                            {% endif %}
                         </td>
                         <td class="col-actions">
                             {% with phan_cong=doc.first_phancong %}
                             <div style="display: flex; gap: 5px; justify-content: center; width: 100%; flex-wrap: wrap;">
+                                {% if doc.is_xin_y_kien %}
+                                <button onclick="openModalB('modalBaoCao', '{{ doc.pk }}', '{{ doc.SoKyHieu }}', '{{ doc.doc_type }}')"
+                                    class="action-btn btn-decision pulse-purple" title="Ý kiến chỉ đạo & Quyết định xử lý">
+                                    <i class="fas fa-gavel"></i>
+                                </button>
+                                {% endif %}
                                 
                                 {% if doc.doc_type == 'di' %}
                                     <!-- LUỒNG VĂN BẢN ĐI: Phê duyệt -> Phát hành -> Phân công -> Xử lý -->
@@ -489,20 +571,41 @@
     </div>
 </div>
 
-<!-- Modal Báo cáo -->
-<div id="modalBaoCao" class="modal-container">
-    <div class="modal-header">
-        Báo cáo xử lý văn bản không phù hợp
-        <span class="close-btn" onclick="closeModal('modalBaoCao')">&times;</span>
+<!-- Modal Ý kiến chỉ đạo & Quyết định xử lý văn bản (Báo cáo xử lý) -->
+<div id="modalBaoCao" class="modal-container" style="width: 650px; max-width: 95vw;">
+    <div class="modal-header" style="background: linear-gradient(135deg, #6d28d9 0%, #4f46e5 100%); color: white; display: flex; justify-content: space-between; align-items: center;">
+        <span id="rep-modal-title-text" style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
+            <i class="fas fa-gavel"></i> Ý kiến chỉ đạo & Quyết định xử lý văn bản
+        </span>
+        <span class="close-btn" onclick="closeModal('modalBaoCao')" style="color: white; opacity: 0.9;">&times;</span>
     </div>
-    <div class="modal-content">
+    <div class="modal-content" style="padding: 20px 24px; max-height: 80vh; overflow-y: auto;">
+        <!-- Card hiển thị yêu cầu Xin ý kiến (khi có văn bản xin ý kiến) -->
+        <div id="rep-xykCard" style="display: none; background: #faf5ff; border: 1.5px solid #c084fc; border-radius: 8px; padding: 14px 16px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-weight: 700; color: #6b21a8; font-size: 14px;">
+                    <i class="fas fa-question-circle" style="color: #9333ea;"></i> THÔNG TIN XIN Ý KIẾN CHỈ ĐẠO
+                </span>
+                <span id="rep-xykDate" style="font-size: 12px; color: #7e22ce; background: #f3e8ff; padding: 2px 8px; border-radius: 10px;"></span>
+            </div>
+            <div style="font-size: 13px; color: #334155; margin-bottom: 6px;">
+                <strong>Người xin ý kiến:</strong> <span id="rep-xykSender" style="font-weight: 600; color: #1e293b;"></span> - <span id="rep-xykRole"></span> (<span id="rep-xykDept"></span>)
+            </div>
+            <div style="font-size: 13px; color: #334155;">
+                <strong>Lý do / Nội dung đề xuất:</strong>
+                <div id="rep-xykReason" style="margin-top: 5px; padding: 10px 12px; background: white; border-radius: 6px; border-left: 3px solid #9333ea; font-style: italic; color: #1e293b; line-height: 1.5;"></div>
+            </div>
+            <input type="hidden" id="rep-reportId">
+        </div>
+
         <div class="form-group-row">
             <div class="form-group">
-                <label style="width: 150px;">Số ký hiệu</label>
-                <input type="text" class="form-control" id="rep-soKyHieu" readonly style="background:#f0f0f0;">
+                <label style="width: 140px; font-weight: 600;">Số ký hiệu</label>
+                <input type="text" class="form-control" id="rep-soKyHieu" readonly style="background:#f1f5f9; font-weight: 600; color: #1e293b;">
             </div>
-            <div class="form-group">
-                <label style="width: 150px;">Người nhận (<span class="required">*</span>)</label>
+            <!-- Người nhận (chỉ hiển thị khi báo cáo thông thường) -->
+            <div class="form-group" id="rep-group-nguoiNhan">
+                <label style="width: 140px; font-weight: 600;">Người nhận (<span class="required">*</span>)</label>
                 <select class="form-control" id="rep-nguoiNhan">
                     <option value="">--- Chọn người nhận ---</option>
                     {% for u in danh_sach_nguoi_dung %}
@@ -511,36 +614,40 @@
                 </select>
             </div>
         </div>
-        <div class="form-group-row" style="margin-bottom: 0;">
-            <div class="form-group">
-                <label style="width: 150px;">Loại vấn đề (<span class="required">*</span>)</label>
-                <select class="form-control" id="rep-loaiVanDe">
-                    <option value="">--- Chọn loại vấn đề ---</option>
-                    <option value="v1">Sai sót nội dung</option>
-                    <option value="v2">Chậm trễ xử lý</option>
-                    <option value="v3">Lỗi file đính kèm</option>
-                    <option value="v4">Vấn đề khác</option>
-                </select>
-            </div>
-            <div class="form-group"></div>
-        </div>
+
+        <!-- Khối Quyết định / Hướng xử lý chỉ đạo -->
         <div class="form-group full-width" style="margin-top: 10px; flex-direction: column;">
-            <label style="margin-bottom: 5px; font-weight: bold;">Mô tả chi tiết (<span
-                    class="required">*</span>)</label>
-            <textarea class="form-control" id="rep-moTa" placeholder="Vui lòng mô tả chi tiết vấn đề"
-                style="width: 100%; height: 80px;"></textarea>
-        </div>
-        <div class="form-group full-width" style="margin-top: 10px; flex-direction: column;">
-            <label style="margin-bottom: 5px; font-weight: bold;">Đề xuất giải pháp</label>
-            <textarea class="form-control" placeholder="Đề xuất cách xử lý"
-                style="width: 100%; height: 60px;"></textarea>
+            <label style="margin-bottom: 6px; font-weight: bold; color: #1e293b;" id="rep-action-label">
+                <i class="fas fa-tasks" style="color: #7c3aed;"></i> Quyết định / Hướng xử lý (<span class="required">*</span>):
+            </label>
+            <select class="form-control" id="rep-actionSelect" style="width: 100%; height: 40px; font-size: 14px; font-weight: 500; border-radius: 6px;">
+                <option value="DONG_Y">✅ Phê duyệt / Đồng ý với đề xuất của người gửi</option>
+                <option value="CHI_DAO">✍️ Ban hành ý kiến chỉ đạo thực hiện cụ thể</option>
+                <option value="YEU_CAU_CHINH_SUA">🔄 Yêu cầu giải trình / Bổ sung hồ sơ chỉnh sửa</option>
+                <option value="CHUYEN_TIEP_CAP_TREN" id="opt-chuyen-giam-doc">⬆️ Chuyển tiếp xin ý kiến cấp trên (Ban Giám đốc)</option>
+                <option value="KHONG_PHU_HOP">⚠️ Báo cáo không phù hợp / Trả lại văn bản</option>
+            </select>
         </div>
 
+        <!-- Khối nhập Ý kiến chỉ đạo / Quyết định -->
+        <div class="form-group full-width" style="margin-top: 12px; flex-direction: column;">
+            <label style="margin-bottom: 6px; font-weight: bold; color: #1e293b;">
+                <i class="fas fa-pen-nib" style="color: #7c3aed;"></i> Nội dung ý kiến chỉ đạo & Quyết định xử lý (<span class="required">*</span>):
+            </label>
+            <textarea class="form-control" id="rep-noiDungChiDao" placeholder="Nhập ý kiến chỉ đạo, căn cứ xử lý hoặc giao nhiệm vụ cụ thể cho nhân viên..." style="width: 100%; height: 90px; font-size: 13px; line-height: 1.5; border-radius: 6px;"></textarea>
+        </div>
+
+        <!-- Input ẩn cho form báo cáo cũ để giữ tương thích -->
+        <input type="hidden" id="rep-loaiVanDe" value="v1">
+        <input type="hidden" id="rep-moTa">
+        <input type="hidden" id="rep-docType">
+
+        <!-- Tài liệu đính kèm gốc -->
         <div class="vbd-attachment-header" style="margin-top: 15px;">
-            <label>Tài liệu đính kèm</label>
+            <label style="font-weight: 600;"><i class="fas fa-paperclip" style="color: #7c3aed;"></i> Tài liệu đính kèm văn bản</label>
         </div>
 
-        <div class="attachment-view-container" style="margin-top: 10px;">
+        <div class="attachment-view-container" style="margin-top: 8px;">
             <div id="rep-loading" class="no-file-placeholder" style="display: none;">
                 <i class="fas fa-spinner fa-spin"></i> Đang tải thông tin tệp...
             </div>
@@ -549,8 +656,7 @@
                     <div class="vbd-file-info">
                         <div class="vbd-file-icon"><i class="fas fa-file-pdf"></i></div>
                         <div class="vbd-file-details">
-                            <a id="rep-fileLink" href="#" target="_blank" class="vbd-file-name" id="rep-fileName"
-                                style="text-decoration: none;">filename.pdf</a>
+                            <a id="rep-fileLink" href="#" target="_blank" class="vbd-file-name" style="text-decoration: none; color: #2563eb; font-weight: 500;">filename.pdf</a>
                             <span class="vbd-file-size">Đã tải lên trước đó</span>
                         </div>
                     </div>
@@ -560,12 +666,12 @@
                 <i class="fas fa-info-circle"></i> Không có tệp đính kèm gốc
             </div>
         </div>
-
-        <input type="hidden" id="rep-docType">
     </div>
-    <div class="modal-footer">
-        <button onclick="closeModal('modalBaoCao')" class="btn btn-secondary">Hủy</button>
-        <button onclick="saveAndClose('modalBaoCao')" class="btn btn-warning">Gửi báo cáo</button>
+    <div class="modal-footer" style="padding: 14px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+        <button onclick="closeModal('modalBaoCao')" class="btn btn-secondary">Đóng</button>
+        <button id="rep-submit-btn" onclick="saveAndClose('modalBaoCao')" class="btn" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: white; font-weight: 600; padding: 9px 20px; border-radius: 6px; border: none; box-shadow: 0 4px 6px -1px rgba(124,58,237,0.3);">
+            <i class="fas fa-gavel"></i> Ban hành quyết định & Chỉ đạo
+        </button>
     </div>
 </div>
 

@@ -28,16 +28,66 @@ async function fetchDocumentDetails(id, docType, prefix) {
         
         if (loadingDiv) loadingDiv.style.display = 'none';
 
-        if (result.status === 'success' && result.data.TepDinhKemUrl) {
-            if (fileCard) {
+        if (result.status === 'success') {
+            if (result.data.TepDinhKemUrl && fileCard) {
                 fileCard.style.display = 'block';
                 const link = document.getElementById(`${prefix}-fileLink`);
                 if (link) {
                     link.href = result.data.TepDinhKemUrl;
-                    // Lấy phần tên tệp từ đường dẫn
                     const fullName = result.data.TepDinhKemName || 'Tài liệu đính kèm';
                     const fileName = fullName.split('/').pop();
                     link.innerText = fileName;
+                }
+            } else if (noFile) {
+                noFile.style.display = 'block';
+            }
+
+            // Xử lý riêng cho modal Ý kiến chỉ đạo & Quyết định (modalBaoCao)
+            if (prefix === 'rep') {
+                const xykCard = document.getElementById('rep-xykCard');
+                const groupNguoiNhan = document.getElementById('rep-group-nguoiNhan');
+                const actionLabel = document.getElementById('rep-action-label');
+                const modalTitle = document.getElementById('rep-modal-title-text');
+                const submitBtn = document.getElementById('rep-submit-btn');
+                const optChuyen = document.getElementById('opt-chuyen-giam-doc');
+                const txtChiDao = document.getElementById('rep-noiDungChiDao');
+
+                if (optChuyen) {
+                    // Trưởng phòng có thêm lựa chọn chuyển tiếp lên Ban Giám đốc
+                    optChuyen.style.display = result.data.is_truong_phong ? 'block' : 'none';
+                }
+
+                if (result.data.is_xin_y_kien && result.data.xin_y_kien) {
+                    const xyk = result.data.xin_y_kien;
+                    if (xykCard) xykCard.style.display = 'block';
+                    const sSender = document.getElementById('rep-xykSender');
+                    const sRole = document.getElementById('rep-xykRole');
+                    const sDept = document.getElementById('rep-xykDept');
+                    const sReason = document.getElementById('rep-xykReason');
+                    const sDate = document.getElementById('rep-xykDate');
+                    const repIdInput = document.getElementById('rep-reportId');
+
+                    if (sSender) sSender.textContent = xyk.nguoi_gui;
+                    if (sRole) sRole.textContent = xyk.role_nguoi_gui;
+                    if (sDept) sDept.textContent = xyk.phong_ban;
+                    if (sReason) sReason.textContent = xyk.ly_do;
+                    if (sDate) sDate.textContent = xyk.ngay_gui;
+                    if (repIdInput) repIdInput.value = xyk.report_id;
+
+                    if (groupNguoiNhan) groupNguoiNhan.style.display = 'none';
+                    if (modalTitle) modalTitle.innerHTML = '<i class="fas fa-gavel"></i> Ý kiến chỉ đạo & Quyết định xử lý văn bản';
+                    if (actionLabel) actionLabel.innerHTML = '<i class="fas fa-tasks" style="color:#7c3aed;"></i> Quyết định / Hướng chỉ đạo (<span class="required">*</span>):';
+                    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-gavel"></i> Ban hành quyết định & Chỉ đạo';
+                    if (txtChiDao) txtChiDao.placeholder = 'Nhập ý kiến chỉ đạo, căn cứ xử lý hoặc giao nhiệm vụ cụ thể cho nhân viên...';
+                } else {
+                    if (xykCard) xykCard.style.display = 'none';
+                    const repIdInput = document.getElementById('rep-reportId');
+                    if (repIdInput) repIdInput.value = '';
+                    if (groupNguoiNhan) groupNguoiNhan.style.display = 'block';
+                    if (modalTitle) modalTitle.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Báo cáo xử lý văn bản không phù hợp';
+                    if (actionLabel) actionLabel.innerHTML = '<i class="fas fa-tasks" style="color:#7c3aed;"></i> Hướng xử lý / Báo cáo:';
+                    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Gửi báo cáo';
+                    if (txtChiDao) txtChiDao.placeholder = 'Vui lòng mô tả chi tiết vấn đề không phù hợp hoặc đề xuất xử lý...';
                 }
             }
         } else {
@@ -149,8 +199,12 @@ async function openModalT(modalId, docId, soKyHieu, docType) {
 function openModalB(modalId, docId, soKyHieu, docType) {
     const elSo = document.getElementById('rep-soKyHieu');
     const elType = document.getElementById('rep-docType');
+    const elChiDao = document.getElementById('rep-noiDungChiDao');
+    const elRepId = document.getElementById('rep-reportId');
     if (elSo) elSo.value = soKyHieu;
     if (elType) elType.value = docType;
+    if (elChiDao) elChiDao.value = '';
+    if (elRepId) elRepId.value = '';
 
     const newContainer = document.getElementById('rep-file-list-new');
     if (newContainer) newContainer.style.display = 'none';
@@ -310,22 +364,39 @@ async function saveAndClose(modalId) {
     } else if (modalId === 'modalBaoCao') {
         url = '/api/xu-ly-van-ban/bao-cao/';
         const soKyHieu = document.getElementById('rep-soKyHieu').value;
-        const loaiVanDe = document.getElementById('rep-loaiVanDe').value;
-        const moTa = document.getElementById('rep-moTa').value;
+        const action = document.getElementById('rep-actionSelect') ? document.getElementById('rep-actionSelect').value : 'DONG_Y';
+        const noiDungChiDao = (document.getElementById('rep-noiDungChiDao') ? document.getElementById('rep-noiDungChiDao').value : '').trim();
         const docType = document.getElementById('rep-docType').value;
-        const recipientId = document.getElementById('rep-nguoiNhan').value;
+        const reportId = document.getElementById('rep-reportId') ? document.getElementById('rep-reportId').value : '';
+        const recipientId = document.getElementById('rep-nguoiNhan') ? document.getElementById('rep-nguoiNhan').value : '';
         const fileInput = document.getElementById('rep-file');
 
-        if (!loaiVanDe || !moTa || !recipientId) {
-            App.showAlert('Vui lòng nhập đầy đủ thông tin bắt buộc (Loại vấn đề, Mô tả, Người nhận)!');
-            return;
+        if (reportId) {
+            // Trường hợp: Ban hành Quyết định / Chỉ đạo cho văn bản được xin ý kiến
+            if (!noiDungChiDao) {
+                App.showAlert('Vui lòng nhập nội dung ý kiến chỉ đạo & quyết định xử lý!');
+                return;
+            }
+            formData.append('so_ky_hieu', soKyHieu);
+            formData.append('action', action);
+            formData.append('noi_dung_chi_dao', noiDungChiDao);
+            formData.append('mo_ta', noiDungChiDao);
+            formData.append('doc_type', docType);
+            formData.append('report_id', reportId);
+        } else {
+            // Trường hợp: Báo cáo văn bản không phù hợp thông thường
+            if (!noiDungChiDao || !recipientId) {
+                App.showAlert('Vui lòng nhập đầy đủ thông tin bắt buộc (Người nhận và Nội dung báo cáo)!');
+                return;
+            }
+            formData.append('so_ky_hieu', soKyHieu);
+            formData.append('action', action);
+            formData.append('loai_van_de', action);
+            formData.append('mo_ta', noiDungChiDao);
+            formData.append('doc_type', docType);
+            formData.append('recipient_id', recipientId);
         }
 
-        formData.append('so_ky_hieu', soKyHieu);
-        formData.append('loai_van_de', loaiVanDe);
-        formData.append('mo_ta', moTa);
-        formData.append('doc_type', docType);
-        formData.append('recipient_id', recipientId);
         if (fileInput && fileInput.files && fileInput.files.length > 0) {
             formData.append('tep_dinh_kem', fileInput.files[0]);
         }

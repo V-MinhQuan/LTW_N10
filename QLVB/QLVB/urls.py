@@ -29,6 +29,8 @@ urlpatterns = [
     path('van-ban-den/lich-su/', views.van_ban_den_lich_su, name='vbd_lich_su'),
     path('api/van-ban-den/chuyen-tiep-giam-doc/', views.api_vbd_chuyen_tiep_giam_doc, name='api_vbd_chuyen_tiep_giam_doc'),
     path('van-ban-den/<int:pk>/chuyen-tiep-giam-doc/', views.api_vbd_chuyen_tiep_giam_doc, name='vbd_chuyen_tiep_giam_doc'),
+    path('api/van-ban-den/thong-tin-xin-y-kien/', views.api_vbd_thong_tin_xin_y_kien, name='api_vbd_thong_tin_xin_y_kien'),
+    path('api/van-ban-den/xin-y-kien/', views.api_vbd_xin_y_kien, name='api_vbd_xin_y_kien'),
 
     # --- Văn bản đi ---
     path('van-ban-di/', views.van_ban_di_index, name='vbdi_index'),

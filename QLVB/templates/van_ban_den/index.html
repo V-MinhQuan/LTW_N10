@@ -555,9 +555,9 @@
 
               {% check_perm request.user 'xem' vbd as can_forward %}
               {% if can_forward %}
-              <button class="action-btn btn-forward" type="button" data-id="{{ vbd.VanBanDenID }}"
-                data-so-ky-hieu="{{ vbd.SoKyHieu }}" onclick="chuyenTiepGiamDoc(this)" title="Chuyển tiếp cho Giám đốc">
-                <i class="fas fa-share"></i>
+              <button class="action-btn btn-forward btn-xin-y-kien" type="button" data-id="{{ vbd.VanBanDenID }}"
+                data-so-ky-hieu="{{ vbd.SoKyHieu }}" onclick="openModalXinYKien(this)" title="Xin ý kiến lãnh đạo">
+                <i class="fas fa-comment-dots"></i>
               </button>
               {% endif %}
             </td>
@@ -1088,14 +1088,91 @@
   <option value="{{ dv.TenDonVi }}">
     {% endfor %}
 </datalist>
+
+<!-- Modal Xin ý kiến lãnh đạo (Trưởng phòng / Giám đốc) -->
+<div id="modalXinYKien" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1050; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+  <div class="vbd-popup" style="width: 580px; max-width: 95vw; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.25); animation: zoomIn 0.25s ease;">
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: white; padding: 16px 22px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600;">
+        <i class="fas fa-comment-dots" style="font-size: 18px;"></i>
+        <span>Xin ý kiến chỉ đạo / giải quyết văn bản</span>
+      </div>
+      <button type="button" onclick="closeModalXinYKien()" style="background: transparent; border: none; color: white; font-size: 20px; cursor: pointer; line-height: 1; padding: 0 5px;">&times;</button>
+    </div>
+
+    <!-- Body -->
+    <div style="padding: 22px 24px;">
+      <!-- Doc Summary Card -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;">
+        <div style="font-size: 13px; color: #64748b; margin-bottom: 4px;">Văn bản áp dụng:</div>
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <span id="xyk-soKyHieu" style="font-weight: 700; color: #1e293b; font-size: 15px;">...</span>
+          <span id="xyk-trichYeu" style="color: #475569; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 360px;"></span>
+        </div>
+      </div>
+
+      <!-- Recipient Info Card / Selector -->
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+          <i class="fas fa-user-shield" style="color: #7c3aed; margin-right: 4px;"></i> Lãnh đạo tiếp nhận ý kiến (<span style="color: #ef4444;">*</span>):
+        </label>
+        
+        <div id="xyk-recipient-badge-wrap" style="display: none; background: #faf5ff; border: 1px solid #d8b4fe; border-radius: 8px; padding: 10px 14px; align-items: center; justify-content: space-between;">
+          <div>
+            <div id="xyk-recipient-name" style="font-weight: 700; color: #6b21a8; font-size: 14px;">...</div>
+            <div id="xyk-recipient-sub" style="font-size: 12px; color: #7e22ce;">...</div>
+          </div>
+          <span id="xyk-recipient-type-badge" style="background: #e9d5ff; color: #6b21a8; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 12px;">Cùng phòng ban</span>
+        </div>
+
+        <select id="xyk-recipient-select" class="form-control" style="display: none; width: 100%; height: 40px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; padding: 0 10px;">
+          <!-- Populated dynamically -->
+        </select>
+        <input type="hidden" id="xyk-recipient-id">
+        <input type="hidden" id="xyk-vbd-id">
+      </div>
+
+      <!-- Priority selection -->
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+          <i class="fas fa-flag" style="color: #7c3aed; margin-right: 4px;"></i> Mức độ ưu tiên:
+        </label>
+        <select id="xyk-mucDoKhan" class="form-control" style="width: 100%; height: 38px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; padding: 0 10px;">
+          <option value="Bình thường">Bình thường</option>
+          <option value="Khẩn cấp">Khẩn cấp</option>
+          <option value="Hỏa tốc">Hỏa tốc (Cần xử lý ngay)</option>
+        </select>
+      </div>
+
+      <!-- Reason Textarea -->
+      <div style="margin-bottom: 8px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+          <i class="fas fa-pen" style="color: #7c3aed; margin-right: 4px;"></i> Lý do / Nội dung xin ý kiến (<span style="color: #ef4444;">*</span>):
+        </label>
+        <textarea id="xyk-lyDo" rows="4" style="width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; padding: 10px 12px; font-size: 13px; line-height: 1.5; resize: vertical; outline: none; box-sizing: border-box;" placeholder="Nhập lý do, khó khăn hoặc đề xuất hướng giải quyết cần xin ý kiến lãnh đạo..."></textarea>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px 22px; display: flex; justify-content: flex-end; gap: 10px;">
+      <button type="button" onclick="closeModalXinYKien()" style="padding: 9px 18px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; color: #475569; font-weight: 500; cursor: pointer;">Hủy bỏ</button>
+      <button type="button" id="xyk-submit-btn" onclick="submitXinYKien()" style="padding: 9px 22px; border-radius: 6px; border: none; background: #7c3aed; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.3);">
+        <i class="fas fa-paper-plane"></i>
+        <span>Gửi xin ý kiến</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 
 {% block extra_js %}
 <script src="{% static 'js/pages/van_ban_den.js' %}?v=20261028_phase3"></script>
 <script>
-  // Chức năng chuyển tiếp tự động 1-chạm lên role Giám đốc
-  function chuyenTiepGiamDoc(btn) {
+  // Chức năng Xin ý kiến lãnh đạo (Trưởng phòng / Giám đốc)
+  function openModalXinYKien(btn) {
     let id, soKyHieu;
     if (typeof btn === 'object' && btn !== null) {
       id = btn.getAttribute('data-id') || btn.dataset.id;
@@ -1103,48 +1180,116 @@
     } else {
       id = btn;
       soKyHieu = arguments[1] || '';
-      btn = document.querySelector(`button[data-id="${id}"].btn-forward`);
     }
 
-    if (!id) {
+    if (!id) return;
+
+    document.getElementById('xyk-vbd-id').value = id;
+    document.getElementById('xyk-soKyHieu').textContent = soKyHieu;
+    document.getElementById('xyk-trichYeu').textContent = 'Đang tải thông tin...';
+    document.getElementById('xyk-lyDo').value = '';
+    document.getElementById('xyk-recipient-badge-wrap').style.display = 'none';
+    document.getElementById('xyk-recipient-select').style.display = 'none';
+
+    // Mở modal
+    const modal = document.getElementById('modalXinYKien');
+    if (modal) modal.style.display = 'flex';
+
+    // Gọi API lấy người nhận phù hợp theo phân cấp vai trò
+    fetch(`/api/van-ban-den/thong-tin-xin-y-kien/?vbd_id=${id}`)
+      .then(r => r.json())
+      .then(res => {
+        if (res.status === 'success') {
+          const d = res.data;
+          document.getElementById('xyk-trichYeu').textContent = d.trich_yeu || '';
+
+          const badgeWrap = document.getElementById('xyk-recipient-badge-wrap');
+          const badgeType = document.getElementById('xyk-recipient-type-badge');
+          const sel = document.getElementById('xyk-recipient-select');
+          const hid = document.getElementById('xyk-recipient-id');
+
+          if (d.target_type === 'TRUONG_PHONG' && d.recipients.length === 1) {
+            // Nhân viên gửi Trưởng phòng cùng phòng ban
+            const tp = d.recipients[0];
+            document.getElementById('xyk-recipient-name').textContent = `${tp.name} (${tp.role})`;
+            document.getElementById('xyk-recipient-sub').textContent = tp.dept || '';
+            badgeType.textContent = 'Trưởng phòng cùng phòng ban';
+            hid.value = tp.id;
+            badgeWrap.style.display = 'flex';
+            sel.style.display = 'none';
+          } else {
+            // Trưởng phòng gửi Giám đốc hoặc nhiều lựa chọn
+            sel.innerHTML = '';
+            d.recipients.forEach((u, idx) => {
+              const opt = document.createElement('option');
+              opt.value = u.id;
+              opt.textContent = `${u.name} - ${u.role} (${u.dept})`;
+              if (idx === 0) opt.selected = true;
+              sel.appendChild(opt);
+            });
+            hid.value = d.recipients.length > 0 ? d.recipients[0].id : '';
+            sel.onchange = () => { hid.value = sel.value; };
+            badgeWrap.style.display = 'none';
+            sel.style.display = 'block';
+          }
+        }
+      })
+      .catch(err => {
+        console.error('Lỗi tải thông tin xin ý kiến:', err);
+      });
+  }
+
+  function closeModalXinYKien() {
+    const modal = document.getElementById('modalXinYKien');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function submitXinYKien() {
+    const vbdId = document.getElementById('xyk-vbd-id').value;
+    const recipientId = document.getElementById('xyk-recipient-id').value;
+    const lyDo = document.getElementById('xyk-lyDo').value.trim();
+    const mucDoKhan = document.getElementById('xyk-mucDoKhan').value;
+    const soKyHieu = document.getElementById('xyk-soKyHieu').textContent;
+
+    if (!lyDo) {
       if (window.App && window.App.showError) {
-        window.App.showError('Không xác định được ID văn bản để chuyển tiếp!');
+        window.App.showError('Vui lòng nhập lý do / nội dung xin ý kiến!');
       } else {
-        alert('Không xác định được ID văn bản để chuyển tiếp!');
+        alert('Vui lòng nhập lý do / nội dung xin ý kiến!');
       }
+      document.getElementById('xyk-lyDo').focus();
       return;
     }
 
-    let originalHtml = '<i class="fas fa-share"></i>';
-    if (btn) {
-      originalHtml = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    }
+    const btn = document.getElementById('xyk-submit-btn');
+    const oldText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
 
-    fetch('/api/van-ban-den/chuyen-tiep-giam-doc/', {
+    fetch('/api/van-ban-den/xin-y-kien/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-CSRFToken': getCookie('csrftoken')
       },
       body: JSON.stringify({
-        van_ban_den_id: id,
-        noi_dung: 'Kính trình Giám đốc xem xét và cho ý kiến chỉ đạo.'
+        van_ban_den_id: vbdId,
+        recipient_id: recipientId,
+        ly_do: lyDo,
+        muc_do_khan: mucDoKhan
       })
     })
-      .then(res => res.json())
+      .then(r => r.json())
       .then(data => {
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = originalHtml;
-        }
+        btn.disabled = false;
+        btn.innerHTML = oldText;
 
         if (data.status === 'success') {
-          const successMsg = data.message || `Đã chuyển tiếp văn bản '${soKyHieu}' lên Giám đốc thành công!`;
+          closeModalXinYKien();
+          const successMsg = data.message || `Đã gửi xin ý kiến văn bản '${soKyHieu}' thành công!`;
           if (window.App && window.App.showSuccess) {
             window.App.showSuccess(successMsg, () => {
-              const row = btn ? btn.closest('tr') : document.querySelector(`tr[data-id="${id}"]`);
+              const row = document.querySelector(`tr[data-id="${vbdId}"]`);
               if (row) {
                 row.style.transition = 'background-color 0.5s';
                 row.style.backgroundColor = '#f3e8ff';
@@ -1156,7 +1301,7 @@
           }
           window.dispatchEvent(new Event('notif-update'));
         } else {
-          const errMsg = data.message || 'Chuyển tiếp thất bại!';
+          const errMsg = data.message || 'Gửi xin ý kiến thất bại!';
           if (window.App && window.App.showError) {
             window.App.showError(errMsg);
           } else {
@@ -1165,11 +1310,9 @@
         }
       })
       .catch(err => {
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = originalHtml;
-        }
-        console.error('Lỗi chuyển tiếp Giám đốc:', err);
+        btn.disabled = false;
+        btn.innerHTML = oldText;
+        console.error('Lỗi gửi xin ý kiến:', err);
         if (window.App && window.App.showError) {
           window.App.showError('Có lỗi xảy ra khi kết nối máy chủ!');
         } else {
@@ -1177,8 +1320,13 @@
         }
       });
   }
+
+  // Tương thích ngược
+  function chuyenTiepGiamDoc(btn) {
+    openModalXinYKien(btn);
+  }
   function openChuyenTiepGD(id, soKyHieu) {
-    chuyenTiepGiamDoc(id, soKyHieu);
+    openModalXinYKien(id, soKyHieu);
   }
 </script>
 {% endblock %}
