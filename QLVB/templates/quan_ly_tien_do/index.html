@@ -194,7 +194,7 @@
             </td>
             <td class="col-actions text-center">
               <div style="display: inline-flex; gap: 4px; justify-content: center;">
-                {% if is_manager %}
+                {% if is_manager and not pc.is_self %}
                   <!-- Nút Cảnh báo đôn đốc nếu sắp quá hạn -->
                   {% if pc.status_key == 'sap_qua_han' or pc.status_key == 'dung_han' %}
                   <button type="button" class="action-btn btn-warning" onclick="openSingleWarningModal('{{ pc.PhanCongID }}', '{{ pc.so_ky_hieu }}', '{{ pc.UserID.HoTen }}')" title="Gửi cảnh báo đôn đốc">
@@ -204,7 +204,7 @@
 
                   <!-- Nút Xử lý chậm tiến độ nếu quá hạn -->
                   {% if pc.status_key == 'qua_han' or pc.status_key == 'da_gia_han' or pc.status_key == 'da_giai_trinh' %}
-                  <button type="button" class="action-btn btn-danger" onclick="openOverdueModal('{{ pc.PhanCongID }}', '{{ pc.so_ky_hieu }}', '{{ pc.UserID.HoTen }}', '{{ pc.HanXuLy|date:"Y-m-d" }}', '{{ pc.sender_email|default:"" }}')" title="Xử lý chậm tiến độ & Quá hạn">
+                  <button type="button" class="action-btn btn-danger" onclick="openOverdueModal('{{ pc.PhanCongID }}', '{{ pc.so_ky_hieu }}', '{{ pc.UserID.HoTen }}', '{{ pc.HanXuLy|date:"Y-m-d" }}', '{{ pc.sender_email|default:"" }}', '{{ pc.UserID.UserID }}')" title="Xử lý chậm tiến độ & Quá hạn">
                     <i class="fas fa-bolt"></i>
                   </button>
                   {% endif %}
@@ -568,13 +568,28 @@
   }
 
   // ================= XỬ LÝ QUÁ HẠN =================
-  function openOverdueModal(pcId, skh, hoTen, currentHan, senderEmail) {
+  function openOverdueModal(pcId, skh, hoTen, currentHan, senderEmail, currentUserId) {
     document.getElementById('overdue_pc_id').value = pcId;
     document.getElementById('overdue_skh').innerText = skh;
     document.getElementById('overdue_user').innerText = hoTen;
     document.getElementById('overdue_ly_do').value = "";
     document.getElementById('overdue_email_nhan').value = senderEmail || "";
     document.getElementById('overdue_tieu_de_email').value = "[Thông báo hoàn trả văn bản quá hạn] " + skh;
+
+    // Không cho phép chọn lại chính người đang xử lý trong dropdown điều chuyển
+    const selectUser = document.getElementById('overdue_user_moi');
+    if (selectUser) {
+      Array.from(selectUser.options).forEach(opt => {
+        if (opt.value && opt.value == currentUserId) {
+          opt.disabled = true;
+          opt.style.display = 'none';
+        } else {
+          opt.disabled = false;
+          opt.style.display = 'block';
+        }
+      });
+      selectUser.value = "";
+    }
 
     const nextDate = new Date();
     nextDate.setDate(nextDate.getDate() + 3);

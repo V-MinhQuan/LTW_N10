@@ -3700,6 +3700,7 @@ def quan_ly_tien_do_index(request):
         pc.so_ky_hieu = vb.SoKyHieu if vb else '---'
         pc.trich_yeu = vb.TrichYeu if vb else '---'
         pc.loai_vb = vb.LoaiVanBan if (vb and hasattr(vb, 'LoaiVanBan')) else '---'
+        pc.is_self = (pc.UserID == user)
         
         sender_email = ''
         if pc.VanBanDenID:
@@ -3842,6 +3843,11 @@ def api_canh_bao_tien_do(request):
                 pc_ids = [single_id]
             loi_nhan = request.POST.get('loi_nhan', '').strip()
 
+        if single_id:
+            pc_single = get_object_or_404(PhanCong, pk=single_id)
+            if pc_single.UserID == user:
+                return JsonResponse({'status': 'error', 'message': 'Bạn không thể tự gửi cảnh báo đôn đốc cho chính văn bản mình đang xử lý!'}, status=400)
+
         if not pc_ids:
             # Nếu gửi hàng loạt không truyền ID, tự động lấy các task sắp quá hạn trong phạm vi quản lý
             today = timezone.now().date()
@@ -3860,7 +3866,7 @@ def api_canh_bao_tien_do(request):
         now = timezone.now()
         updated_count = 0
 
-        for pc in PhanCong.objects.filter(PhanCongID__in=pc_ids).select_related('UserID', 'VanBanDenID', 'VanBanDiID'):
+        for pc in PhanCong.objects.filter(PhanCongID__in=pc_ids).exclude(UserID=user).select_related('UserID', 'VanBanDenID', 'VanBanDiID'):
             pc.NgayCanhBaoCuoi = now
             pc.save(update_fields=['NgayCanhBaoCuoi'])
 
@@ -3937,6 +3943,9 @@ def api_xu_ly_qua_han(request):
         pc = get_object_or_404(PhanCong, pk=pc_id)
         vb = pc.VanBanDenID if pc.VanBanDenID else pc.VanBanDiID
         skh = vb.SoKyHieu if vb else '---'
+
+        if pc.UserID == user:
+            return JsonResponse({'status': 'error', 'message': 'Bạn không thể tự xử lý chậm tiến độ & quá hạn cho chính văn bản mình đang xử lý!'}, status=400)
 
         if phuong_an == 'GIA_HAN':
             if not han_moi:
@@ -4168,6 +4177,7 @@ def phieu_trinh_giam_doc(request):
         pc.so_ky_hieu = vb.SoKyHieu if vb else '---'
         pc.trich_yeu = vb.TrichYeu if vb else '---'
         pc.loai_vb = vb.LoaiVanBan if (vb and hasattr(vb, 'LoaiVanBan')) else '---'
+        pc.is_self = (pc.UserID == user)
         han_date = pc.HanXuLy.date() if pc.HanXuLy else None
 
         if pc.TrangThaiXuLy == 'Hoàn thành':
