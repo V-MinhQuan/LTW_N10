@@ -204,7 +204,7 @@
 
                   <!-- Nút Xử lý chậm tiến độ nếu quá hạn -->
                   {% if pc.status_key == 'qua_han' or pc.status_key == 'da_gia_han' or pc.status_key == 'da_giai_trinh' %}
-                  <button type="button" class="action-btn btn-danger" onclick="openOverdueModal('{{ pc.PhanCongID }}', '{{ pc.so_ky_hieu }}', '{{ pc.UserID.HoTen }}', '{{ pc.HanXuLy|date:"Y-m-d" }}')" title="Xử lý chậm tiến độ">
+                  <button type="button" class="action-btn btn-danger" onclick="openOverdueModal('{{ pc.PhanCongID }}', '{{ pc.so_ky_hieu }}', '{{ pc.UserID.HoTen }}', '{{ pc.HanXuLy|date:"Y-m-d" }}', '{{ pc.sender_email|default:"" }}')" title="Xử lý chậm tiến độ & Quá hạn">
                     <i class="fas fa-bolt"></i>
                   </button>
                   {% endif %}
@@ -382,7 +382,7 @@
 <div id="overdueModal" class="qltd-modal-overlay">
   <div class="qltd-modal-box" style="max-width: 620px;">
     <div class="qltd-modal-header header-danger">
-      <div><i class="fas fa-bolt"></i> Xử lý chậm tiến độ</div>
+      <div><i class="fas fa-bolt"></i> Xử lý chậm tiến độ & Quá hạn</div>
       <button type="button" class="qltd-modal-close" onclick="closeModal('overdueModal')">&times;</button>
     </div>
     <form id="overdueForm" onsubmit="submitOverdueAction(event)">
@@ -398,13 +398,17 @@
         <div style="margin-bottom: 15px;">
           <label style="font-weight: 600; font-size: 13.5px; margin-bottom: 6px; display: block;">Chọn phương án xử lý chậm tiến độ:</label>
           <div class="method-radio-group">
-            <label class="method-radio-card">
+            <label class="method-radio-card" id="card_gia_han">
               <input type="radio" name="phuong_an" value="GIA_HAN" checked onchange="toggleOverdueMethod(this.value)">
-              <div style="font-weight: bold; color: #6b21a8;">1. Gia hạn hạn mới</div>
+              <div style="font-weight: bold; color: #6b21a8;"><i class="fas fa-calendar-plus"></i> 1. Gia hạn thêm</div>
             </label>
-            <label class="method-radio-card">
+            <label class="method-radio-card" id="card_chuyen_nguoi">
               <input type="radio" name="phuong_an" value="CHUYEN_NGUOI" onchange="toggleOverdueMethod(this.value)">
-              <div style="font-weight: bold; color: #0369a1;">2. Điều chuyển người</div>
+              <div style="font-weight: bold; color: #0369a1;"><i class="fas fa-user-friends"></i> 2. Điều chuyển</div>
+            </label>
+            <label class="method-radio-card" id="card_hoan_tra">
+              <input type="radio" name="phuong_an" value="HOAN_TRA" onchange="toggleOverdueMethod(this.value)">
+              <div style="font-weight: bold; color: #c2410c;"><i class="fas fa-paper-plane"></i> 3. Hoàn trả Email</div>
             </label>
           </div>
         </div>
@@ -424,9 +428,20 @@
           </select>
         </div>
 
+        <div id="section_hoan_tra" style="display: none; margin-bottom: 15px;">
+          <div style="margin-bottom: 10px;">
+            <label style="font-weight: 500; font-size: 13.5px; margin-bottom: 5px; display: block;">Email đơn vị / người nhận hoàn trả (*):</label>
+            <input type="email" id="overdue_email_nhan" name="email_nhan" class="form-control" style="width: 100%;" placeholder="ví dụ: donvigui@example.com">
+          </div>
+          <div>
+            <label style="font-weight: 500; font-size: 13.5px; margin-bottom: 5px; display: block;">Tiêu đề email:</label>
+            <input type="text" id="overdue_tieu_de_email" name="tieu_de_email" class="form-control" style="width: 100%;" placeholder="[Thông báo hoàn trả văn bản quá hạn] ...">
+          </div>
+        </div>
+
         <div style="margin-bottom: 10px;">
-          <label style="font-weight: 500; font-size: 13.5px; margin-bottom: 5px; display: block;">Lý do / Giải trình nguyên nhân chậm tiến độ:</label>
-          <textarea id="overdue_ly_do" name="ly_do" rows="3" class="form-control" style="width: 100%;" placeholder="Nhập lý do chậm tiến độ hoặc cam kết hoàn thành..." required></textarea>
+          <label id="overdue_ly_do_label" style="font-weight: 500; font-size: 13.5px; margin-bottom: 5px; display: block;">Lý do gia hạn thời hạn (*):</label>
+          <textarea id="overdue_ly_do" name="ly_do" rows="3" class="form-control" style="width: 100%;" placeholder="Nhập lý do gia hạn hoặc cam kết thời gian hoàn thành..." required></textarea>
         </div>
       </div>
       <div class="qltd-modal-footer">
@@ -553,15 +568,20 @@
   }
 
   // ================= XỬ LÝ QUÁ HẠN =================
-  function openOverdueModal(pcId, skh, hoTen, currentHan) {
+  function openOverdueModal(pcId, skh, hoTen, currentHan, senderEmail) {
     document.getElementById('overdue_pc_id').value = pcId;
     document.getElementById('overdue_skh').innerText = skh;
     document.getElementById('overdue_user').innerText = hoTen;
     document.getElementById('overdue_ly_do').value = "";
+    document.getElementById('overdue_email_nhan').value = senderEmail || "";
+    document.getElementById('overdue_tieu_de_email').value = "[Thông báo hoàn trả văn bản quá hạn] " + skh;
 
     const nextDate = new Date();
     nextDate.setDate(nextDate.getDate() + 3);
     document.getElementById('overdue_han_moi').value = nextDate.toISOString().split('T')[0];
+
+    const giaHanRadio = document.querySelector('input[name="phuong_an"][value="GIA_HAN"]');
+    if (giaHanRadio) giaHanRadio.checked = true;
 
     toggleOverdueMethod('GIA_HAN');
     document.getElementById('overdueModal').classList.add('active');
@@ -570,15 +590,32 @@
   function toggleOverdueMethod(val) {
     const secGiaHan = document.getElementById('section_gia_han');
     const secChuyen = document.getElementById('section_chuyen_nguoi');
+    const secHoanTra = document.getElementById('section_hoan_tra');
+    const lyDoLabel = document.getElementById('overdue_ly_do_label');
+    const lyDoInput = document.getElementById('overdue_ly_do');
+    const emailNhan = document.getElementById('overdue_email_nhan');
+
     if (val === 'GIA_HAN') {
       secGiaHan.style.display = 'block';
       secChuyen.style.display = 'none';
+      secHoanTra.style.display = 'none';
+      if (emailNhan) emailNhan.removeAttribute('required');
+      if (lyDoLabel) lyDoLabel.innerText = 'Lý do gia hạn thời hạn (*):';
+      if (lyDoInput) lyDoInput.placeholder = 'Nhập lý do gia hạn hoặc cam kết thời gian hoàn thành...';
     } else if (val === 'CHUYEN_NGUOI') {
       secGiaHan.style.display = 'none';
       secChuyen.style.display = 'block';
-    } else {
+      secHoanTra.style.display = 'none';
+      if (emailNhan) emailNhan.removeAttribute('required');
+      if (lyDoLabel) lyDoLabel.innerText = 'Lý do điều chuyển nhân sự (*):';
+      if (lyDoInput) lyDoInput.placeholder = 'Nhập lý do điều chuyển người tiếp quản văn bản...';
+    } else if (val === 'HOAN_TRA') {
       secGiaHan.style.display = 'none';
       secChuyen.style.display = 'none';
+      secHoanTra.style.display = 'block';
+      if (emailNhan) emailNhan.setAttribute('required', 'required');
+      if (lyDoLabel) lyDoLabel.innerText = 'Lý do hoàn trả văn bản qua email (*):';
+      if (lyDoInput) lyDoInput.placeholder = 'Nhập nội dung/lý do gửi trả văn bản cho đơn vị gửi (nội dung này sẽ gửi vào email)...';
     }
   }
 

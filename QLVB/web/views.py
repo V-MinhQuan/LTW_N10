@@ -3701,6 +3701,23 @@ def quan_ly_tien_do_index(request):
         pc.trich_yeu = vb.TrichYeu if vb else '---'
         pc.loai_vb = vb.LoaiVanBan if (vb and hasattr(vb, 'LoaiVanBan')) else '---'
         
+        sender_email = ''
+        if pc.VanBanDenID:
+            if pc.VanBanDenID.DonViNgoaiID and pc.VanBanDenID.DonViNgoaiID.Email:
+                sender_email = pc.VanBanDenID.DonViNgoaiID.Email
+            elif pc.VanBanDenID.DonViGuiID and hasattr(pc.VanBanDenID.DonViGuiID, 'Email') and pc.VanBanDenID.DonViGuiID.Email:
+                sender_email = pc.VanBanDenID.DonViGuiID.Email
+            elif pc.VanBanDenID.UserID and pc.VanBanDenID.UserID.email:
+                sender_email = pc.VanBanDenID.UserID.email
+        elif pc.VanBanDiID:
+            if pc.VanBanDiID.DonViNgoaiID and pc.VanBanDiID.DonViNgoaiID.Email:
+                sender_email = pc.VanBanDiID.DonViNgoaiID.Email
+            elif pc.VanBanDiID.DonViTrongID and hasattr(pc.VanBanDiID.DonViTrongID, 'Email') and pc.VanBanDiID.DonViTrongID.Email:
+                sender_email = pc.VanBanDiID.DonViTrongID.Email
+            elif pc.VanBanDiID.UserID and pc.VanBanDiID.UserID.email:
+                sender_email = pc.VanBanDiID.UserID.email
+        pc.sender_email = sender_email
+
         han_date = pc.HanXuLy.date() if pc.HanXuLy else None
 
         if pc.TrangThaiXuLy == 'Hoàn thành':
@@ -3721,6 +3738,12 @@ def quan_ly_tien_do_index(request):
             pc.badge_class = 'status-resolved'
             count_extended += 1
             extended_list.append(pc)
+        elif pc.PhuongAnXuLyCham == 'HOAN_TRA':
+            pc.status_key = 'da_hoan_tra'
+            pc.status_text = 'Đã gửi trả qua Email'
+            pc.badge_class = 'status-completed'
+            count_completed += 1
+            completed_list.append(pc)
         elif han_date and han_date < today:
             days_over = (today - han_date).days
             pc.status_key = 'qua_han'
@@ -3999,6 +4022,81 @@ def api_xu_ly_qua_han(request):
                 print(f"Lỗi gửi thông báo điều chuyển: {notif_err}")
 
             return JsonResponse({'status': 'success', 'message': f'Đã điều chuyển văn bản sang cho {user_moi.HoTen}!'})
+
+        elif phuong_an in ['HOAN_TRA', 'GUI_TRA_EMAIL']:
+            email_nhan = (data.get('email_nhan') if request.content_type == 'application/json' else request.POST.get('email_nhan') or '').strip()
+            tieu_de_email = (data.get('tieu_de_email') if request.content_type == 'application/json' else request.POST.get('tieu_de_email') or '').strip()
+            
+            if not email_nhan:
+                return JsonResponse({'status': 'error', 'message': 'Vui lòng nhập địa chỉ email người nhận hoàn trả!'}, status=400)
+            if not ly_do:
+                return JsonResponse({'status': 'error', 'message': 'Vui lòng nhập lý do hoàn trả văn bản!'}, status=400)
+
+            if not tieu_de_email:
+                tieu_de_email = f"[Thông báo hoàn trả văn bản quá hạn] {skh}"
+            body_email = (
+                f"Kính gửi Đơn vị / Ông (Bà),\n\n"
+                f"Ban Lãnh đạo xin thông báo hoàn trả văn bản sau đây do quá hạn tiến độ và không đủ điều kiện tiếp tục xử lý nội bộ:\n\n"
+                f"- Số ký hiệu: {skh}\n"
+                f"- Trích yếu: {vb.TrichYeu if vb else '---'}\n"
+                f"- Lý do hoàn trả: {ly_do}\n"
+                f"- Người quyết định: {user.HoTen} ({user.role_name})\n"
+                f"- Thời gian hoàn trả: {timezone.now().strftime('%H:%M %d/%m/%Y')}\n\n"
+                f"Trân trọng thông báo!"
+            )
+            email_sent = False
+            from django.core.mail import send_mail
+            from django.conf import settings
+            try:
+                send_mail(
+                    subject=tieu_de_email,
+                    message=body_email,
+                    from_email=getattr(settings, 'EMAIL_HOST_USER', 'lnnhatanh2018@gmail.com'),
+                    recipient_list=[email_nhan],
+                    fail_silently=False
+                )
+                email_sent = True
+            except Exception as mail_err:
+                print(f"Lỗi gửi email hoàn trả: {mail_err}")
+
+            pc.PhuongAnXuLyCham = 'HOAN_TRA'
+            pc.LyDoChamTienDo = f"Hoàn trả qua email ({email_nhan}): {ly_do}"
+            pc.TrangThaiXuLy = 'Hoàn thành'
+            pc.save()
+
+            if vb and hasattr(vb, 'TrangThai'):
+                vb.TrangThai = 'CAN_XU_LY_LAI'
+                vb.save()
+
+            LichSuHoatDong.objects.create(
+                UserID=user,
+                LoaiDoiTuong='PhanCong',
+                DoiTuongID=pc.PhanCongID,
+                HanhDong='Hoàn gửi văn bản qua email',
+                NoiDungThayDoi=f'Hoàn trả văn bản {skh} qua email tới {email_nhan}. Lý do: {ly_do}' + ('' if email_sent else ' (Gửi email thất bại/offline)')
+            )
+
+            if pc.UserID:
+                try:
+                    from web.models import ThongBao
+                    assigner_name = user.HoTen or user.username
+                    ThongBao.objects.create(
+                        UserID=pc.UserID,
+                        PhanCongID=pc,
+                        VanBanDenID=pc.VanBanDenID,
+                        VanBanDiID=pc.VanBanDiID,
+                        TieuDe=f"↩️ [Hoàn trả văn bản] {skh}",
+                        NoiDung=f"Đ/c {assigner_name} đã quyết định hoàn trả văn bản '{skh}' qua email ({email_nhan}). Lý do: {ly_do}",
+                        LoaiThongBao=ThongBao.LoaiThongBaoChoices.HE_THONG,
+                        LienKet=f"/quan-ly-tien-do/?so_ky_hieu={skh}"
+                    )
+                except Exception as notif_err:
+                    print(f"Lỗi tạo thông báo: {notif_err}")
+
+            if email_sent:
+                return JsonResponse({'status': 'success', 'message': f'Đã gửi email hoàn trả văn bản thành công tới {email_nhan}!'})
+            else:
+                return JsonResponse({'status': 'success', 'message': f'Đã ghi nhận hoàn trả văn bản {skh}! (Email nhận: {email_nhan})'})
 
         elif phuong_an == 'GIAI_TRINH':
             if not ly_do:
