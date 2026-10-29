@@ -900,6 +900,83 @@ function updateExternalEmailInfo(select) {
     }
 }
 
+
+// --- BẢNG KIỂM TRA ĐIỀU KIỆN PHÁT HÀNH (4 TIÊU CHÍ BPMN) ---
+function resetTieuChiPhatHanh() {
+    const chkChuKy = document.getElementById('ph_chk_chu_ky');
+    const chkPhuLuc = document.getElementById('ph_chk_phu_luc');
+    const chkTheThuc = document.getElementById('ph_chk_the_thuc');
+    const chkBenNhan = document.getElementById('ph_chk_ben_nhan');
+    if (chkChuKy) chkChuKy.checked = false;
+    if (chkPhuLuc) chkPhuLuc.checked = false;
+    if (chkTheThuc) chkTheThuc.checked = false;
+    if (chkBenNhan) chkBenNhan.checked = false;
+    capNhatTrangThaiPhatHanh();
+}
+
+function chonTatCaTieuChiPhatHanh(val) {
+    const chkChuKy = document.getElementById('ph_chk_chu_ky');
+    const chkPhuLuc = document.getElementById('ph_chk_phu_luc');
+    const chkTheThuc = document.getElementById('ph_chk_the_thuc');
+    const chkBenNhan = document.getElementById('ph_chk_ben_nhan');
+    if (chkChuKy) chkChuKy.checked = !!val;
+    if (chkPhuLuc) chkPhuLuc.checked = !!val;
+    if (chkTheThuc) chkTheThuc.checked = !!val;
+    if (chkBenNhan) chkBenNhan.checked = !!val;
+    capNhatTrangThaiPhatHanh();
+}
+
+function capNhatTrangThaiPhatHanh() {
+    const chkChuKy = document.getElementById('ph_chk_chu_ky');
+    const chkPhuLuc = document.getElementById('ph_chk_phu_luc');
+    const chkTheThuc = document.getElementById('ph_chk_the_thuc');
+    const chkBenNhan = document.getElementById('ph_chk_ben_nhan');
+
+    let count = 0;
+    if (chkChuKy && chkChuKy.checked) count++;
+    if (chkPhuLuc && chkPhuLuc.checked) count++;
+    if (chkTheThuc && chkTheThuc.checked) count++;
+    if (chkBenNhan && chkBenNhan.checked) count++;
+
+    const statusBox = document.getElementById('ph_tieu_chi_status_box');
+    const icon = document.getElementById('ph_tieu_chi_icon');
+    const msg = document.getElementById('ph_tieu_chi_msg');
+    const badge = document.getElementById('ph_tieu_chi_badge');
+
+    if (badge) badge.innerText = count + '/4 điều kiện';
+
+    if (statusBox) {
+        if (count === 4) {
+            statusBox.style.background = '#ecfdf5';
+            statusBox.style.borderColor = '#a7f3d0';
+            statusBox.style.color = '#065f46';
+            if (icon) icon.className = 'fas fa-check-circle';
+            if (msg) msg.innerText = '✅ Đủ 4/4 điều kiện phát hành theo BPMN. Sẵn sàng phát hành văn bản.';
+        } else {
+            statusBox.style.background = '#fffbeb';
+            statusBox.style.borderColor = '#fde68a';
+            statusBox.style.color = '#b45309';
+            if (icon) icon.className = 'fas fa-exclamation-triangle';
+            if (msg) msg.innerText = count === 0
+                ? 'Chưa xác nhận đủ 4 điều kiện phát hành. Vui lòng kiểm tra và tích chọn.'
+                : 'Chưa đủ 4 điều kiện phát hành (' + count + '/4). Nếu thiếu tài liệu hoặc thông tin, chọn "Bổ sung / Cập nhật hồ sơ".';
+        }
+    }
+}
+
+function boSungCapNhatHoSoPhatHanh() {
+    if (!_phatHanhId) return;
+    closeVBD('popupPhatHanh');
+    if (typeof suaVanBan === 'function') {
+        const tr = document.querySelector(`tr[data-id="${_phatHanhId}"]`);
+        if (tr) {
+            suaVanBan(tr);
+            return;
+        }
+    }
+    window.location.href = `/van-ban-di/?id=${_phatHanhId}&action=edit`;
+}
+
 function phatHanhVanBan(btnOrId) {
     let id;
     if (typeof btnOrId === 'object' && btnOrId !== null) {
@@ -931,12 +1008,17 @@ function phatHanhVanBan(btnOrId) {
     if (ph_phongban) ph_phongban.value = '';
 
     openVBD('popupPhatHanh');
+    resetTieuChiPhatHanh();
 
     fetch('/api/van-ban-di/' + _phatHanhId + '/chi-tiet/')
         .then(r => r.json())
         .then(res => {
             if (res.status === 'success' && res.data) {
                 let d = res.data;
+                const docSkh = document.getElementById('ph_doc_sokyhieu');
+                const docTyDisplay = document.getElementById('ph_doc_trichyeu_display');
+                if (docSkh) docSkh.innerText = d.so_ky_hieu || 'Chưa có số';
+                if (docTyDisplay) docTyDisplay.innerText = d.trich_yeu || 'Không có trích yếu';
                 if (ph_trichyeu) ph_trichyeu.value = d.trich_yeu || '';
                 if (d.ngay_ban_hanh && ph_ngay) {
                     let parts = d.ngay_ban_hanh.split("/");
@@ -978,6 +1060,22 @@ function xacNhanPhatHanh() {
     let ph_donvi_ngoai = document.getElementById('ph_donvi_ngoai');
     let submitBtn = document.getElementById('btnSubmitPhatHanh');
     
+    const chkChuKy = document.getElementById('ph_chk_chu_ky');
+    const chkPhuLuc = document.getElementById('ph_chk_phu_luc');
+    const chkTheThuc = document.getElementById('ph_chk_the_thuc');
+    const chkBenNhan = document.getElementById('ph_chk_ben_nhan');
+
+    let countPh = 0;
+    if (chkChuKy && chkChuKy.checked) countPh++;
+    if (chkPhuLuc && chkPhuLuc.checked) countPh++;
+    if (chkTheThuc && chkTheThuc.checked) countPh++;
+    if (chkBenNhan && chkBenNhan.checked) countPh++;
+
+    if (countPh < 4) {
+        App.showAlert("Văn bản chưa đủ 4 điều kiện phát hành theo quy trình BPMN (Chữ ký/Số/Ngày, Phụ lục tệp đính kèm, Thể thức định dạng, Thông tin bên nhận). Vui lòng kiểm tra và tích xác nhận đầy đủ 4 điều kiện hoặc bấm 'Bổ sung / Cập nhật hồ sơ'.");
+        return;
+    }
+
     if (!trichYeu) {
         App.showAlert('Vui lòng nhập trích yếu!');
         return;
@@ -1013,7 +1111,14 @@ function xacNhanPhatHanh() {
         ngay_ban_hanh: ngayBanHanh,
         ph_scope: scope,
         don_vi_trong_id: (scope === 'internal' || scope === 'both') ? (ph_phongban ? ph_phongban.value : null) : null,
-        don_vi_ngoai_id: (scope === 'external' || scope === 'both') ? (ph_donvi_ngoai ? ph_donvi_ngoai.value : null) : null
+        don_vi_ngoai_id: (scope === 'external' || scope === 'both') ? (ph_donvi_ngoai ? ph_donvi_ngoai.value : null) : null,
+        tieu_chi: {
+            chu_ky: chkChuKy ? chkChuKy.checked : false,
+            phu_luc: chkPhuLuc ? chkPhuLuc.checked : false,
+            the_thuc: chkTheThuc ? chkTheThuc.checked : false,
+            ben_nhan: chkBenNhan ? chkBenNhan.checked : false,
+            so_luong_dat: countPh
+        }
     };
 
     if (submitBtn) {

@@ -1079,6 +1079,206 @@
 </div>
 
 <!-- Popup Phát hành văn bản đi -->
+<div id="popupPhatHanh" class="vbd-popup-overlay">
+  <div class="vbd-popup" style="width: 740px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+    <div class="vbd-popup-header" style="display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-weight: 700; font-size: 15px;">Quy trình phát hành văn bản đi</span>
+        <span class="status-pill pill-blue" style="font-size: 11px; font-weight: 700;">TRƯỞNG PHÒNG PHÁT HÀNH</span>
+      </div>
+      <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupPhatHanh')"></i>
+    </div>
+    <div class="vbd-popup-body" style="padding: 20px 25px; overflow-y: auto;">
+      <!-- Khối Tiếp nhận yêu cầu phát hành -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <div>
+            <span style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Tiếp nhận yêu cầu phát hành:</span>
+            <strong id="ph_doc_sokyhieu" style="color: #0369a1; font-size: 14px; margin-left: 6px;">---</strong>
+          </div>
+          <span class="status-pill pill-green" style="font-size: 11px;"><i class="fas fa-check-circle"></i> Đã có chữ ký duyệt của Giám đốc</span>
+        </div>
+        <div style="font-size: 13px; color: #1e293b;">
+          <strong>Trích yếu:</strong> <span id="ph_doc_trichyeu_display">---</span>
+        </div>
+      </div>
+
+      <!-- BƯỚC 1: CHUẨN BỊ DANH SÁCH BÊN NHẬN -->
+      <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 16px; margin-bottom: 16px;">
+        <div style="font-weight: 700; color: #0f172a; font-size: 13px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+          <span style="background: #0284c7; color: white; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold;">1</span>
+          Chuẩn bị danh sách bên nhận
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 14px;">
+          <label style="width: 140px; font-weight: 500; flex-shrink: 0; font-size: 13px;">Trích yếu (<span style="color:red">*</span>)</label>
+          <input type="text" id="ph_trichyeu" class="form-control" style="flex: 1; font-size: 13px;" placeholder="Nhập trích yếu">
+        </div>
+
+        <!-- Phạm vi phát hành: Nội bộ / Bên ngoài / Cả hai -->
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 14px;">
+          <label style="width: 140px; font-weight: 500; flex-shrink: 0; font-size: 13px;">Nơi phát hành (<span style="color:red">*</span>)</label>
+          <div style="flex: 1; display: flex; gap: 20px; align-items: center;">
+            <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px;">
+              <input type="radio" name="ph_scope" value="internal" checked onchange="togglePhatHanhScope(this.value)">
+              <span>Nội bộ</span>
+            </label>
+            <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px;">
+              <input type="radio" name="ph_scope" value="external" onchange="togglePhatHanhScope(this.value)">
+              <span>Bên ngoài tổ chức</span>
+            </label>
+            <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px;">
+              <input type="radio" name="ph_scope" value="both" onchange="togglePhatHanhScope(this.value)">
+              <span>Cả hai</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Phòng ban nhận nội bộ -->
+        <div id="ph_group_internal" style="display: flex; align-items: center; gap: 16px; margin-bottom: 14px;">
+          <label style="width: 140px; font-weight: 500; flex-shrink: 0; font-size: 13px;">Phòng ban nhận (<span style="color:red">*</span>)</label>
+          <select id="ph_phongban" class="form-control" style="flex: 1; font-size: 13px;">
+            <option value="">--- Chọn phòng ban ---</option>
+            <option value="all">Tất cả phòng ban</option>
+            {% for dv in don_vi_trong_list %}
+            <option value="{{ dv.DonViTrongID }}">{{ dv.TenDonVi }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Đơn vị phát hành bên ngoài -->
+        <div id="ph_group_external" style="display: none; margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <label style="width: 140px; font-weight: 500; flex-shrink: 0; font-size: 13px;">Đơn vị bên ngoài (<span style="color:red">*</span>)</label>
+            <select id="ph_donvi_ngoai" class="form-control" style="flex: 1; font-size: 13px;" onchange="updateExternalEmailInfo(this)">
+              <option value="">--- Chọn đơn vị bên ngoài ---</option>
+              {% for dv in don_vi_ngoai_list %}
+              <option value="{{ dv.DonViNgoaiID }}" data-email="{{ dv.Email|default:'' }}" data-contact="{{ dv.NguoiLienHe|default:'' }}">
+                {{ dv.TenDonVi }}{% if dv.Email %} ({{ dv.Email }}){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <!-- Khối hiển thị email cấu hình gửi file tự động -->
+          <div id="ph_email_info_box" style="margin-top: 8px; margin-left: 156px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 12px; font-size: 12px; color: #166534; display: none;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-envelope" style="font-size: 14px; color: #16a34a;"></i>
+              <span>Tệp văn bản sẽ tự động được gửi qua email: <b id="ph_email_display">---</b></span>
+            </div>
+          </div>
+          <div id="ph_email_missing_box" style="margin-top: 8px; margin-left: 156px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 8px 12px; font-size: 12px; color: #991b1b; display: none;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-exclamation-triangle" style="font-size: 14px; color: #dc2626;"></i>
+              <span>Đơn vị này chưa cấu hình email trong hệ thống! Vui lòng cập nhật email tại Quản lý đơn vị ngoài.</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <label style="width: 140px; font-weight: 500; flex-shrink: 0; font-size: 13px;">Ngày ban hành (<span style="color:red">*</span>)</label>
+          <input type="date" id="ph_ngay" class="form-control" style="flex: 1; font-size: 13px;">
+        </div>
+      </div>
+
+      <!-- BƯỚC 2: BẢNG KIỂM TRA ĐIỀU KIỆN PHÁT HÀNH (4 TIÊU CHÍ BPMN) -->
+      <div class="ph-checklist-card" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 16px; margin-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="background: #0284c7; color: white; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold;">2</span>
+            <span style="font-weight: 700; color: #0f172a; font-size: 13px;">Kiểm tra điều kiện phát hành văn bản (BPMN)</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn btn-sm" onclick="chonTatCaTieuChiPhatHanh(true)"
+              style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #059669; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 4px; cursor: pointer;">
+              <i class="fas fa-check-double"></i> Đạt tất cả
+            </button>
+            <button type="button" class="btn btn-sm" onclick="chonTatCaTieuChiPhatHanh(false)"
+              style="background: #fff; border: 1px solid #cbd5e1; color: #64748b; font-size: 12px; padding: 3px 8px; border-radius: 4px; cursor: pointer;">
+              Đặt lại
+            </button>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <!-- Tiêu chí 1: Kiểm tra chữ ký, số và ngày ban hành -->
+          <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; padding: 8px 10px; border-radius: 6px; background: #fff; border: 1px solid #e2e8f0; margin: 0; user-select: none;">
+            <input type="checkbox" id="ph_chk_chu_ky" onchange="capNhatTrangThaiPhatHanh()" style="margin-top: 3px; transform: scale(1.15); accent-color: #0284c7;">
+            <div>
+              <div style="font-weight: 600; color: #1e293b; font-size: 12px;">1. Chữ ký, số và ngày ban hành</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px; line-height: 1.3;">Đã có chữ ký duyệt của Giám đốc, có số ký hiệu và ngày ban hành hợp lệ.</div>
+            </div>
+          </label>
+
+          <!-- Tiêu chí 2: Kiểm tra phụ lục, tài liệu đính kèm -->
+          <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; padding: 8px 10px; border-radius: 6px; background: #fff; border: 1px solid #e2e8f0; margin: 0; user-select: none;">
+            <input type="checkbox" id="ph_chk_phu_luc" onchange="capNhatTrangThaiPhatHanh()" style="margin-top: 3px; transform: scale(1.15); accent-color: #0284c7;">
+            <div>
+              <div style="font-weight: 600; color: #1e293b; font-size: 12px;">2. Phụ lục & tệp đính kèm</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px; line-height: 1.3;">Đầy đủ tệp văn bản chính và các tài liệu/phụ lục đính kèm theo danh mục.</div>
+            </div>
+          </label>
+
+          <!-- Tiêu chí 3: Kiểm tra thể thức và định dạng văn bản -->
+          <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; padding: 8px 10px; border-radius: 6px; background: #fff; border: 1px solid #e2e8f0; margin: 0; user-select: none;">
+            <input type="checkbox" id="ph_chk_the_thuc" onchange="capNhatTrangThaiPhatHanh()" style="margin-top: 3px; transform: scale(1.15); accent-color: #0284c7;">
+            <div>
+              <div style="font-weight: 600; color: #1e293b; font-size: 12px;">3. Thể thức & định dạng văn bản</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px; line-height: 1.3;">Định dạng tệp văn bản chuẩn (PDF/DOCX), thể thức phát hành đúng quy định.</div>
+            </div>
+          </label>
+
+          <!-- Tiêu chí 4: Kiểm tra danh sách thông tin các bên nhận -->
+          <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; padding: 8px 10px; border-radius: 6px; background: #fff; border: 1px solid #e2e8f0; margin: 0; user-select: none;">
+            <input type="checkbox" id="ph_chk_ben_nhan" onchange="capNhatTrangThaiPhatHanh()" style="margin-top: 3px; transform: scale(1.15); accent-color: #0284c7;">
+            <div>
+              <div style="font-weight: 600; color: #1e293b; font-size: 12px;">4. Thông tin các bên nhận</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px; line-height: 1.3;">Đầy đủ thông tin đơn vị nhận, địa chỉ email người nhận hợp lệ để gửi đi.</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Trạng thái đánh giá điều kiện phát hành -->
+        <div id="ph_tieu_chi_status_box" style="padding: 8px 12px; border-radius: 6px; font-size: 12px; display: flex; align-items: center; justify-content: space-between; background: #fffbeb; border: 1px solid #fde68a; color: #b45309; transition: all 0.2s;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <i id="ph_tieu_chi_icon" class="fas fa-exclamation-triangle"></i>
+            <span id="ph_tieu_chi_msg">Chưa xác nhận đủ 4 điều kiện phát hành. Vui lòng kiểm tra và tích chọn.</span>
+          </div>
+          <span id="ph_tieu_chi_badge" style="font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,0.06);">0/4 điều kiện</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER: GATEWAY ĐỦ ĐIỀU KIỆN PHÁT HÀNH -->
+    <div class="vbd-popup-footer" style="padding: 14px 25px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+      <!-- Nhánh Không đủ điều kiện: Bổ sung hồ sơ -->
+      <button type="button" class="btn btn-warning" onclick="boSungCapNhatHoSoPhatHanh()" title="Bổ sung hoặc cập nhật hồ sơ khi chưa đủ điều kiện">
+        <i class="fas fa-edit"></i> Bổ sung / Cập nhật hồ sơ
+      </button>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-secondary" onclick="closeVBD('popupPhatHanh')">Đóng</button>
+        <!-- Nhánh Đủ điều kiện: Phát hành văn bản -->
+        <button class="btn btn-primary" id="btnSubmitPhatHanh" onclick="xacNhanPhatHanh()"><i class="fas fa-paper-plane"></i> Phát hành văn bản</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal xem phóng to hình ảnh tệp đính kèm -->
+<div id="imagePreviewModal" class="vbd-popup-overlay" style="z-index: 100000; display: none;" onclick="closeImagePreview()">
+  <div style="position: relative; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; align-items: center;" onclick="event.stopPropagation()">
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; background: #1e293b; color: #fff; padding: 10px 18px; border-radius: 6px 6px 0 0;">
+      <span id="imgPreviewTitle" style="font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70vw;">Xem hình ảnh văn bản</span>
+      <div style="display: flex; gap: 14px; align-items: center;">
+        <a id="imgPreviewNewTab" href="#" target="_blank" style="color: #38bdf8; text-decoration: none; font-size: 13px; font-weight: 500;"><i class="fas fa-external-link-alt"></i> Mở tab mới</a>
+        <i class="fa fa-times" style="cursor: pointer; font-size: 18px;" onclick="closeImagePreview()"></i>
+      </div>
+    </div>
+    <div style="background: #0f172a; padding: 12px; max-height: 80vh; overflow: auto; display: flex; justify-content: center; align-items: center; border-radius: 0 0 6px 6px;">
+      <img id="imgPreviewSrc" src="" style="max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+    </div>
+  </div>
+</div>
+
+<!-- Popup Phát hành văn bản đi -->
 
 <!-- Modal Hàng đợi ngoại lệ & Tự động thử lại (AUTO-06) -->
 <div id="modalNgoaiLe" class="vbd-popup-overlay" style="display:none;">

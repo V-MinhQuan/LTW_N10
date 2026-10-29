@@ -1755,6 +1755,10 @@ def api_vbdi_phe_duyet(request, pk):
                 })
 
             elif action == 'dong_y':
+                # Quy định BPMN: Chỉ Ban Giám đốc mới có thẩm quyền ký phê duyệt chính thức
+                if not (request.user.is_giam_doc() or request.user.is_superuser):
+                    return JsonResponse({'status': 'error', 'message': 'Chỉ có Ban Giám đốc mới có thẩm quyền phê duyệt văn bản đi. Trưởng phòng thực hiện rà soát và Ký nháy/Kính trình.'}, status=403)
+
                 pd.TrangThaiDuyet = True
                 vb.TrangThai = VanBanDi.TrangThaiChoices.DA_PHE_DUYET
                 vb.NgayPheDuyet = timezone.now()
@@ -1768,6 +1772,26 @@ def api_vbdi_phe_duyet(request, pk):
                 thong_bao_noi_dung = f"Ban Giám đốc {leader_name} đã ký số và phê duyệt văn bản: '{vb.TrichYeu}'. Văn bản sẵn sàng phát hành."
                 loai_tb = ThongBao.LoaiThongBaoChoices.HE_THONG
                 success_msg = f"Ban Giám đốc đã ký số và phê duyệt văn bản {vb.SoKyHieu} thành công!"
+
+                # TỰ ĐỘNG GỬI YÊU CẦU PHÁT HÀNH CHO TRƯỞNG PHÒNG THEO BPMN
+                target_pb = vb.DonViGuiID or (vb.UserID.PhongBan if vb.UserID else None) or (vb.NguoiGui.PhongBan if vb.NguoiGui else None)
+                tp_users = []
+                if target_pb:
+                    from web.models import UserAccount
+                    tp_users = list(UserAccount.objects.filter(PhongBan=target_pb, VaiTroID__ChucVu__icontains='Trưởng phòng'))
+                if not tp_users and vb.NguoiGui:
+                    tp_users = [vb.NguoiGui]
+
+                for tp in tp_users:
+                    if tp != request.user:
+                        ThongBao.objects.create(
+                            UserID=tp,
+                            VanBanDiID=vb,
+                            TieuDe=f"Yêu cầu phát hành văn bản: {vb.SoKyHieu}",
+                            NoiDung=f"Ban Giám đốc {leader_name} đã phê duyệt văn bản '{vb.TrichYeu}'. Kính chuyển Trưởng phòng tiếp nhận yêu cầu và thực hiện quy trình phát hành theo quy định.",
+                            LoaiThongBao=ThongBao.LoaiThongBaoChoices.NHAC_NHO,
+                            LienKet=f'/xu-ly-van-ban/?tab=di&id={vb.VanBanDiID}'
+                        )
                 
             elif action == 'yeu_cau_chinh_sua':
                 if not ghi_chu:
@@ -2030,8 +2054,20 @@ Email: {getattr(settings, 'EMAIL_HOST_USER', 'lnnhatanh2018@gmail.com')}
                 else:
                     email_msg_status = f" (Đơn vị {don_vi_ngoai.TenDonVi} chưa có email cấu hình trong CSDL)"
 
+            # Kiểm tra điều kiện phát hành (4 tiêu chí BPMN)
+            tieu_chi_ph = data.get('tieu_chi')
+            tieu_chi_ph_log = ""
+            if isinstance(tieu_chi_ph, dict):
+                so_dat_ph = tieu_chi_ph.get('so_luong_dat', 0)
+                if so_dat_ph == 4:
+                    tieu_chi_ph_log = "Đã kiểm tra đủ 4 điều kiện phát hành BPMN (Chữ ký/Số/Ngày, Phụ lục/Tệp đính kèm, Thể thức/Định dạng, Danh sách bên nhận)."
+                elif so_dat_ph > 0:
+                    tieu_chi_ph_log = f"Đã kiểm tra {so_dat_ph}/4 điều kiện phát hành BPMN."
+
             # 4. Ghi lịch sử hoạt động
             log_desc = f"Phát hành văn bản {vb.SoKyHieu}."
+            if tieu_chi_ph_log:
+                log_desc += f" {tieu_chi_ph_log}"
             if ph_scope == 'internal':
                 log_desc += " Nơi nhận: Phòng ban nội bộ."
             elif ph_scope == 'external':
