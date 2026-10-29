@@ -92,14 +92,17 @@ def get_filtered_documents(user, model_class):
     if is_tgd(user):
         return model_class.objects.all()
 
-    # 2. Trưởng phòng: Xem văn bản của phòng mình
+    # 2. Trưởng phòng: Xem văn bản của phòng mình hoặc được phân công
     if is_truong_phong(user):
         if model_class == VanBanDen:
-            # Văn bản đến: Lọc theo phòng nhận HOẶC người xử lý thuộc phòng
+            # Văn bản đến: Lọc theo phòng nhận, người xử lý thuộc phòng HOẶC chính mình được phân công
             return model_class.objects.filter(
                 Q(DonViTrongID=user.PhongBan) | 
                 Q(UserID__PhongBan=user.PhongBan) |
-                Q(phancong__UserID__PhongBan=user.PhongBan)
+                Q(phancong__UserID__PhongBan=user.PhongBan) |
+                Q(phancong__UserID=user) |
+                Q(chuyentiep__UserID=user) |
+                Q(VanBanDiID__phancong__UserID=user)
             ).distinct()
             
         # Mặc định cho Văn bản đi: Hiện cho phòng gửi, phòng xử lý HOẶC phòng nhận nội bộ
@@ -107,7 +110,9 @@ def get_filtered_documents(user, model_class):
             Q(NguoiGui__PhongBan=user.PhongBan) | 
             Q(UserID__PhongBan=user.PhongBan) | 
             Q(phancong__UserID__PhongBan=user.PhongBan) |
-            Q(DonViTrongID__TenDonVi=user.PhongBan)
+            Q(DonViTrongID__TenDonVi=user.PhongBan) |
+            Q(phancong__UserID=user) |
+            Q(chuyentiep__UserID=user)
         ).distinct()
 
     # 3. Nhân viên: Chỉ xem văn bản mình soạn, hoặc được phân công/chuyển tiếp
@@ -115,7 +120,8 @@ def get_filtered_documents(user, model_class):
         return model_class.objects.filter(
             Q(UserID=user) |
             Q(phancong__UserID=user) | 
-            Q(chuyentiep__UserID=user)
+            Q(chuyentiep__UserID=user) |
+            Q(VanBanDiID__phancong__UserID=user)
         ).distinct()
 
     # Mặc định cho Văn bản đi: Loại bỏ Q(UserID=user) để tránh hiển thị văn bản cần phê duyệt trong danh sách chính
@@ -2693,29 +2699,44 @@ def xu_ly_van_ban_index(request):
     query_loai_xu_ly = request.GET.get('loai_xu_ly', '').strip()
     page_number = request.GET.get('page', 1)
 
-    # 3. Khởi tạo QuerySet theo yêu cầu III
-    # Văn bản đến (web_vanbanden)
-    # Hiển thị nếu: UserID_id == request.user.UserID HOẶC DonViTrongID_id == request.user.PhongBan_id
-    # Nếu là Tổng giám đốc hoặc Superuser (không phải TP phòng ban khác và không phải TP IT): Hiển thị tất cả
+    # 3. Khởi tạo QuerySet hiển thị trang Xử lý văn bản
+    # - Giám đốc/Superuser: Thấy toàn bộ
+    # - Trưởng phòng: Thấy văn bản gửi đến phòng mình HOẶC nhân viên trong phòng được phân công HOẶC chính mình được phân công
+    # - Nhân viên: Thấy văn bản do chính mình được phân công HOẶC chuyển tiếp HOẶC chính mình tạo ra
     if user.is_giam_doc() or (user.is_superuser and not user.is_department_head() and not user.is_it_head()):
         den_qs = VanBanDen.objects.all().select_related('DonViNgoaiID', 'DonViTrongID', 'DonViGuiID', 'UserID')
-    else:
-        # Loại trừ văn bản đến đang chờ phê duyệt/phát hành từ phía văn bản đi (tránh trùng lặp dòng trong trang xử lý)
+    elif user.is_department_head() or user.is_it_head():
         den_qs = VanBanDen.objects.filter(
-            Q(UserID=user) | Q(DonViTrongID=user.PhongBan)
+            Q(DonViTrongID=user.PhongBan) |
+            Q(UserID__PhongBan=user.PhongBan) |
+            Q(phancong__UserID__PhongBan=user.PhongBan) |
+            Q(phancong__UserID=user) |
+            Q(UserID=user)
         ).exclude(
             VanBanDiID__TrangThai__in=['CHO_PHE_DUYET', 'DA_PHE_DUYET']
-        ).select_related('DonViNgoaiID', 'DonViTrongID', 'DonViGuiID', 'UserID')
+        ).select_related('DonViNgoaiID', 'DonViTrongID', 'DonViGuiID', 'UserID').distinct()
+    else:
+        # Nhân viên thường: Bắt buộc thấy các văn bản mà mình được phân công (hoặc chuyển tiếp/soạn thảo)
+        den_qs = VanBanDen.objects.filter(
+            Q(phancong__UserID=user) | Q(UserID=user) | Q(chuyentiep__UserID=user)
+        ).exclude(
+            VanBanDiID__TrangThai__in=['CHO_PHE_DUYET', 'DA_PHE_DUYET']
+        ).select_related('DonViNgoaiID', 'DonViTrongID', 'DonViGuiID', 'UserID').distinct()
 
     # Văn bản đi cần xử lý (web_vanbandi)
-    # Hiển thị nếu: request.user.UserID == web_vanbandi.UserID (NguoiXuLyPheDuyet_id)
-    # HOẶC request.user.UserID == phancong__UserID (NguoiPhuTrachPhanCong_id)
-    # Nếu là Tổng giám đốc hoặc Superuser (không phải TP phòng ban khác và không phải TP IT): Hiển thị tất cả văn bản đi cần xử lý
     if user.is_giam_doc() or (user.is_superuser and not user.is_department_head() and not user.is_it_head()):
         di_qs = VanBanDi.objects.all().select_related('DonViNgoaiID', 'DonViTrongID', 'UserID', 'NguoiGui').distinct()
-    else:
+    elif user.is_department_head() or user.is_it_head():
         di_qs = VanBanDi.objects.filter(
-            Q(UserID=user) | Q(phancong__UserID=user)
+            Q(UserID=user) |
+            Q(phancong__UserID=user) |
+            Q(NguoiGui__PhongBan=user.PhongBan) |
+            Q(phancong__UserID__PhongBan=user.PhongBan)
+        ).select_related('DonViNgoaiID', 'DonViTrongID', 'UserID', 'NguoiGui').distinct()
+    else:
+        # Nhân viên thường: Thấy văn bản đi mà mình được phân công hoặc mình soạn thảo
+        di_qs = VanBanDi.objects.filter(
+            Q(phancong__UserID=user) | Q(chuyentiep__UserID=user) | Q(NguoiGui=user) | Q(UserID=user)
         ).select_related('DonViNgoaiID', 'DonViTrongID', 'UserID', 'NguoiGui').distinct()
 
     # 4. Áp dụng bộ lọc chung
@@ -2772,7 +2793,9 @@ def xu_ly_van_ban_index(request):
             doc.ngay_sort = doc.NgayNhan or now
             pcs = list(doc.phancong_set.all())
             cts = list(doc.chuyentiep_set.all())
-            doc.first_phancong = pcs[0] if pcs else None
+            # Ưu tiên lấy phân công của chính user đang xem (nếu có)
+            user_pc = next((p for p in pcs if p.UserID_id == user.pk), None)
+            doc.first_phancong = user_pc if user_pc else (pcs[0] if pcs else None)
             doc.last_chuyentiep = cts[-1] if cts else None
 
             # Kiểm tra trạng thái Xin ý kiến
@@ -2828,7 +2851,9 @@ def xu_ly_van_ban_index(request):
             doc.ngay_sort = doc.NgayBanHanh or now
             pcs = list(doc.phancong_set.all())
             cts = list(doc.chuyentiep_set.all())
-            doc.first_phancong = pcs[0] if pcs else None
+            # Ưu tiên lấy phân công của chính user đang xem (nếu có)
+            user_pc = next((p for p in pcs if p.UserID_id == user.pk), None)
+            doc.first_phancong = user_pc if user_pc else (pcs[0] if pcs else None)
             doc.last_chuyentiep = cts[-1] if cts else None
 
             # Kiểm tra trạng thái Xin ý kiến
@@ -3001,6 +3026,20 @@ def api_phan_cong_xlvb(request):
                         defaults={'NgayPhanCong': timezone.now(), 'HanXuLy': han_xu_ly, 'GhiChu': ghi_chu,
                                   'TrangThaiXuLy': 'Đang xử lý'}
                     )
+                    # Đồng bộ sang Văn bản đến tương ứng để người nhận thấy cả ở mục Văn bản đến
+                    try:
+                        vbd_linked = VanBanDen.objects.filter(VanBanDiID=vb).first()
+                        if not vbd_linked:
+                            vbd_linked = sync_van_ban_den(vb)
+                        if vbd_linked:
+                            PhanCong.objects.get_or_create(
+                                VanBanDenID=vbd_linked,
+                                UserID=user,
+                                defaults={'NgayPhanCong': timezone.now(), 'HanXuLy': han_xu_ly, 'GhiChu': ghi_chu,
+                                          'TrangThaiXuLy': 'Đang xử lý'}
+                            )
+                    except Exception as sync_err:
+                        print(f"Lỗi sync vbd khi phân công văn bản đi: {sync_err}")
                 else:
                     phan_cong, created = PhanCong.objects.get_or_create(
                         VanBanDenID=vb,
