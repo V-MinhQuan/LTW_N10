@@ -65,6 +65,21 @@ function openVBD(id) {
             // Lấy gợi ý số ký hiệu theo loại mặc định
             autoCapSoKyHieu('Công văn');
         }
+        if (id === 'modalPhanCongSoanThao') {
+            const today = new Date().toISOString().split('T')[0];
+            const hanEl = document.getElementById('pc_han_xu_ly');
+            if (hanEl) {
+                hanEl.min = today;
+                if (!hanEl.value) {
+                    const d = new Date();
+                    d.setDate(d.getDate() + 3);
+                    hanEl.value = d.toISOString().split('T')[0];
+                }
+            }
+            const loaiEl = document.getElementById('pc_loai_vb');
+            const loaiVb = loaiEl ? loaiEl.value : 'Công văn';
+            autoCapSoKyHieuPC(loaiVb);
+        }
     }
 }
 
@@ -307,6 +322,22 @@ function suaVanBan(btn) {
 
             let parts = d.ngay_ban_hanh.split("/");
             if (parts.length === 3) document.getElementById("edit_ngay").value = parts[2] + "-" + parts[1] + "-" + parts[0];
+
+            // Hiển thị chỉ đạo phân công nếu có
+            const pcBox = document.getElementById("edit_phancong_box");
+            if (pcBox) {
+                if (d.phan_cong) {
+                    pcBox.style.display = "block";
+                    const nguoiGiaoEl = document.getElementById("edit_pc_nguoi_giao");
+                    if (nguoiGiaoEl) nguoiGiaoEl.textContent = d.phan_cong.nguoi_phan_cong || "Lãnh đạo";
+                    const hanEl = document.getElementById("edit_pc_han");
+                    if (hanEl) hanEl.textContent = d.phan_cong.han_xu_ly ? "Hạn: " + d.phan_cong.han_xu_ly : "";
+                    const ghichuEl = document.getElementById("edit_pc_ghichu");
+                    if (ghichuEl) ghichuEl.textContent = d.phan_cong.ghi_chu ? d.phan_cong.ghi_chu : "(Không có ghi chú thêm)";
+                } else {
+                    pcBox.style.display = "none";
+                }
+            }
 
             _renderFile(document.getElementById('edit_file_section'), document.getElementById('edit_no_file'), d.tep_dinh_kem);
             document.getElementById('edit_xoa_file').value = '0'; // reset flag
@@ -1419,3 +1450,92 @@ document.addEventListener('DOMContentLoaded', () => {
         }, false);
     }
 });
+
+
+// ==========================================
+// CHỨC NĂNG PHÂN CÔNG SOẠN THẢO VĂN BẢN ĐI
+// ==========================================
+function autoCapSoKyHieuPC(loaiVb) {
+    let url = '/api/van-ban-di/goi-y-so-ky-hieu/';
+    if (loaiVb) url += '?loai_vb=' + encodeURIComponent(loaiVb);
+    fetch(url)
+        .then(r => r.json())
+        .then(res => {
+            if (res.status === 'success' && res.suggested) {
+                const el = document.getElementById('pc_so_ky_hieu');
+                if (el) el.value = res.suggested;
+            }
+        })
+        .catch(err => console.error('Lỗi cấp số ký hiệu PC:', err));
+}
+
+function xacNhanPhanCongSoanThao() {
+    const trichYeu = (document.getElementById('pc_trich_yeu').value || '').trim();
+    const loaiVb = document.getElementById('pc_loai_vb').value;
+    const soKyHieu = (document.getElementById('pc_so_ky_hieu').value || '').trim();
+    const nguoiSoanId = document.getElementById('pc_nguoi_soan_id').value;
+    const hanXuLy = document.getElementById('pc_han_xu_ly').value;
+    const donViNhan = (document.getElementById('pc_don_vi_nhan').value || '').trim();
+    const mucDoUuTien = document.getElementById('pc_muc_do_uu_tien').value;
+    const ghiChu = (document.getElementById('pc_ghi_chu').value || '').trim();
+    const fileInput = document.getElementById('pc_tep_dinh_kem');
+
+    if (!trichYeu) {
+        App.showAlert('Vui lòng nhập trích yếu / yêu cầu nội dung văn bản!');
+        document.getElementById('pc_trich_yeu').focus();
+        return;
+    }
+    if (trichYeu.length < 5) {
+        App.showAlert('Trích yếu quá ngắn (tối thiểu 5 ký tự)!');
+        document.getElementById('pc_trich_yeu').focus();
+        return;
+    }
+    if (!nguoiSoanId) {
+        App.showAlert('Vui lòng chọn nhân viên chịu trách nhiệm soạn thảo!');
+        document.getElementById('pc_nguoi_soan_id').focus();
+        return;
+    }
+    if (!hanXuLy) {
+        App.showAlert('Vui lòng chọn thời hạn hoàn thành dự thảo!');
+        document.getElementById('pc_han_xu_ly').focus();
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('trich_yeu', trichYeu);
+    formData.append('loai_vb', loaiVb);
+    formData.append('so_ky_hieu', soKyHieu);
+    formData.append('nguoi_soan_id', nguoiSoanId);
+    formData.append('han_xu_ly', hanXuLy);
+    formData.append('don_vi_trong_id', donViNhan);
+    formData.append('muc_do_uu_tien', mucDoUuTien);
+    formData.append('ghi_chu', ghiChu);
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+        formData.append('tep_dinh_kem', fileInput.files[0]);
+    }
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : (typeof getCookie === 'function' ? getCookie('csrftoken') : '');
+
+    fetch('/api/van-ban-di/phan-cong-soan-thao/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.status === 'success') {
+            App.showSuccess(res.message || 'Phân công soạn thảo thành công!', () => {
+                closeVBD('modalPhanCongSoanThao');
+                window.location.reload();
+            });
+        } else {
+            App.showAlert('Lỗi: ' + res.message);
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        App.showAlert('Có lỗi xảy ra khi kết nối máy chủ.');
+    });
+}

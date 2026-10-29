@@ -57,6 +57,10 @@
         background-color: #732d91 !important;
         transform: scale(1.1) !important;
     }
+    .tag-soan-thao {
+        background-color: #0284c7 !important;
+        color: white !important;
+    }
     @keyframes pulse-purple {
         0% { box-shadow: 0 0 0 0 rgba(142, 68, 173, 0.6); }
         70% { box-shadow: 0 0 0 8px rgba(142, 68, 173, 0); }
@@ -322,7 +326,11 @@
                                 
                                 {% if doc.doc_type == 'di' %}
                                     <!-- LUỒNG VĂN BẢN ĐI: Phê duyệt -> Phát hành -> Phân công -> Xử lý -->
-                                    {% if doc.TrangThai == 'CHO_PHE_DUYET' %}
+                                    {% if doc.TrangThai == 'DU_THAO' %}
+                                        <a href="{% url 'vbdi_index' %}?so_ky_hieu={{ doc.SoKyHieu }}" class="btn-assign-wide" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); text-decoration: none; color: #fff;" title="Vào soạn thảo dự thảo">
+                                            <i class="fas fa-edit"></i>&nbsp;Soạn thảo
+                                        </a>
+                                    {% elif doc.TrangThai == 'CHO_PHE_DUYET' %}
                                         {% check_perm user 'phe_duyet' doc as approve_perm %}
                                         {% if approve_perm %}
                                         <button class="btn-approve-wide" onclick="pheDuyetVanBan('{{ doc.pk }}')" title="Phê duyệt">
