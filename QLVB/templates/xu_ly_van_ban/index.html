@@ -96,15 +96,16 @@
             <div class="btn-group">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Tìm kiếm</button>
                 <a href="{% url 'xlvb_index' %}" class="btn btn-secondary"><i class="fas fa-sync-alt"></i> Làm mới</a>
-                <button type="button" class="btn btn-warning" onclick="openModalListReports()"
-                    style="position: relative; display: flex; align-items: center; gap: 8px;">
+                <button type="button" class="btn" onclick="openModalListReports()"
+                    style="position: relative; display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: white; border: none; font-weight: 600; padding: 8px 16px; border-radius: 6px; box-shadow: 0 2px 4px rgba(124, 58, 237, 0.25);"
+                    title="Tổng hợp danh sách các văn bản cần xin ý kiến chỉ đạo">
                     <div style="position: relative; display: inline-flex;">
-                        <i class="fas fa-bell"></i>
+                        <i class="fas fa-comment-dots" style="font-size: 15px;"></i>
                         {% if report_count > 0 %}
-                        <span class="report-badge-bell">{{ report_count }}</span>
+                        <span class="report-badge-bell" style="background: #ef4444; border-color: #fff; font-size: 10px;">{{ report_count }}</span>
                         {% endif %}
                     </div>
-                    <span>Xử lý báo cáo</span>
+                    <span>Văn bản cần xin ý kiến</span>
                 </button>
                 <button type="button" class="btn btn-outline-warning" onclick="openModalNgoaiLe()" style="border: 1px solid #e0a800; background: #fff; color: #b7791f; font-weight: 500;" title="Xem hàng đợi sự cố và thử lại tác vụ gián đoạn (AUTO-06)">
                     <i class="fas fa-sync-alt"></i> Hàng đợi thử lại <span id="badgeNgoaiLeCount" style="display:none; background:#dc3545; color:#fff; border-radius:10px; padding:2px 7px; font-size:11px; font-weight:bold; margin-left:4px;">0</span>
@@ -621,11 +622,11 @@
                 <i class="fas fa-tasks" style="color: #7c3aed;"></i> Quyết định / Hướng xử lý (<span class="required">*</span>):
             </label>
             <select class="form-control" id="rep-actionSelect" style="width: 100%; height: 40px; font-size: 14px; font-weight: 500; border-radius: 6px;">
-                <option value="DONG_Y">✅ Phê duyệt / Đồng ý với đề xuất của người gửi</option>
-                <option value="CHI_DAO">✍️ Ban hành ý kiến chỉ đạo thực hiện cụ thể</option>
-                <option value="YEU_CAU_CHINH_SUA">🔄 Yêu cầu giải trình / Bổ sung hồ sơ chỉnh sửa</option>
-                <option value="CHUYEN_TIEP_CAP_TREN" id="opt-chuyen-giam-doc">⬆️ Chuyển tiếp xin ý kiến cấp trên (Ban Giám đốc)</option>
-                <option value="KHONG_PHU_HOP">⚠️ Báo cáo không phù hợp / Trả lại văn bản</option>
+                <option value="DONG_Y">Phê duyệt / Đồng ý với đề xuất của người gửi</option>
+                <option value="CHI_DAO">Ban hành ý kiến chỉ đạo thực hiện cụ thể</option>
+                <option value="YEU_CAU_CHINH_SUA">Yêu cầu giải trình / Bổ sung hồ sơ chỉnh sửa</option>
+                <option value="CHUYEN_TIEP_CAP_TREN" id="opt-chuyen-giam-doc">Chuyển tiếp xin ý kiến cấp trên (Ban Giám đốc)</option>
+                <option value="KHONG_PHU_HOP">Báo cáo không phù hợp / Trả lại văn bản</option>
             </select>
         </div>
 
@@ -760,29 +761,46 @@
     </div>
 </div>
 
-<!-- Modal Danh sách báo cáo -->
-<div id="modalDanhSachBaoCao" class="modal-container" style="max-width: 1000px;">
-    <div class="modal-header">
-        Danh sách văn bản bị báo cáo lỗi
-        <span class="close-btn" onclick="closeModal('modalDanhSachBaoCao')">&times;</span>
+<!-- Modal Tổng hợp các văn bản cần xin ý kiến & Báo cáo -->
+<div id="modalDanhSachBaoCao" class="modal-container" style="max-width: 1100px; width: 95%;">
+    <div class="modal-header" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: white; display: flex; justify-content: space-between; align-items: center;">
+        <span style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px;">
+            <i class="fas fa-list-check"></i> Tổng hợp văn bản cần cho ý kiến chỉ đạo
+        </span>
+        <span class="close-btn" onclick="closeModal('modalDanhSachBaoCao')" style="color: white; opacity: 0.9;">&times;</span>
     </div>
-    <div class="modal-content">
+    <div class="modal-content" style="padding: 20px 24px; max-height: 82vh; overflow-y: auto;">
+        <div style="background: #faf5ff; border: 1px solid #d8b4fe; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-size: 13.5px; color: #581c87; line-height: 1.5;">
+                <i class="fas fa-info-circle" style="color: #9333ea; margin-right: 6px;"></i>
+                Danh sách tập trung toàn bộ các văn bản đang chờ bạn cho ý kiến chỉ đạo. Bạn có thể xem lý do và ra quyết định xử lý trực tiếp ngay tại đây mà không cần đi tìm từng văn bản.
+            </div>
+            <button type="button" class="btn btn-sm" onclick="openModalListReports()" style="background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; font-weight: 600; white-space: nowrap; padding: 6px 12px; border-radius: 6px; cursor: pointer;">
+                <i class="fas fa-sync-alt"></i> Tải lại
+            </button>
+        </div>
+
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table" style="width: 100%; border-collapse: collapse;">
                 <thead>
-                    <tr>
-                        <th>Người báo cáo</th>
-                        <th>Văn bản</th>
-                        <th>Loại vấn đề</th>
-                        <th>Thời gian</th>
-                        <th>Thao tác</th>
+                    <tr style="background: #f1f5f9;">
+                        <th style="width: 5%; text-align: center;">STT</th>
+                        <th style="width: 14%;">Số ký hiệu</th>
+                        <th style="width: 22%;">Trích yếu</th>
+                        <th style="width: 18%;">Người xin ý kiến</th>
+                        <th style="width: 24%;">Lý do / Nội dung xin ý kiến</th>
+                        <th style="width: 10%; text-align: center;">Thời gian</th>
+                        <th style="width: 7%; text-align: center;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody id="report-list-body">
-                    <!-- Data loaded via JS -->
+                    <!-- Populated dynamically via JS -->
                 </tbody>
             </table>
         </div>
+    </div>
+    <div class="modal-footer" style="padding: 12px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end;">
+        <button onclick="closeModal('modalDanhSachBaoCao')" class="btn btn-secondary">Đóng</button>
     </div>
 </div>
 

@@ -46,6 +46,7 @@ async function fetchDocumentDetails(id, docType, prefix) {
             if (prefix === 'rep') {
                 const xykCard = document.getElementById('rep-xykCard');
                 const groupNguoiNhan = document.getElementById('rep-group-nguoiNhan');
+                const repNguoiNhan = document.getElementById('rep-nguoiNhan');
                 const actionLabel = document.getElementById('rep-action-label');
                 const modalTitle = document.getElementById('rep-modal-title-text');
                 const submitBtn = document.getElementById('rep-submit-btn');
@@ -55,6 +56,18 @@ async function fetchDocumentDetails(id, docType, prefix) {
                 if (optChuyen) {
                     // Trưởng phòng có thêm lựa chọn chuyển tiếp lên Ban Giám đốc
                     optChuyen.style.display = result.data.is_truong_phong ? 'block' : 'none';
+                }
+
+                // Tự động gán mặc định Người nhận là người gửi/người xin ý kiến chỉ đạo
+                if (repNguoiNhan && result.data.default_recipient_id) {
+                    let opt = repNguoiNhan.querySelector(`option[value="${result.data.default_recipient_id}"]`);
+                    if (!opt && result.data.default_recipient_name) {
+                        opt = document.createElement('option');
+                        opt.value = result.data.default_recipient_id;
+                        opt.textContent = result.data.default_recipient_name;
+                        repNguoiNhan.appendChild(opt);
+                    }
+                    repNguoiNhan.value = result.data.default_recipient_id;
                 }
 
                 if (result.data.is_xin_y_kien && result.data.xin_y_kien) {
@@ -74,9 +87,9 @@ async function fetchDocumentDetails(id, docType, prefix) {
                     if (sDate) sDate.textContent = xyk.ngay_gui;
                     if (repIdInput) repIdInput.value = xyk.report_id;
 
-                    if (groupNguoiNhan) groupNguoiNhan.style.display = 'none';
+                    if (groupNguoiNhan) groupNguoiNhan.style.display = 'block';
                     if (modalTitle) modalTitle.innerHTML = '<i class="fas fa-gavel"></i> Ý kiến chỉ đạo & Quyết định xử lý văn bản';
-                    if (actionLabel) actionLabel.innerHTML = '<i class="fas fa-tasks" style="color:#7c3aed;"></i> Quyết định / Hướng chỉ đạo (<span class="required">*</span>):';
+                    if (actionLabel) actionLabel.innerHTML = '<i class="fas fa-tasks" style="color:#7c3aed;"></i> Quyết định / Hướng xử lý (<span class="required">*</span>):';
                     if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-gavel"></i> Ban hành quyết định & Chỉ đạo';
                     if (txtChiDao) txtChiDao.placeholder = 'Nhập ý kiến chỉ đạo, căn cứ xử lý hoặc giao nhiệm vụ cụ thể cho nhân viên...';
                 } else {
@@ -84,10 +97,10 @@ async function fetchDocumentDetails(id, docType, prefix) {
                     const repIdInput = document.getElementById('rep-reportId');
                     if (repIdInput) repIdInput.value = '';
                     if (groupNguoiNhan) groupNguoiNhan.style.display = 'block';
-                    if (modalTitle) modalTitle.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Báo cáo xử lý văn bản không phù hợp';
-                    if (actionLabel) actionLabel.innerHTML = '<i class="fas fa-tasks" style="color:#7c3aed;"></i> Hướng xử lý / Báo cáo:';
-                    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Gửi báo cáo';
-                    if (txtChiDao) txtChiDao.placeholder = 'Vui lòng mô tả chi tiết vấn đề không phù hợp hoặc đề xuất xử lý...';
+                    if (modalTitle) modalTitle.innerHTML = '<i class="fas fa-gavel"></i> Ý kiến chỉ đạo & Quyết định xử lý văn bản';
+                    if (actionLabel) actionLabel.innerHTML = '<i class="fas fa-tasks" style="color:#7c3aed;"></i> Quyết định / Hướng xử lý (<span class="required">*</span>):';
+                    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-gavel"></i> Ban hành quyết định & Chỉ đạo';
+                    if (txtChiDao) txtChiDao.placeholder = 'Nhập ý kiến chỉ đạo, quyết định xử lý hoặc nội dung báo cáo...';
                 }
             }
         } else {
@@ -525,19 +538,44 @@ async function openModalListReports() {
         if (result.status === 'success') {
             const body = document.getElementById('report-list-body');
             body.innerHTML = '';
-            if (result.data.length === 0) {
-                body.innerHTML = '<tr><td colspan="5" class="text-center">Không có báo cáo nào cần xử lý.</td></tr>';
+            if (!result.data || result.data.length === 0) {
+                body.innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 35px; color: #64748b;"><i class="fas fa-check-circle" style="color: #10b981; font-size: 26px; margin-bottom: 8px; display: block;"></i> Hiện không có văn bản nào cần xin ý kiến chỉ đạo.</td></tr>';
             } else {
-                result.data.forEach(r => {
+                result.data.forEach((r, idx) => {
+                    const fileLinkHtml = r.file_url 
+                        ? `<div style="margin-top: 4px;"><a href="${r.file_url}" target="_blank" style="font-size: 11.5px; color: #2563eb; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-paperclip"></i> ${r.file_name || 'Tệp đính kèm'}</a></div>` 
+                        : '';
+                    const tagType = r.is_xin_y_kien 
+                        ? '<span style="background: #f3e8ff; color: #7e22ce; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; border: 1px solid #d8b4fe;"><i class="fas fa-comment-dots"></i> Xin ý kiến</span>' 
+                        : `<span style="background: #fef3c7; color: #b45309; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px;">${r.loai_bao_cao}</span>`;
+                    
+                    const senderDept = r.phong_ban_nguoi_bao_cao ? ` - ${r.phong_ban_nguoi_bao_cao}` : '';
+                    const roleInfo = r.role_nguoi_bao_cao ? `${r.role_nguoi_bao_cao}${senderDept}` : '';
+
                     const row = `
-                        <tr>
-                            <td>${r.nguoi_bao_cao}</td>
-                            <td><b>${r.so_ky_hieu}</b><br><small>${r.trich_yeu}</small></td>
-                            <td>${r.loai_bao_cao}</td>
-                            <td>${r.ngay_bao_cao}</td>
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="text-align: center; font-weight: 600; color: #64748b;">${idx + 1}</td>
                             <td>
-                                <button class="btn btn-primary btn-sm" onclick='openModalHandlingReport(${JSON.stringify(r)})'>
-                                    Xử lý
+                                <strong style="color: #1e293b; font-size: 13.5px;">${r.so_ky_hieu}</strong>
+                                <div style="margin-top: 3px;">${tagType}</div>
+                            </td>
+                            <td style="max-width: 230px; font-size: 13px; color: #334155; line-height: 1.4;" title="${r.trich_yeu || ''}">
+                                <div style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${r.trich_yeu || 'Không có trích yếu'}</div>
+                                ${fileLinkHtml}
+                            </td>
+                            <td>
+                                <strong style="color: #1e293b; font-size: 13px;">${r.nguoi_bao_cao}</strong>
+                                <div style="font-size: 12px; color: #64748b; margin-top: 2px;">${roleInfo}</div>
+                            </td>
+                            <td>
+                                <div style="font-size: 13px; color: #1e293b; background: #faf5ff; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #8e44ad; font-style: italic; line-height: 1.4;">
+                                    ${r.ghi_chu || 'Không có lý do chi tiết'}
+                                </div>
+                            </td>
+                            <td style="text-align: center; font-size: 12px; color: #64748b; white-space: nowrap;">${r.ngay_bao_cao}</td>
+                            <td style="text-align: center;">
+                                <button class="btn btn-sm" onclick="handleReportDirectly(${r.vb_id}, '${r.so_ky_hieu}', '${r.doc_type}', ${r.id}, ${r.sender_id || 'null'}, '${escapeJsString(r.nguoi_bao_cao)}')" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: white; border: none; font-weight: 600; padding: 7px 14px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 4px rgba(124,58,237,0.3); white-space: nowrap; cursor: pointer;">
+                                    <i class="fas fa-gavel"></i> Cho ý kiến
                                 </button>
                             </td>
                         </tr>
@@ -548,9 +586,37 @@ async function openModalListReports() {
             openModal('modalDanhSachBaoCao');
         }
     } catch (e) {
-        console.error(e);
-        App.showError('Không thể tải danh sách báo cáo!');
+        console.error('Lỗi tải danh sách báo cáo:', e);
+        App.showError('Không thể tải danh sách văn bản cần xin ý kiến!');
     }
+}
+
+function escapeJsString(str) {
+    return (str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+function handleReportDirectly(docId, soKyHieu, docType, reportId, senderId, senderName) {
+    closeModal('modalDanhSachBaoCao');
+    openModalB('modalBaoCao', docId, soKyHieu, docType);
+    setTimeout(() => {
+        if (reportId) {
+            const elRepId = document.getElementById('rep-reportId');
+            if (elRepId) elRepId.value = reportId;
+        }
+        if (senderId) {
+            const repNguoiNhan = document.getElementById('rep-nguoiNhan');
+            if (repNguoiNhan) {
+                let opt = repNguoiNhan.querySelector(`option[value="${senderId}"]`);
+                if (!opt && senderName) {
+                    opt = document.createElement('option');
+                    opt.value = senderId;
+                    opt.textContent = senderName;
+                    repNguoiNhan.appendChild(opt);
+                }
+                repNguoiNhan.value = senderId;
+            }
+        }
+    }, 150);
 }
 
 function openModalHandlingReport(r) {

@@ -3440,6 +3440,22 @@ def api_get_document_details(request):
                 'trang_thai': r.TrangThai
             }
 
+        # Người nhận mặc định: Người xin ý kiến chỉ đạo (hoặc người gửi/soạn văn bản)
+        default_recipient_id = None
+        default_recipient_name = None
+        if r and r.UserID:
+            default_recipient_id = r.UserID.UserID
+            default_recipient_name = r.UserID.HoTen or r.UserID.username
+        elif vb.UserID:
+            default_recipient_id = vb.UserID.UserID
+            default_recipient_name = vb.UserID.HoTen or vb.UserID.username
+        elif hasattr(vb, 'NguoiGui') and vb.NguoiGui:
+            default_recipient_id = vb.NguoiGui.UserID
+            default_recipient_name = vb.NguoiGui.HoTen or vb.NguoiGui.username
+
+        if xyk_info:
+            xyk_info['sender_id'] = default_recipient_id
+
         data = {
             'SoKyHieu': vb.SoKyHieu,
             'TrichYeu': vb.TrichYeu,
@@ -3447,6 +3463,8 @@ def api_get_document_details(request):
             'TepDinhKemName': file_name,
             'xin_y_kien': xyk_info,
             'is_xin_y_kien': bool(xyk_info),
+            'default_recipient_id': default_recipient_id,
+            'default_recipient_name': default_recipient_name,
             'is_truong_phong': user.is_department_head() or user.is_it_head(),
             'is_giam_doc': user.is_giam_doc()
         }
@@ -3470,22 +3488,39 @@ def api_lay_danh_sach_bao_cao(request):
         'v1': 'Sai sót nội dung',
         'v2': 'Chậm trễ xử lý',
         'v3': 'Lỗi file đính kèm',
-        'v4': 'Vấn đề khác'
+        'v4': 'Vấn đề khác',
+        'XIN_Y_KIEN': 'Xin ý kiến chỉ đạo'
     }
     for r in reports:
         vb = r.VanBanDiID if r.VanBanDiID else r.VanBanDenID
-        loai_label = problem_map.get(r.LoaiBaoCao, r.LoaiBaoCao)
+        loai_label = 'Xin ý kiến chỉ đạo' if r.LoaiBaoCao == 'XIN_Y_KIEN' else problem_map.get(r.LoaiBaoCao, r.LoaiBaoCao)
+        
+        file_url = ''
+        file_name = ''
+        if vb and vb.TepDinhKem and hasattr(vb.TepDinhKem, 'url'):
+            try:
+                file_url = vb.TepDinhKem.url
+                file_name = vb.TepDinhKem.name.split('/')[-1]
+            except Exception:
+                pass
+
         data.append({
             'id': r.PhanHoiID,
             'so_ky_hieu': vb.SoKyHieu if vb else 'N/A',
             'trich_yeu': vb.TrichYeu if vb else 'N/A',
-            'nguoi_bao_cao': r.UserID.HoTen,
+            'nguoi_bao_cao': r.UserID.HoTen or r.UserID.username,
+            'role_nguoi_bao_cao': r.UserID.role_name or 'Cán bộ',
+            'phong_ban_nguoi_bao_cao': r.UserID.PhongBan.TenDonVi if r.UserID.PhongBan else '',
+            'sender_id': r.UserID.UserID,
             'loai_bao_cao': loai_label,
-            'ghi_chu': r.GhiChu,
-            'ngay_bao_cao': r.NgayBaoCao.strftime('%d/%m/%Y %H:%M'),
+            'is_xin_y_kien': r.LoaiBaoCao == 'XIN_Y_KIEN',
+            'ghi_chu': r.GhiChu or '',
+            'ngay_bao_cao': r.NgayBaoCao.strftime('%d/%m/%Y %H:%M') if r.NgayBaoCao else '',
             'trang_thai': r.TrangThai,
             'doc_type': 'di' if r.VanBanDiID else 'den',
-            'vb_id': vb.pk if vb else None
+            'vb_id': vb.pk if vb else None,
+            'file_url': file_url,
+            'file_name': file_name
         })
     
     return JsonResponse({'status': 'success', 'data': data})
