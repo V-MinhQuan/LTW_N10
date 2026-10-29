@@ -1674,16 +1674,29 @@ def api_vbdi_phe_duyet(request, pk):
             pd.ChuKySo = chu_ky_so
             
             leader_name = request.user.HoTen or request.user.username if request.user.is_authenticated else 'Lãnh đạo'
+
+            tieu_chi = data.get('tieu_chi')
+            tieu_chi_log = ""
+            if isinstance(tieu_chi, dict):
+                so_dat = tieu_chi.get('so_luong_dat', 0)
+                if so_dat == 4:
+                    tieu_chi_log = "Đã kiểm tra hợp thức đủ 4/4 tiêu chí BPMN (Thể thức, Nội dung, Thẩm quyền, Căn cứ pháp lý)."
+                elif so_dat > 0:
+                    tieu_chi_log = f"Đã kiểm tra {so_dat}/4 tiêu chí hợp thức BPMN."
             
             if action == 'dong_y':
                 pd.TrangThaiDuyet = True
                 vb.TrangThai = VanBanDi.TrangThaiChoices.DA_PHE_DUYET
                 vb.NgayPheDuyet = timezone.now()
                 noi_dung_ls = f"Phê duyệt văn bản {vb.SoKyHieu}."
+                if tieu_chi_log:
+                    noi_dung_ls += f" {tieu_chi_log}"
                 if ghi_chu:
                     noi_dung_ls += f" Ý kiến chỉ đạo: {ghi_chu}"
+                if tieu_chi_log:
+                    pd.GhiChu = f"[{tieu_chi_log}] {ghi_chu}".strip() if ghi_chu else f"[{tieu_chi_log}]"
                 thong_bao_tieu_de = f"Văn bản {vb.SoKyHieu} đã được phê duyệt"
-                thong_bao_noi_dung = f"Giám đốc {leader_name} đã phê duyệt văn bản: '{vb.TrichYeu}'. Văn bản sẵn sàng phát hành."
+                thong_bao_noi_dung = f"Lãnh đạo {leader_name} đã kiểm tra hợp thức hồ sơ và phê duyệt văn bản: '{vb.TrichYeu}'. Văn bản sẵn sàng phát hành."
                 loai_tb = ThongBao.LoaiThongBaoChoices.HE_THONG
                 success_msg = f"Phê duyệt văn bản {vb.SoKyHieu} thành công!"
                 

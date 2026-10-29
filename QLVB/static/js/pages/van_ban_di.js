@@ -409,10 +409,59 @@ function xacNhanXoaFile() {
 // ---- PHÊ DUYỆT ----
 let _pheDuyetId = null;
 
-function pheDuyetVanBan(btn) {
-    _pheDuyetId = btn.closest("tr").dataset.id;
+function pheDuyetVanBan(btnOrId) {
+    if (typeof btnOrId === 'object' && btnOrId && btnOrId.closest) {
+        let tr = btnOrId.closest("tr");
+        _pheDuyetId = tr ? tr.dataset.id : null;
+    } else {
+        _pheDuyetId = btnOrId;
+    }
+    if (!_pheDuyetId) return;
+
+    // Reset các thành phần thông tin
+    const skhEl = document.getElementById('pd_doc_sokyhieu');
+    const loaiEl = document.getElementById('pd_doc_loaivb');
+    const trichYeuEl = document.getElementById('pd_doc_trichyeu');
+    const fileBox = document.getElementById('pd_file_container');
+    const ghiChuEl = document.getElementById('pd_ghichu');
+
+    if (skhEl) skhEl.innerText = "Đang tải...";
+    if (loaiEl) loaiEl.innerText = "---";
+    if (trichYeuEl) trichYeuEl.innerText = "Đang tải thông tin văn bản...";
+    if (ghiChuEl) ghiChuEl.value = "";
+    if (fileBox) fileBox.innerHTML = '<span style="color: #94a3b8; font-size: 12.5px; font-style: italic;"><i class="fas fa-spinner fa-spin"></i> Đang tải tệp đính kèm...</span>';
+
     openVBD('popupPheDuyet');
     initSignaturePad();
+    clearSignature();
+    resetTieuChiChecklist();
+
+    // Gọi API chi tiết văn bản đi để lấy trích yếu và tệp đính kèm
+    fetch('/api/van-ban-di/' + _pheDuyetId + '/chi-tiet/')
+        .then(r => r.json())
+        .then(res => {
+            if (res.status === 'success' && res.data) {
+                const d = res.data;
+                if (skhEl) skhEl.innerText = d.so_ky_hieu || 'Chưa có số';
+                if (loaiEl) loaiEl.innerText = d.loai_vb || 'Văn bản đi';
+                if (trichYeuEl) trichYeuEl.innerText = d.trich_yeu || 'Không có trích yếu';
+
+                if (fileBox) {
+                    const fileUrl = d.tep_dinh_kem_url;
+                    const fileName = d.tep_dinh_kem_name || (d.tep_dinh_kem ? d.tep_dinh_kem.split('/').pop() : '');
+                    if (fileUrl && d.file_exists !== false) {
+                        fileBox.innerHTML = `
+                            <a href="${fileUrl}" target="_blank" class="btn btn-sm btn-secondary" style="font-size: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">
+                                <i class="fas fa-file-download"></i> ${fileName}
+                            </a>
+                        `;
+                    } else {
+                        fileBox.innerHTML = '<span style="font-size: 12px; color: #94a3b8; font-style: italic;">Không có tệp đính kèm</span>';
+                    }
+                }
+            }
+        })
+        .catch(err => console.error(err));
 }
 
 let _isSigning = false;
@@ -495,6 +544,70 @@ function autoCapSoKyHieu(loaiVb) {
         .catch(err => console.error('Lỗi cấp số ký hiệu:', err));
 }
 
+
+// --- BẢNG KIỂM TRA HỢP THỨC HỒ SƠ VĂN BẢN (4 TIÊU CHÍ THEO BPMN) ---
+function resetTieuChiChecklist() {
+    const chkTheThuc = document.getElementById('pd_chk_the_thuc');
+    const chkNoiDung = document.getElementById('pd_chk_noi_dung');
+    const chkThamQuyen = document.getElementById('pd_chk_tham_quyen');
+    const chkCanCu = document.getElementById('pd_chk_can_cu');
+    if (chkTheThuc) chkTheThuc.checked = false;
+    if (chkNoiDung) chkNoiDung.checked = false;
+    if (chkThamQuyen) chkThamQuyen.checked = false;
+    if (chkCanCu) chkCanCu.checked = false;
+    capNhatTrangThaiTieuChi();
+}
+
+function chonTatCaTieuChi(val) {
+    const chkTheThuc = document.getElementById('pd_chk_the_thuc');
+    const chkNoiDung = document.getElementById('pd_chk_noi_dung');
+    const chkThamQuyen = document.getElementById('pd_chk_tham_quyen');
+    const chkCanCu = document.getElementById('pd_chk_can_cu');
+    if (chkTheThuc) chkTheThuc.checked = !!val;
+    if (chkNoiDung) chkNoiDung.checked = !!val;
+    if (chkThamQuyen) chkThamQuyen.checked = !!val;
+    if (chkCanCu) chkCanCu.checked = !!val;
+    capNhatTrangThaiTieuChi();
+}
+
+function capNhatTrangThaiTieuChi() {
+    const chkTheThuc = document.getElementById('pd_chk_the_thuc');
+    const chkNoiDung = document.getElementById('pd_chk_noi_dung');
+    const chkThamQuyen = document.getElementById('pd_chk_tham_quyen');
+    const chkCanCu = document.getElementById('pd_chk_can_cu');
+
+    let count = 0;
+    if (chkTheThuc && chkTheThuc.checked) count++;
+    if (chkNoiDung && chkNoiDung.checked) count++;
+    if (chkThamQuyen && chkThamQuyen.checked) count++;
+    if (chkCanCu && chkCanCu.checked) count++;
+
+    const statusBox = document.getElementById('pd_tieu_chi_status_box');
+    const icon = document.getElementById('pd_tieu_chi_icon');
+    const msg = document.getElementById('pd_tieu_chi_msg');
+    const badge = document.getElementById('pd_tieu_chi_badge');
+
+    if (badge) badge.innerText = count + '/4 tiêu chí';
+
+    if (statusBox) {
+        if (count === 4) {
+            statusBox.style.background = '#ecfdf5';
+            statusBox.style.borderColor = '#a7f3d0';
+            statusBox.style.color = '#065f46';
+            if (icon) icon.className = 'fas fa-check-circle';
+            if (msg) msg.innerText = '✅ Hồ sơ hợp thức đủ 4/4 tiêu chí. Sẵn sàng phê duyệt & ký số.';
+        } else {
+            statusBox.style.background = '#fffbeb';
+            statusBox.style.borderColor = '#fde68a';
+            statusBox.style.color = '#b45309';
+            if (icon) icon.className = 'fas fa-exclamation-triangle';
+            if (msg) msg.innerText = count === 0
+                ? 'Chưa xác nhận tiêu chí hợp thức nào (0/4). Vui lòng kiểm tra hồ sơ và tích chọn.'
+                : 'Hồ sơ chưa đạt đủ 4 tiêu chí (' + count + '/4). Nếu không hợp thức, hãy chọn "Yêu cầu chỉnh sửa".';
+        }
+    }
+}
+
 function xacNhanPheDuyet(action) {
     if (!_pheDuyetId) return;
 
@@ -503,6 +616,17 @@ function xacNhanPheDuyet(action) {
 
     let ghiChuEl = document.getElementById('pd_ghichu');
     let ghiChu = ghiChuEl ? ghiChuEl.value.trim() : '';
+
+    const chkTheThuc = document.getElementById('pd_chk_the_thuc');
+    const chkNoiDung = document.getElementById('pd_chk_noi_dung');
+    const chkThamQuyen = document.getElementById('pd_chk_tham_quyen');
+    const chkCanCu = document.getElementById('pd_chk_can_cu');
+
+    let countTieuChi = 0;
+    if (chkTheThuc && chkTheThuc.checked) countTieuChi++;
+    if (chkNoiDung && chkNoiDung.checked) countTieuChi++;
+    if (chkThamQuyen && chkThamQuyen.checked) countTieuChi++;
+    if (chkCanCu && chkCanCu.checked) countTieuChi++;
 
     let chuKy = _sigCanvas ? _sigCanvas.toDataURL() : '';
     let isEmpty = true;
@@ -514,11 +638,31 @@ function xacNhanPheDuyet(action) {
     }
 
     if (action === 'dong_y') {
+        if (countTieuChi < 4) {
+            App.showAlert("Hồ sơ chưa đạt đủ 4 tiêu chí kiểm tra hợp thức theo quy trình BPMN (Thể thức, Nội dung, Thẩm quyền, Căn cứ pháp lý). Vui lòng kiểm tra và tích xác nhận đầy đủ 4 tiêu chí trước khi phê duyệt.");
+            return;
+        }
         if (isEmpty) {
             App.showAlert("Vui lòng ký tên vào ô chữ ký số trước khi phê duyệt.");
             return;
         }
     } else if (action === 'yeu_cau_chinh_sua') {
+        let unchecked = [];
+        if (chkTheThuc && !chkTheThuc.checked) unchecked.push("1. Thể thức & Kỹ thuật trình bày chưa đạt chuẩn Nghị định 30/2020/NĐ-CP");
+        if (chkNoiDung && !chkNoiDung.checked) unchecked.push("2. Nội dung văn bản chưa đạt yêu cầu hoặc có mâu thuẫn số liệu");
+        if (chkThamQuyen && !chkThamQuyen.checked) unchecked.push("3. Thẩm quyền ban hành chưa phù hợp");
+        if (chkCanCu && !chkCanCu.checked) unchecked.push("4. Căn cứ pháp lý chưa đầy đủ hoặc chưa chính xác");
+
+        if (unchecked.length > 0 && !ghiChu) {
+            let templateGhiChu = "Yêu cầu chỉnh sửa các tiêu chí chưa đạt:\n- " + unchecked.join("\n- ");
+            if (ghiChuEl) {
+                ghiChuEl.value = templateGhiChu;
+                ghiChuEl.focus();
+            }
+            App.showAlert("Hệ thống đã tự động điền " + unchecked.length + " tiêu chí chưa đạt vào ô Ghi chú. Vui lòng kiểm tra hoặc bổ sung thêm hướng dẫn rồi bấm lại 'Yêu cầu chỉnh sửa'.");
+            return;
+        }
+
         if (!ghiChu) {
             App.showAlert("Vui lòng nhập nội dung/lý do yêu cầu chỉnh sửa vào ô Ghi chú.");
             if (ghiChuEl) ghiChuEl.focus();
@@ -536,7 +680,14 @@ function xacNhanPheDuyet(action) {
         action: action,
         chap_nhan: (action === 'dong_y'),
         ghi_chu: ghiChu,
-        chu_ky_so: (action === 'dong_y' && !isEmpty) ? chuKy : ''
+        chu_ky_so: (action === 'dong_y' && !isEmpty) ? chuKy : '',
+        tieu_chi: {
+            the_thuc: chkTheThuc ? chkTheThuc.checked : false,
+            noi_dung: chkNoiDung ? chkNoiDung.checked : false,
+            tham_quyen: chkThamQuyen ? chkThamQuyen.checked : false,
+            can_cu: chkCanCu ? chkCanCu.checked : false,
+            so_luong_dat: countTieuChi
+        }
     };
     
     fetch('/api/van-ban-di/' + _pheDuyetId + '/phe-duyet/', {

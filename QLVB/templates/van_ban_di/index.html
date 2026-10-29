@@ -1014,18 +1014,112 @@
 
 <!-- Popup Phê duyệt văn bản đi -->
 <div id="popupPheDuyet" class="vbd-popup-overlay">
-  <div class="vbd-popup" style="width: 600px; max-width: 95%;">
+  <div class="vbd-popup" style="width: 720px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
     <div class="vbd-popup-header">
       <span>Phê duyệt văn bản đi</span>
       <i class="fa fa-times" style="cursor: pointer;" onclick="closeVBD('popupPheDuyet')"></i>
     </div>
-    <div class="vbd-popup-body" style="padding: 25px 30px;">
-      <div style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 20px;">
+    <div class="vbd-popup-body" style="padding: 20px 25px; overflow-y: auto;">
+      <!-- Khối Thông tin văn bản & Tệp đính kèm -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 16px; margin-bottom: 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div>
+            <span style="font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 600;">Văn bản cần duyệt:</span>
+            <strong id="pd_doc_sokyhieu" style="color: #0369a1; font-size: 14.5px; margin-left: 6px;">Đang tải...</strong>
+          </div>
+          <span id="pd_doc_loaivb" class="status-pill pill-blue" style="font-size: 11px;">---</span>
+        </div>
+        <div style="font-size: 13.5px; color: #1e293b; margin-bottom: 10px; line-height: 1.4;">
+          <strong>Trích yếu:</strong> <span id="pd_doc_trichyeu">Đang tải...</span>
+        </div>
+        
+        <!-- Khối Tệp đính kèm văn bản -->
+        <div style="border-top: 1px dashed #cbd5e1; padding-top: 10px;">
+          <div style="font-size: 12.5px; font-weight: 600; color: #475569; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            <i class="fas fa-paperclip" style="color: #0284c7;"></i> Tệp văn bản đính kèm:
+          </div>
+          <div id="pd_file_container">
+            <span style="font-size: 12px; color: #94a3b8; font-style: italic;">Đang tải tệp đính kèm...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- BẢNG KIỂM TRA HỢP THỨC HỒ SƠ VĂN BẢN (4 TIÊU CHÍ THEO BPMN & NĐ 30/2020) -->
+      <div class="pd-checklist-card" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 16px; margin-bottom: 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="background: #0284c7; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase;">
+              <i class="fas fa-clipboard-check"></i> Tiêu chuẩn BPMN
+            </span>
+            <span style="font-weight: 700; color: #0f172a; font-size: 13.5px;">Kiểm tra tính hợp thức hồ sơ văn bản</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn btn-sm" onclick="chonTatCaTieuChi(true)"
+              style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #059669; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 4px; cursor: pointer;">
+              <i class="fas fa-check-double"></i> Đạt tất cả
+            </button>
+            <button type="button" class="btn btn-sm" onclick="chonTatCaTieuChi(false)"
+              style="background: #fff; border: 1px solid #cbd5e1; color: #64748b; font-size: 12px; padding: 3px 8px; border-radius: 4px; cursor: pointer;">
+              Đặt lại
+            </button>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <!-- Tiêu chí 1: Thể thức & Kỹ thuật trình bày -->
+          <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; padding: 8px 10px; border-radius: 6px; background: #fff; border: 1px solid #e2e8f0; margin: 0; user-select: none;">
+            <input type="checkbox" id="pd_chk_the_thuc" onchange="capNhatTrangThaiTieuChi()" style="margin-top: 3px; transform: scale(1.15); accent-color: #0284c7;">
+            <div>
+              <div style="font-weight: 600; color: #1e293b; font-size: 12.5px;">1. Thể thức & Kỹ thuật trình bày</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px; line-height: 1.3;">Tiêu ngữ, số ký hiệu, trích yếu, căn lề và cỡ chữ chuẩn NĐ 30/2020.</div>
+            </div>
+          </label>
+
+          <!-- Tiêu chí 2: Nội dung văn bản -->
+          <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; padding: 8px 10px; border-radius: 6px; background: #fff; border: 1px solid #e2e8f0; margin: 0; user-select: none;">
+            <input type="checkbox" id="pd_chk_noi_dung" onchange="capNhatTrangThaiTieuChi()" style="margin-top: 3px; transform: scale(1.15); accent-color: #0284c7;">
+            <div>
+              <div style="font-weight: 600; color: #1e293b; font-size: 12.5px;">2. Nội dung văn bản</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px; line-height: 1.3;">Rõ ràng, đúng yêu cầu công việc, số liệu chính xác và không mâu thuẫn.</div>
+            </div>
+          </label>
+
+          <!-- Tiêu chí 3: Thẩm quyền ban hành -->
+          <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; padding: 8px 10px; border-radius: 6px; background: #fff; border: 1px solid #e2e8f0; margin: 0; user-select: none;">
+            <input type="checkbox" id="pd_chk_tham_quyen" onchange="capNhatTrangThaiTieuChi()" style="margin-top: 3px; transform: scale(1.15); accent-color: #0284c7;">
+            <div>
+              <div style="font-weight: 600; color: #1e293b; font-size: 12.5px;">3. Thẩm quyền ban hành</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px; line-height: 1.3;">Đúng thẩm quyền ký ban hành của tổ chức và chức danh người duyệt.</div>
+            </div>
+          </label>
+
+          <!-- Tiêu chí 4: Căn cứ pháp lý -->
+          <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; padding: 8px 10px; border-radius: 6px; background: #fff; border: 1px solid #e2e8f0; margin: 0; user-select: none;">
+            <input type="checkbox" id="pd_chk_can_cu" onchange="capNhatTrangThaiTieuChi()" style="margin-top: 3px; transform: scale(1.15); accent-color: #0284c7;">
+            <div>
+              <div style="font-weight: 600; color: #1e293b; font-size: 12.5px;">4. Căn cứ pháp lý</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px; line-height: 1.3;">Viện dẫn đầy đủ luật, nghị định, thông tư hoặc quyết định liên quan.</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Trạng thái đánh giá tổng hợp 4 tiêu chí -->
+        <div id="pd_tieu_chi_status_box" style="padding: 8px 12px; border-radius: 6px; font-size: 12px; display: flex; align-items: center; justify-content: space-between; background: #fffbeb; border: 1px solid #fde68a; color: #b45309; transition: all 0.2s;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <i id="pd_tieu_chi_icon" class="fas fa-exclamation-triangle"></i>
+            <span id="pd_tieu_chi_msg">Chưa xác nhận tiêu chí hợp thức nào (0/4). Vui lòng kiểm tra hồ sơ và tích chọn.</span>
+          </div>
+          <span id="pd_tieu_chi_badge" style="font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,0.06);">0/4 tiêu chí</span>
+        </div>
+      </div>
+
+      <!-- Chữ ký số -->
+      <div style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 18px;">
         <label style="width: 120px; padding-top: 10px; font-weight: 500; flex-shrink: 0;">Chữ ký số</label>
         <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
           <div
             style="position: relative; border: 1px solid #ddd; border-radius: 6px; background: #fff; line-height: 0;">
-            <canvas id="signature-pad" width="400" height="150"
+            <canvas id="signature-pad" width="400" height="140"
               style="width: 100%; cursor: crosshair; touch-action: none;"></canvas>
             <div id="signature-placeholder"
               style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ccc; pointer-events: none; text-align: center;">
@@ -1042,21 +1136,20 @@
           </div>
         </div>
       </div>
+
+      <!-- Ghi chú -->
       <div style="display: flex; align-items: flex-start; gap: 20px;">
         <label style="width: 120px; padding-top: 8px; font-weight: 500; flex-shrink: 0;">Ghi chú</label>
         <textarea id="pd_ghichu" class="form-control"
-          style="flex: 1; height: 100px; resize: vertical; padding-top: 10px"
+          style="flex: 1; height: 75px; resize: vertical; padding-top: 8px"
           placeholder="Nhập ghi chú (nếu có)..."></textarea>
       </div>
     </div>
-    <div class="vbd-popup-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+    <div class="vbd-popup-footer" style="padding: 15px 25px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px;">
       <button class="btn btn-secondary" onclick="closeVBD('popupPheDuyet')">Hủy</button>
-      <button class="btn btn-danger" onclick="xacNhanPheDuyet('tu_choi')" title="Từ chối phê duyệt"><i
-          class="fas fa-times-circle"></i> Từ chối</button>
-      <button class="btn btn-warning" onclick="xacNhanPheDuyet('yeu_cau_chinh_sua')"
-        title="Yêu cầu người soạn chỉnh sửa lại"><i class="fas fa-edit"></i> Yêu cầu chỉnh sửa</button>
-      <button class="btn btn-primary" onclick="xacNhanPheDuyet('dong_y')" title="Ký số và phê duyệt văn bản"><i
-          class="fas fa-check-circle"></i> Phê duyệt</button>
+      <button class="btn btn-danger" onclick="xacNhanPheDuyet('tu_choi')" title="Từ chối phê duyệt văn bản"><i class="fas fa-times-circle"></i> Từ chối</button>
+      <button class="btn btn-warning" onclick="xacNhanPheDuyet('yeu_cau_chinh_sua')" title="Yêu cầu người soạn chỉnh sửa lại"><i class="fas fa-edit"></i> Yêu cầu chỉnh sửa</button>
+      <button class="btn btn-primary" onclick="xacNhanPheDuyet('dong_y')" title="Ký số và phê duyệt văn bản"><i class="fas fa-check-circle"></i> Phê duyệt</button>
     </div>
   </div>
 </div>
