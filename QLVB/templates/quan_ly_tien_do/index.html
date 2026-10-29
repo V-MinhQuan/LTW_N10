@@ -204,7 +204,7 @@
 
                   <!-- Nút Xử lý chậm tiến độ nếu quá hạn -->
                   {% if pc.status_key == 'qua_han' or pc.status_key == 'da_gia_han' or pc.status_key == 'da_giai_trinh' %}
-                  <button type="button" class="action-btn btn-danger" onclick="openOverdueModal('{{ pc.PhanCongID }}', '{{ pc.so_ky_hieu }}', '{{ pc.UserID.HoTen }}', '{{ pc.HanXuLy|date:"Y-m-d" }}')" title="Quy trình xử lý chậm tiến độ">
+                  <button type="button" class="action-btn btn-danger" onclick="openOverdueModal('{{ pc.PhanCongID }}', '{{ pc.so_ky_hieu }}', '{{ pc.UserID.HoTen }}', '{{ pc.HanXuLy|date:"Y-m-d" }}')" title="Xử lý chậm tiến độ">
                     <i class="fas fa-bolt"></i>
                   </button>
                   {% endif %}
@@ -382,7 +382,7 @@
 <div id="overdueModal" class="qltd-modal-overlay">
   <div class="qltd-modal-box" style="max-width: 620px;">
     <div class="qltd-modal-header header-danger">
-      <div><i class="fas fa-bolt"></i> Quy trình xử lý chậm tiến độ</div>
+      <div><i class="fas fa-bolt"></i> Xử lý chậm tiến độ</div>
       <button type="button" class="qltd-modal-close" onclick="closeModal('overdueModal')">&times;</button>
     </div>
     <form id="overdueForm" onsubmit="submitOverdueAction(event)">
@@ -405,10 +405,6 @@
             <label class="method-radio-card">
               <input type="radio" name="phuong_an" value="CHUYEN_NGUOI" onchange="toggleOverdueMethod(this.value)">
               <div style="font-weight: bold; color: #0369a1;">2. Điều chuyển người</div>
-            </label>
-            <label class="method-radio-card">
-              <input type="radio" name="phuong_an" value="GIAI_TRINH" onchange="toggleOverdueMethod(this.value)">
-              <div style="font-weight: bold; color: #166534;">3. Giải trình trễ hạn</div>
             </label>
           </div>
         </div>
