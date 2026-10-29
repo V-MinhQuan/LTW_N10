@@ -31,7 +31,7 @@ class UserAccount(AbstractUser):
         return self.VaiTroID.ChucVu if self.VaiTroID else ""
 
     def is_giam_doc(self):
-        return self.role_name == "Tổng giám đốc"
+        return self.role_name == "Tổng giám đốc" or 'Giám đốc' in self.role_name or self.is_superuser
 
     def is_it_head(self):
         return self.role_name == "Trưởng phòng IT"
@@ -103,9 +103,23 @@ class UserAccount(AbstractUser):
             # Các action khác: TP IT toàn quyền
             return True
 
-        # Nếu là Trưởng phòng ban nghiệp vụ khác: tuân thủ logic nghiệp vụ (kể cả superuser)
+        # --- Trưởng phòng các phòng ban nghiệp vụ: phê duyệt/ký nháy văn bản thuộc phòng ban mình ---
         if self.is_department_head():
-            pass  # Tiếp tục xuống dưới
+            if action in ['phe_duyet', 'phat_hanh']:
+                if not obj:
+                    return True
+                if hasattr(obj, 'VanBanDiID') or hasattr(obj, 'SoKyHieu'):
+                    # Quy tắc 1: Không được tự phê duyệt văn bản do chính mình tạo (trừ khi tự giao việc)
+                    if hasattr(obj, 'NguoiGui') and obj.NguoiGui == self and hasattr(obj, 'UserID') and obj.UserID != self:
+                        return False
+                    # Quy tắc 2: Phê duyệt/ký nháy văn bản thuộc phòng ban của mình
+                    nguoi_gui_pb = obj.NguoiGui.PhongBan if (hasattr(obj, 'NguoiGui') and obj.NguoiGui) else None
+                    user_id_pb = obj.UserID.PhongBan if (hasattr(obj, 'UserID') and obj.UserID) else None
+                    don_vi_gui = getattr(obj, 'DonViGuiID', None)
+                    if nguoi_gui_pb == self.PhongBan or user_id_pb == self.PhongBan or don_vi_gui == self.PhongBan:
+                        return True
+                return False
+            # Các action khác tiếp tục xuống dưới
         elif self.is_superuser:
             return True
 

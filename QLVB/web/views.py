@@ -1249,6 +1249,11 @@ def van_ban_di_index(request):
     start = max(end - 2, 1)
     page_range = range(start, end + 1)
 
+    from .models import PheDuyet
+    ky_nhay_ids = set(PheDuyet.objects.filter(GhiChu__contains='[KÝ NHÁY').values_list('VanBanDiID_id', flat=True))
+    for vb in page_obj:
+        vb.da_ky_nhay = vb.pk in ky_nhay_ids
+
     is_manager = is_tgd(request.user) or is_tp_it(request.user) or is_truong_phong(request.user)
     if is_tgd(request.user) or is_tp_it(request.user):
         danh_sach_nhan_vien = UserAccount.objects.filter(is_active=True).select_related('PhongBan').order_by('PhongBan__TenDonVi', 'HoTen')
@@ -1363,10 +1368,38 @@ def api_vbdi_chi_tiet(request, pk):
             'muc_do_uu_tien': last_pc.MucDoUuTien or 'Bình thường',
         }
 
+    # Lấy thông tin Ký nháy (nếu có)
+    ky_nhay_rec = PheDuyet.objects.filter(VanBanDiID=vb, GhiChu__contains='[KÝ NHÁY').select_related('UserID', 'UserID__VaiTroID', 'UserID__PhongBan').order_by('-PheDuyetID').first()
+    da_ky_nhay = bool(ky_nhay_rec)
+    thong_tin_ky_nhay = None
+    if ky_nhay_rec:
+        pb_name = ky_nhay_rec.UserID.PhongBan.TenDonVi if (ky_nhay_rec.UserID and ky_nhay_rec.UserID.PhongBan) else ''
+        thong_tin_ky_nhay = {
+            'nguoi_ky': ky_nhay_rec.UserID.HoTen if ky_nhay_rec.UserID else '',
+            'chuc_vu': ky_nhay_rec.UserID.role_name if ky_nhay_rec.UserID else 'Lãnh đạo đơn vị',
+            'phong_ban': pb_name,
+            'ngay_ky': ky_nhay_rec.NgayPheDuyet.strftime('%d/%m/%Y %H:%M') if ky_nhay_rec.NgayPheDuyet else '',
+            'chu_ky': ky_nhay_rec.ChuKySo or '',
+            'ghi_chu': ky_nhay_rec.GhiChu or ''
+        }
+
+    is_giam_doc = request.user.is_authenticated and (request.user.is_giam_doc() or request.user.is_superuser)
+    is_truong_phong = request.user.is_authenticated and (request.user.is_department_head() or request.user.is_it_head())
+    user_pb_name = request.user.PhongBan.TenDonVi if (request.user.is_authenticated and request.user.PhongBan) else ''
+
     return JsonResponse({
         'status': 'success',
         'data': {
             'id': vb.VanBanDiID,
+            'da_ky_nhay': da_ky_nhay,
+            'thong_tin_ky_nhay': thong_tin_ky_nhay,
+            'user_role': {
+                'is_giam_doc': is_giam_doc,
+                'is_truong_phong': is_truong_phong,
+                'role_name': request.user.role_name if request.user.is_authenticated else '',
+                'user_name': request.user.HoTen or request.user.username if request.user.is_authenticated else '',
+                'phong_ban': user_pb_name,
+            },
             'phan_cong': pc_info,
             'so_ky_hieu': vb.SoKyHieu,
             'trich_yeu': vb.TrichYeu or '',
@@ -1677,6 +1710,7 @@ def api_vbdi_phe_duyet(request, pk):
 
             tieu_chi = data.get('tieu_chi')
             tieu_chi_log = ""
+            so_dat = 0
             if isinstance(tieu_chi, dict):
                 so_dat = tieu_chi.get('so_luong_dat', 0)
                 if so_dat == 4:
@@ -1684,21 +1718,56 @@ def api_vbdi_phe_duyet(request, pk):
                 elif so_dat > 0:
                     tieu_chi_log = f"Đã kiểm tra {so_dat}/4 tiêu chí hợp thức BPMN."
             
-            if action == 'dong_y':
+            if action == 'ky_nhay':
+                pd.TrangThaiDuyet = False  # Ký nháy là bước kiểm tra thông qua của cấp phòng, chưa phát hành
+                tieu_chi_str = f"Đã kiểm tra hợp thức đủ {so_dat}/4 tiêu chí BPMN (Thể thức, Nội dung, Thẩm quyền, Căn cứ pháp lý)." if so_dat == 4 else ""
+                ghi_chu_ky_nhay = f"[KÝ NHÁY - LÃNH ĐẠO ĐƠN VỊ] {tieu_chi_str}"
+                if ghi_chu:
+                    ghi_chu_ky_nhay += f" Ý kiến: {ghi_chu}"
+                pd.GhiChu = ghi_chu_ky_nhay.strip()
+                pd.save()
+
+                noi_dung_ls = f"Trưởng phòng {leader_name} đã kiểm tra 4 tiêu chí và KÝ NHÁY văn bản {vb.SoKyHieu}, chuyển trình Ban Giám đốc phê duyệt."
+                if ghi_chu:
+                    noi_dung_ls += f" Ý kiến: {ghi_chu}"
+
+                _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'KY_NHAY', noi_dung_ls, cu, vb.TrangThai)
+
+                # Gửi thông báo đến Ban Giám đốc
+                from web.models import UserAccount
+                giam_doc_users = UserAccount.objects.filter(is_superuser=True) | UserAccount.objects.filter(VaiTroID__ChucVu__icontains='Giám đốc')
+                for gd in giam_doc_users.distinct():
+                    if gd != request.user:
+                        ThongBao.objects.create(
+                            UserID=gd,
+                            VanBanDiID=vb,
+                            TieuDe=f"Văn bản {vb.SoKyHieu} đã được ký nháy, chờ phê duyệt",
+                            NoiDung=f"Trưởng phòng {leader_name} đã kiểm tra hợp thức và ký nháy văn bản: '{vb.TrichYeu}'. Kính trình Ban Giám đốc phê duyệt & ký số.",
+                            LoaiThongBao=ThongBao.LoaiThongBaoChoices.NHAC_NHO,
+                            LienKet=f'/xu-ly-van-ban/?tab=di&id={vb.VanBanDiID}'
+                        )
+
+                return JsonResponse({
+                    'status': 'success',
+                    'message': f"Đã ký nháy văn bản {vb.SoKyHieu} và chuyển trình Ban Giám đốc phê duyệt thành công!",
+                    'action': 'ky_nhay',
+                    'trang_thai': vb.TrangThai
+                })
+
+            elif action == 'dong_y':
                 pd.TrangThaiDuyet = True
                 vb.TrangThai = VanBanDi.TrangThaiChoices.DA_PHE_DUYET
                 vb.NgayPheDuyet = timezone.now()
-                noi_dung_ls = f"Phê duyệt văn bản {vb.SoKyHieu}."
+                noi_dung_ls = f"Ban Giám đốc ({leader_name}) đã phê duyệt và ký số chính thức văn bản {vb.SoKyHieu}."
                 if tieu_chi_log:
                     noi_dung_ls += f" {tieu_chi_log}"
                 if ghi_chu:
                     noi_dung_ls += f" Ý kiến chỉ đạo: {ghi_chu}"
-                if tieu_chi_log:
-                    pd.GhiChu = f"[{tieu_chi_log}] {ghi_chu}".strip() if ghi_chu else f"[{tieu_chi_log}]"
-                thong_bao_tieu_de = f"Văn bản {vb.SoKyHieu} đã được phê duyệt"
-                thong_bao_noi_dung = f"Lãnh đạo {leader_name} đã kiểm tra hợp thức hồ sơ và phê duyệt văn bản: '{vb.TrichYeu}'. Văn bản sẵn sàng phát hành."
+                pd.GhiChu = f"[KÝ SỐ CHÍNH THỨC - BAN GIÁM ĐỐC] {tieu_chi_log} {ghi_chu}".strip() if (tieu_chi_log or ghi_chu) else "[KÝ SỐ CHÍNH THỨC - BAN GIÁM ĐỐC]"
+                thong_bao_tieu_de = f"Văn bản {vb.SoKyHieu} đã được phê duyệt & ký số"
+                thong_bao_noi_dung = f"Ban Giám đốc {leader_name} đã ký số và phê duyệt văn bản: '{vb.TrichYeu}'. Văn bản sẵn sàng phát hành."
                 loai_tb = ThongBao.LoaiThongBaoChoices.HE_THONG
-                success_msg = f"Phê duyệt văn bản {vb.SoKyHieu} thành công!"
+                success_msg = f"Ban Giám đốc đã ký số và phê duyệt văn bản {vb.SoKyHieu} thành công!"
                 
             elif action == 'yeu_cau_chinh_sua':
                 if not ghi_chu:
@@ -3015,8 +3084,12 @@ def xu_ly_van_ban_index(request):
             ).values_list('VanBanDiID_id', flat=True)
             di_tasks = di_tasks.exclude(VanBanDiID__in=published_ids)
 
+        from .models import PheDuyet
+        ky_nhay_ids_xlvb = set(PheDuyet.objects.filter(GhiChu__contains='[KÝ NHÁY').values_list('VanBanDiID_id', flat=True))
+
         for doc in di_tasks.prefetch_related(pc_prefetch, ct_prefetch):
             doc.doc_type = 'di'
+            doc.da_ky_nhay = doc.pk in ky_nhay_ids_xlvb
             doc.ngay_sort = doc.NgayBanHanh or now
             pcs = list(doc.phancong_set.all())
             cts = list(doc.chuyentiep_set.all())

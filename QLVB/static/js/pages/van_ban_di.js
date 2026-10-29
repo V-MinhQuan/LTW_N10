@@ -442,6 +442,82 @@ function pheDuyetVanBan(btnOrId) {
         .then(res => {
             if (res.status === 'success' && res.data) {
                 const d = res.data;
+                _currentDocRole = d.user_role || {};
+
+                // Cập nhật Header & Giao diện thích ứng theo vai trò
+                const modalTitle = document.getElementById('pd_modal_title');
+                const roleBadge = document.getElementById('pd_modal_role_badge');
+                const btnXacNhan = document.getElementById('btnXacNhanPheDuyet');
+                const btnText = document.getElementById('btnXacNhanPheDuyetText');
+                const btnIcon = document.getElementById('btnXacNhanPheDuyetIcon');
+                const btnTem = document.getElementById('btnTaoTemKyNhay');
+                const sigLabel = document.getElementById('pd_sig_label');
+                const sigSublabel = document.getElementById('pd_sig_sublabel');
+                const sigPlText = document.getElementById('signature-placeholder-text');
+                const knInfoBox = document.getElementById('pd_ky_nhay_info_box');
+
+                const isGiamDoc = _currentDocRole.is_giam_doc;
+
+                // 1. Hiển thị thông tin Ký nháy nếu đã có
+                if (d.da_ky_nhay && d.thong_tin_ky_nhay && knInfoBox) {
+                    knInfoBox.style.display = 'block';
+                    const kn = d.thong_tin_ky_nhay;
+                    const elNguoi = document.getElementById('pd_kn_nguoi_ky');
+                    const elChucVu = document.getElementById('pd_kn_chuc_vu');
+                    const elNgay = document.getElementById('pd_kn_ngay_ky');
+                    const elGhiChu = document.getElementById('pd_kn_ghi_chu');
+                    const elImg = document.getElementById('pd_kn_signature_img');
+                    const elBadge = document.getElementById('pd_kn_stamp_badge');
+
+                    if (elNguoi) elNguoi.innerText = kn.nguoi_ky || 'Lãnh đạo đơn vị';
+                    if (elChucVu) elChucVu.innerText = (kn.chuc_vu || '') + (kn.phong_ban ? ' - ' + kn.phong_ban : '');
+                    if (elNgay) elNgay.innerText = kn.ngay_ky || '';
+                    if (elGhiChu) elGhiChu.innerText = kn.ghi_chu || 'Đã kiểm tra hợp thức đủ 4 tiêu chí';
+
+                    if (kn.chu_ky && kn.chu_ky.startsWith('data:image')) {
+                        if (elImg) {
+                            elImg.src = kn.chu_ky;
+                            elImg.style.display = 'inline-block';
+                        }
+                        if (elBadge) elBadge.style.display = 'none';
+                    } else {
+                        if (elImg) elImg.style.display = 'none';
+                        if (elBadge) elBadge.style.display = 'inline-block';
+                    }
+
+                    // Tự động tích chọn 4 tiêu chí vì Trưởng phòng đã kiểm tra hợp thức
+                    chonTatCaTieuChi(true);
+                } else if (knInfoBox) {
+                    knInfoBox.style.display = 'none';
+                }
+
+                // 2. Phân định vai trò Trưởng phòng vs Giám đốc
+                if (isGiamDoc) {
+                    if (modalTitle) modalTitle.innerText = "Phê duyệt & Ký số điện tử";
+                    if (roleBadge) {
+                        roleBadge.innerText = "BAN GIÁM ĐỐC";
+                        roleBadge.className = "status-pill pill-blue";
+                    }
+                    if (btnText) btnText.innerText = "Phê duyệt & Ký số";
+                    if (btnIcon) btnIcon.className = "fas fa-file-signature";
+                    if (btnTem) btnTem.style.display = "none";
+                    if (sigLabel) sigLabel.innerText = "Chữ ký số BGĐ";
+                    if (sigSublabel) sigSublabel.innerText = "Ký số điện tử chính thức";
+                    if (sigPlText) sigPlText.innerText = "Ban Giám đốc ký tên vào đây";
+                } else {
+                    if (modalTitle) modalTitle.innerText = "Kiểm duyệt & Ký nháy văn bản đi";
+                    if (roleBadge) {
+                        roleBadge.innerText = "TRƯỞNG PHÒNG";
+                        roleBadge.className = "status-pill pill-orange";
+                    }
+                    if (btnText) btnText.innerText = "Ký nháy & Trình Giám đốc";
+                    if (btnIcon) btnIcon.className = "fas fa-check-double";
+                    if (btnTem) btnTem.style.display = "inline-flex";
+                    if (sigLabel) sigLabel.innerText = "Chữ ký nháy";
+                    if (sigSublabel) sigSublabel.innerText = "Ký nháy xác nhận hồ sơ";
+                    if (sigPlText) sigPlText.innerText = "Ký nháy hoặc bấm Đóng tem ký nháy";
+                }
+
                 if (skhEl) skhEl.innerText = d.so_ky_hieu || 'Chưa có số';
                 if (loaiEl) loaiEl.innerText = d.loai_vb || 'Văn bản đi';
                 if (trichYeuEl) trichYeuEl.innerText = d.trich_yeu || 'Không có trích yếu';
@@ -545,6 +621,64 @@ function autoCapSoKyHieu(loaiVb) {
 }
 
 
+
+let _currentDocRole = {};
+
+function taoTemKyNhay() {
+    if (!_sigCanvas || !_sigCtx) return;
+    const w = _sigCanvas.width;
+    const h = _sigCanvas.height;
+
+    // Clear canvas
+    _sigCtx.clearRect(0, 0, w, h);
+
+    // Background subtle tint
+    _sigCtx.fillStyle = "#f8fafc";
+    _sigCtx.fillRect(10, 10, w - 20, h - 20);
+
+    // Outer double border
+    _sigCtx.strokeStyle = "#1d4ed8";
+    _sigCtx.lineWidth = 2;
+    _sigCtx.strokeRect(10, 10, w - 20, h - 20);
+
+    // Inner dashed line
+    _sigCtx.save();
+    _sigCtx.setLineDash([4, 3]);
+    _sigCtx.strokeStyle = "#60a5fa";
+    _sigCtx.lineWidth = 1;
+    _sigCtx.strokeRect(14, 14, w - 28, h - 28);
+    _sigCtx.restore();
+
+    // Texts
+    _sigCtx.fillStyle = "#1e3a8a";
+    _sigCtx.textAlign = "center";
+    _sigCtx.textBaseline = "middle";
+
+    _sigCtx.font = "bold 13px 'Segoe UI', Arial, sans-serif";
+    _sigCtx.fillText("✓ ĐÃ KIỂM TRA HỢP THỨC (NĐ 30/2020)", w / 2, 35);
+
+    let roleName = (_currentDocRole && _currentDocRole.role_name) ? _currentDocRole.role_name.toUpperCase() : "LÃNH ĐẠO ĐƠN VỊ";
+    let userName = (_currentDocRole && _currentDocRole.user_name) ? _currentDocRole.user_name : "Ký nháy";
+    let pbName = (_currentDocRole && _currentDocRole.phong_ban) ? (" - " + _currentDocRole.phong_ban) : "";
+
+    _sigCtx.font = "bold 12px 'Segoe UI', Arial, sans-serif";
+    _sigCtx.fillStyle = "#0284c7";
+    _sigCtx.fillText(roleName + pbName, w / 2, 65);
+
+    _sigCtx.font = "italic 12px 'Segoe UI', Arial, sans-serif";
+    _sigCtx.fillStyle = "#334155";
+    _sigCtx.fillText("Họ tên: " + userName, w / 2, 90);
+
+    let nowStr = new Date().toLocaleDateString('vi-VN');
+    _sigCtx.font = "11px 'Segoe UI', Arial, sans-serif";
+    _sigCtx.fillStyle = "#64748b";
+    _sigCtx.fillText("Ngày ký nháy: " + nowStr, w / 2, 115);
+
+    // Hide placeholder
+    const placeholder = document.getElementById('signature-placeholder');
+    if (placeholder) placeholder.style.display = 'none';
+}
+
 // --- BẢNG KIỂM TRA HỢP THỨC HỒ SƠ VĂN BẢN (4 TIÊU CHÍ THEO BPMN) ---
 function resetTieuChiChecklist() {
     const chkTheThuc = document.getElementById('pd_chk_the_thuc');
@@ -637,13 +771,21 @@ function xacNhanPheDuyet(action) {
         if (_sigCanvas.toDataURL() !== blank.toDataURL()) isEmpty = false;
     }
 
+    let effectiveAction = action;
     if (action === 'dong_y') {
+        const isGiamDoc = _currentDocRole && _currentDocRole.is_giam_doc;
+        if (!isGiamDoc) {
+            effectiveAction = 'ky_nhay';
+        }
+    }
+
+    if (effectiveAction === 'dong_y' || effectiveAction === 'ky_nhay') {
         if (countTieuChi < 4) {
-            App.showAlert("Hồ sơ chưa đạt đủ 4 tiêu chí kiểm tra hợp thức theo quy trình BPMN (Thể thức, Nội dung, Thẩm quyền, Căn cứ pháp lý). Vui lòng kiểm tra và tích xác nhận đầy đủ 4 tiêu chí trước khi phê duyệt.");
+            App.showAlert("Hồ sơ chưa đạt đủ 4 tiêu chí kiểm tra hợp thức theo quy trình BPMN (Thể thức, Nội dung, Thẩm quyền, Căn cứ pháp lý). Vui lòng kiểm tra và tích xác nhận đầy đủ 4 tiêu chí trước khi " + (effectiveAction === 'ky_nhay' ? "ký nháy." : "phê duyệt."));
             return;
         }
         if (isEmpty) {
-            App.showAlert("Vui lòng ký tên vào ô chữ ký số trước khi phê duyệt.");
+            App.showAlert("Vui lòng ký tên hoặc đóng tem ký nháy trước khi xác nhận.");
             return;
         }
     } else if (action === 'yeu_cau_chinh_sua') {
@@ -677,8 +819,8 @@ function xacNhanPheDuyet(action) {
     }
 
     let data = {
-        action: action,
-        chap_nhan: (action === 'dong_y'),
+        action: effectiveAction,
+        chap_nhan: (effectiveAction === 'dong_y' || effectiveAction === 'ky_nhay'),
         ghi_chu: ghiChu,
         chu_ky_so: (action === 'dong_y' && !isEmpty) ? chuKy : '',
         tieu_chi: {
@@ -699,7 +841,10 @@ function xacNhanPheDuyet(action) {
     .then(res => {
         if (res.status === 'success') {
             closeVBD('popupPheDuyet');
-            let successMsg = res.message || (action === 'dong_y' ? 'Phê duyệt văn bản thành công!' : 'Đã gửi phản hồi thành công!');
+            let defaultSuccess = (effectiveAction === 'ky_nhay') 
+                ? 'Đã ký nháy văn bản và chuyển trình Ban Giám đốc thành công!'
+                : (effectiveAction === 'dong_y' ? 'Phê duyệt văn bản thành công!' : 'Đã gửi phản hồi thành công!');
+            let successMsg = res.message || defaultSuccess;
             App.showSuccess(successMsg, () => {
                 window.location.reload();
             });
