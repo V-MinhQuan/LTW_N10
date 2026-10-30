@@ -907,8 +907,8 @@ def api_vbd_chuyen_tiep_giam_doc(request, pk=None):
         if not request.user.can_perform_action('xem', vbd):
             return JsonResponse({'status': 'error', 'message': 'Bạn không có quyền chuyển tiếp văn bản này!'}, status=403)
 
-        # Lấy danh sách Giám đốc trong hệ thống
-        giam_doc_list = list(UserAccount.objects.filter(
+        # Lấy danh sách Giám đốc trong hệ thống (loại trừ tài khoản Admin kỹ thuật)
+        giam_doc_list = list(UserAccount.get_operational_users().filter(
             Q(VaiTroID__ChucVu__icontains='Giám đốc') | Q(is_superuser=True)
         ).exclude(VaiTroID__ChucVu__icontains='Trưởng phòng').distinct())
 
@@ -987,10 +987,10 @@ def api_vbd_thong_tin_xin_y_kien(request):
     if is_tp:
         target_type = 'GIAM_DOC'
         target_type_label = 'Ban Giám đốc'
-        # Trưởng phòng chuyển lên Giám đốc
-        gds = UserAccount.objects.filter(
+        # Trưởng phòng chuyển lên Giám đốc (loại trừ tài khoản Admin kỹ thuật)
+        gds = UserAccount.get_operational_users().filter(
             Q(VaiTroID__ChucVu__icontains='Giám đốc') | Q(is_superuser=True)
-        ).exclude(VaiTroID__ChucVu__icontains='Trưởng phòng').exclude(username='admin_temp').distinct()
+        ).exclude(VaiTroID__ChucVu__icontains='Trưởng phòng').distinct()
 
         for gd in gds:
             recipients_data.append({
@@ -1002,10 +1002,8 @@ def api_vbd_thong_tin_xin_y_kien(request):
     elif is_nv:
         target_type = 'TRUONG_PHONG'
         target_type_label = 'Trưởng phòng'
-        # Nhân viên gửi đến Trưởng phòng cùng phòng ban
-        tps = UserAccount.objects.filter(
-            Q(PhongBan=user.PhongBan) | Q(VaiTroID__PhongBan=user.PhongBan)
-        ).filter(
+        # Nhân viên gửi đến Trưởng phòng cùng phòng ban (loại trừ tài khoản Admin)
+        tps = UserAccount.get_operational_users(phong_ban=user.PhongBan).filter(
             Q(VaiTroID__ChucVu__startswith='Trưởng phòng') | Q(VaiTroID__ChucVu__icontains='Trưởng phòng')
         ).distinct()
 
@@ -1021,9 +1019,9 @@ def api_vbd_thong_tin_xin_y_kien(request):
         if not recipients_data:
             target_type = 'GIAM_DOC'
             target_type_label = 'Ban Giám đốc (do phòng ban chưa có Trưởng phòng)'
-            gds = UserAccount.objects.filter(
+            gds = UserAccount.get_operational_users().filter(
                 Q(VaiTroID__ChucVu__icontains='Giám đốc') | Q(is_superuser=True)
-            ).exclude(VaiTroID__ChucVu__icontains='Trưởng phòng').exclude(username='admin_temp').distinct()
+            ).exclude(VaiTroID__ChucVu__icontains='Trưởng phòng').distinct()
             for gd in gds:
                 recipients_data.append({
                     'id': gd.UserID,
@@ -1255,10 +1253,10 @@ def van_ban_di_index(request):
         vb.da_ky_nhay = vb.pk in ky_nhay_ids
 
     is_manager = is_tgd(request.user) or is_tp_it(request.user) or is_truong_phong(request.user)
-    if is_tgd(request.user) or is_tp_it(request.user):
-        danh_sach_nhan_vien = UserAccount.objects.filter(is_active=True).select_related('PhongBan').order_by('PhongBan__TenDonVi', 'HoTen')
-    elif is_truong_phong(request.user):
-        danh_sach_nhan_vien = UserAccount.objects.filter(is_active=True, PhongBan=request.user.PhongBan).select_related('PhongBan').order_by('HoTen')
+    if is_tgd(request.user) or is_tp_it(request.user) or request.user.is_superuser:
+        danh_sach_nhan_vien = UserAccount.get_operational_users().select_related('PhongBan').order_by('PhongBan__TenDonVi', 'HoTen')
+    elif is_truong_phong(request.user) and request.user.PhongBan:
+        danh_sach_nhan_vien = UserAccount.get_operational_users(phong_ban=request.user.PhongBan).select_related('PhongBan').order_by('HoTen')
     else:
         danh_sach_nhan_vien = UserAccount.objects.none()
 
@@ -1735,7 +1733,9 @@ def api_vbdi_phe_duyet(request, pk):
 
                 # Gửi thông báo đến Ban Giám đốc
                 from web.models import UserAccount
-                giam_doc_users = UserAccount.objects.filter(is_superuser=True) | UserAccount.objects.filter(VaiTroID__ChucVu__icontains='Giám đốc')
+                giam_doc_users = UserAccount.get_operational_users().filter(
+                    Q(VaiTroID__ChucVu__icontains='Giám đốc') | Q(is_superuser=True)
+                ).distinct()
                 for gd in giam_doc_users.distinct():
                     if gd != request.user:
                         ThongBao.objects.create(
@@ -1778,7 +1778,7 @@ def api_vbdi_phe_duyet(request, pk):
                 tp_users = []
                 if target_pb:
                     from web.models import UserAccount
-                    tp_users = list(UserAccount.objects.filter(PhongBan=target_pb, VaiTroID__ChucVu__icontains='Trưởng phòng'))
+                    tp_users = list(UserAccount.get_operational_users(phong_ban=target_pb).filter(VaiTroID__ChucVu__icontains='Trưởng phòng'))
                 if not tp_users and vb.NguoiGui:
                     tp_users = [vb.NguoiGui]
 
@@ -2571,6 +2571,17 @@ def api_nguoi_dung_list(request):
         'UserID'
     )
 
+    exclude_admin = request.GET.get('exclude_admin')
+    for_select = request.GET.get('for_select')
+    if exclude_admin in ['1', 'true', 'True'] or for_select in ['1', 'true', 'True']:
+        users = users.exclude(
+            Q(username__icontains='admin') |
+            Q(HoTen__icontains='Admin') |
+            Q(HoTen__icontains='Quản trị') |
+            Q(VaiTroID__ChucVu__icontains='Admin') |
+            Q(VaiTroID__ChucVu__icontains='Quản trị')
+        )
+
     if user_id:
         users = users.filter(UserID=user_id)
     if query_username:
@@ -3173,7 +3184,7 @@ def xu_ly_van_ban_index(request):
     page_obj = paginator.get_page(page_number)
 
     # 7. Lấy dữ liệu Alert Box (Cảnh báo)
-    danh_sach_nguoi_dung = UserAccount.objects.only('UserID', 'HoTen').all()
+    danh_sach_nguoi_dung = UserAccount.get_operational_users().only('UserID', 'HoTen').order_by('HoTen')
     coming_soon_list = list(PhanCong.objects.filter(
         UserID=user,
         HanXuLy__date__range=[today, today + timedelta(days=5)]
@@ -4112,9 +4123,9 @@ def quan_ly_tien_do_index(request):
     # 7. Danh sách phòng ban và người dùng để lọc / điều chuyển
     don_vi_list = DonViBenTrong.objects.all().order_by('SoThuTu')
     if is_truong_phong(user) and user.PhongBan:
-        user_assign_list = UserAccount.objects.filter(PhongBan=user.PhongBan, trang_thai='ACTIVE').only('UserID', 'HoTen')
+        user_assign_list = UserAccount.get_operational_users(phong_ban=user.PhongBan).only('UserID', 'HoTen').order_by('HoTen')
     else:
-        user_assign_list = UserAccount.objects.filter(trang_thai='ACTIVE').only('UserID', 'HoTen')
+        user_assign_list = UserAccount.get_operational_users().only('UserID', 'HoTen').order_by('HoTen')
 
     context = {
         'page_obj': page_obj,

@@ -1224,7 +1224,7 @@ function loadUsersByDept(deptId, targetSelectId, selectedValue = null) {
     select.innerHTML = '<option value="">--- Chọn người xử lý ---</option>';
     if (!deptId) return;
 
-    fetch(`/api/nguoi-dung/list/?dept=${deptId}&page_size=all`)
+    fetch(`/api/nguoi-dung/list/?dept=${deptId}&page_size=all&exclude_admin=1`)
         .then(r => r.json())
         .then(res => {
             if (res.status === 'success' && res.data) {

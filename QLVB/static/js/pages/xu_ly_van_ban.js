@@ -161,7 +161,7 @@ function initChoices(elementId, placeholder) {
 
 async function loadUsersToChoices(instance) {
     try {
-        const response = await fetch('/api/nguoi-dung/list/?page_size=all');
+        const response = await fetch('/api/nguoi-dung/list/?page_size=all&exclude_admin=1');
         const result = await response.json();
         if (result.status === 'success') {
             const choices = result.data.map(u => ({

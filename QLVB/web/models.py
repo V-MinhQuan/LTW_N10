@@ -30,7 +30,38 @@ class UserAccount(AbstractUser):
     def role_name(self):
         return self.VaiTroID.ChucVu if self.VaiTroID else ""
 
+    @property
+    def is_admin_account(self):
+        name = (self.HoTen or '').lower()
+        uname = (self.username or '').lower()
+        role = (self.role_name or '').lower()
+        return 'admin' in uname or 'admin' in name or 'quản trị' in name or 'admin' in role or 'quản trị' in role
+
+    @classmethod
+    def get_operational_users(cls, phong_ban=None, is_active=True):
+        """
+        Lấy danh sách người dùng nghiệp vụ (tự động loại trừ các tài khoản quản trị hệ thống / admin).
+        """
+        from django.db.models import Q
+        qs = cls.objects.all()
+        if is_active:
+            qs = qs.filter(Q(is_active=True) & (Q(trang_thai='ACTIVE') | Q(trang_thai__isnull=True)))
+
+        # Loại trừ tài khoản Admin / Quản trị viên
+        qs = qs.exclude(
+            Q(username__icontains='admin') |
+            Q(HoTen__icontains='Admin') |
+            Q(HoTen__icontains='Quản trị') |
+            Q(VaiTroID__ChucVu__icontains='Admin') |
+            Q(VaiTroID__ChucVu__icontains='Quản trị')
+        )
+        if phong_ban:
+            qs = qs.filter(PhongBan=phong_ban)
+        return qs
+
     def is_giam_doc(self):
+        if self.is_admin_account:
+            return False
         return self.role_name == "Tổng giám đốc" or 'Giám đốc' in self.role_name or self.is_superuser
 
     def is_it_head(self):
