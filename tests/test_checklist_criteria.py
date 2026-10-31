@@ -10,7 +10,7 @@ django.setup()
 
 from django.test import Client
 from django.utils import timezone
-from web.models import UserAccount, VanBanDi, PheDuyet, LichSuHoatDong, ThongBao, VaiTro
+from web.models import UserAccount, VanBanDi, VanBanDen, PheDuyet, LichSuHoatDong, ThongBao, VaiTro
 
 def run_tests():
     print("=== TESTING 4 CRITERIA CHECKLIST (BPMN COMPLIANCE) ===")
@@ -132,8 +132,12 @@ def run_tests():
         print(f"[PASS] JS validation logic verified in {js_path}")
 
     # Clean up test objects
+    vb_pks = [vb.pk, vb2.pk]
     vb.delete()
     vb2.delete()
+    VanBanDen.objects.filter(SoKyHieu__in=['TEST-BPMN-001', 'TEST-BPMN-002']).delete()
+    LichSuHoatDong.objects.filter(DoiTuongID__in=vb_pks, LoaiDoiTuong='VanBanDi').delete()
+    ThongBao.objects.filter(VanBanDiID__in=vb_pks).delete()
     print("=== ALL TESTS PASSED SUCCESSFULLY! ===")
 
 if __name__ == '__main__':
