@@ -105,4 +105,15 @@ urlpatterns = [
     path('api/ngoai-le/thu-lai-tat-ca/', views.api_ngoai_le_thu_lai_tat_ca, name='api_ngoai_le_thu_lai_tat_ca'),
     path('api/ngoai-le/<int:pk>/huy/', views.api_ngoai_le_huy, name='api_ngoai_le_huy'),
 
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+else:
+    from django.urls import re_path
+    from django.views.static import serve
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+        re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
+    ]

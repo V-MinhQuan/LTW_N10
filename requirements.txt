@@ -1,12 +1,15 @@
 # ==============================================================================
 # HỆ THỐNG QUẢN LÝ VĂN BẢN & ĐIỀU HÀNH CÔNG VIỆC - VIETASIA TRAVEL (QLVB)
-# Python Dependencies Requirements
+# Python Dependencies Requirements (Compatible with Vercel & Production)
 # ==============================================================================
 
 # Core Django Framework
 Django>=5.0.0,<6.0.0
 
-# Database Driver (PostgreSQL / Supabase)
+# Production Static Files Management
+whitenoise>=6.6.0
+
+# Database Driver (PostgreSQL / Supabase / Neon)
 psycopg2-binary>=2.9.9
 
 # Environment Variables Management
@@ -17,8 +20,8 @@ python-docx>=1.1.2
 pypdf>=5.0.0
 Pillow>=10.4.0
 
-# Computer Vision & Image Processing (OCR preprocessing)
-opencv-python>=4.10.0
+# Headless Computer Vision (Serverless compatible)
+opencv-python-headless>=4.10.0
 
 # Artificial Intelligence & Multi-Provider LLM Integration
 google-genai>=1.0.0

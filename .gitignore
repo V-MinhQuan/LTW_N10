@@ -16,8 +16,9 @@ env/
 
 # Django
 db.sqlite3
-/media
-/staticfiles
+media/
+staticfiles/
+**/staticfiles/
 
 # IDE
 .idea/
