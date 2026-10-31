@@ -1,0 +1,16 @@
+# Exclude media files (User-uploaded PDFs/docs that bloat serverless function bundle)
+media/
+QLVB/media/
+
+# Exclude documentation, project reports & tests
+Bao_Cao_Du_An_TP3.2_MIS3047_Vietasia_Travel.docx
+tests/
+scratch/
+*.docx
+*.pdf
+*.xlsx
+.idea/
+.venv/
+__pycache__/
+*.pyc
+
