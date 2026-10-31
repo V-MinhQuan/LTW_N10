@@ -168,6 +168,7 @@ function xemChiTiet(btn) {
             document.getElementById("ct_nguoisoan").value = d.nguoi_soan;
             document.getElementById("ct_ngay").value = d.ngay_ban_hanh;
             document.getElementById("ct_trangthai").value = d.trang_thai;
+            _renderFile(document.getElementById('ct_tham_khao_section'), document.getElementById('ct_no_tham_khao'), d.tai_lieu_tham_khao, false);
             _renderFile(document.getElementById('ct_file_section'), document.getElementById('ct_no_file'), d.tep_dinh_kem, false);
 
             // Render lịch sử xử lý
@@ -339,6 +340,19 @@ function suaVanBan(btn) {
                 }
             }
 
+            // Hiển thị tài liệu tham khảo từ Lãnh đạo nếu có
+            const tkContainer = document.getElementById('edit_tham_khao_container');
+            const tkSection = document.getElementById('edit_tham_khao_section');
+            if (tkContainer && tkSection) {
+                if (d.tai_lieu_tham_khao) {
+                    tkContainer.style.display = 'block';
+                    _renderFile(tkSection, { style: {} }, d.tai_lieu_tham_khao, false);
+                } else {
+                    tkContainer.style.display = 'none';
+                    tkSection.innerHTML = '';
+                }
+            }
+
             _renderFile(document.getElementById('edit_file_section'), document.getElementById('edit_no_file'), d.tep_dinh_kem);
             document.getElementById('edit_xoa_file').value = '0'; // reset flag
             openVBD('modalEdit');
@@ -505,16 +519,16 @@ function pheDuyetVanBan(btnOrId) {
                     if (sigSublabel) sigSublabel.innerText = "Ký số điện tử chính thức";
                     if (sigPlText) sigPlText.innerText = "Ban Giám đốc ký tên vào đây";
                 } else {
-                    if (modalTitle) modalTitle.innerText = "Kiểm duyệt & Ký nháy văn bản đi";
+                    if (modalTitle) modalTitle.innerText = "Tổng hợp & Trình duyệt văn bản lên Ban Giám đốc";
                     if (roleBadge) {
-                        roleBadge.innerText = "TRƯỞNG PHÒNG";
+                        roleBadge.innerText = "TRƯỞNG PHÒNG TỔNG HỢP & TRÌNH DUYỆT";
                         roleBadge.className = "status-pill pill-orange";
                     }
-                    if (btnText) btnText.innerText = "Ký nháy & Trình Giám đốc";
-                    if (btnIcon) btnIcon.className = "fas fa-check-double";
+                    if (btnText) btnText.innerText = "Tổng hợp & Trình Giám đốc";
+                    if (btnIcon) btnIcon.className = "fas fa-paper-plane";
                     if (btnTem) btnTem.style.display = "inline-flex";
-                    if (sigLabel) sigLabel.innerText = "Chữ ký nháy";
-                    if (sigSublabel) sigSublabel.innerText = "Ký nháy xác nhận hồ sơ";
+                    if (sigLabel) sigLabel.innerText = "Ký nháy / Xác nhận";
+                    if (sigSublabel) sigSublabel.innerText = "Kiểm tra 4 tiêu chí & Ký nháy trình duyệt";
                     if (sigPlText) sigPlText.innerText = "Ký nháy hoặc bấm Đóng tem ký nháy";
                 }
 
@@ -681,40 +695,40 @@ function taoTemKyNhay() {
 
 // --- BẢNG KIỂM TRA HỢP THỨC HỒ SƠ VĂN BẢN (4 TIÊU CHÍ THEO BPMN) ---
 function resetTieuChiChecklist() {
-    const chkTheThuc = document.getElementById('pd_chk_the_thuc');
     const chkNoiDung = document.getElementById('pd_chk_noi_dung');
-    const chkThamQuyen = document.getElementById('pd_chk_tham_quyen');
     const chkCanCu = document.getElementById('pd_chk_can_cu');
-    if (chkTheThuc) chkTheThuc.checked = false;
+    const chkKhaThi = document.getElementById('pd_chk_kha_thi');
+    const chkHoSo = document.getElementById('pd_chk_ho_so');
     if (chkNoiDung) chkNoiDung.checked = false;
-    if (chkThamQuyen) chkThamQuyen.checked = false;
     if (chkCanCu) chkCanCu.checked = false;
+    if (chkKhaThi) chkKhaThi.checked = false;
+    if (chkHoSo) chkHoSo.checked = false;
     capNhatTrangThaiTieuChi();
 }
 
 function chonTatCaTieuChi(val) {
-    const chkTheThuc = document.getElementById('pd_chk_the_thuc');
     const chkNoiDung = document.getElementById('pd_chk_noi_dung');
-    const chkThamQuyen = document.getElementById('pd_chk_tham_quyen');
     const chkCanCu = document.getElementById('pd_chk_can_cu');
-    if (chkTheThuc) chkTheThuc.checked = !!val;
+    const chkKhaThi = document.getElementById('pd_chk_kha_thi');
+    const chkHoSo = document.getElementById('pd_chk_ho_so');
     if (chkNoiDung) chkNoiDung.checked = !!val;
-    if (chkThamQuyen) chkThamQuyen.checked = !!val;
     if (chkCanCu) chkCanCu.checked = !!val;
+    if (chkKhaThi) chkKhaThi.checked = !!val;
+    if (chkHoSo) chkHoSo.checked = !!val;
     capNhatTrangThaiTieuChi();
 }
 
 function capNhatTrangThaiTieuChi() {
-    const chkTheThuc = document.getElementById('pd_chk_the_thuc');
     const chkNoiDung = document.getElementById('pd_chk_noi_dung');
-    const chkThamQuyen = document.getElementById('pd_chk_tham_quyen');
     const chkCanCu = document.getElementById('pd_chk_can_cu');
+    const chkKhaThi = document.getElementById('pd_chk_kha_thi');
+    const chkHoSo = document.getElementById('pd_chk_ho_so');
 
     let count = 0;
-    if (chkTheThuc && chkTheThuc.checked) count++;
     if (chkNoiDung && chkNoiDung.checked) count++;
-    if (chkThamQuyen && chkThamQuyen.checked) count++;
     if (chkCanCu && chkCanCu.checked) count++;
+    if (chkKhaThi && chkKhaThi.checked) count++;
+    if (chkHoSo && chkHoSo.checked) count++;
 
     const statusBox = document.getElementById('pd_tieu_chi_status_box');
     const icon = document.getElementById('pd_tieu_chi_icon');
@@ -729,15 +743,15 @@ function capNhatTrangThaiTieuChi() {
             statusBox.style.borderColor = '#a7f3d0';
             statusBox.style.color = '#065f46';
             if (icon) icon.className = 'fas fa-check-circle';
-            if (msg) msg.innerText = '✅ Hồ sơ hợp thức đủ 4/4 tiêu chí. Sẵn sàng phê duyệt & ký số.';
+            if (msg) msg.innerText = '✅ Hồ sơ đạt đủ 4/4 tiêu chí thẩm định (Nội dung, Căn cứ pháp lý, Tính khả thi, Hồ sơ hoàn thiện). Sẵn sàng xác nhận.';
         } else {
             statusBox.style.background = '#fffbeb';
             statusBox.style.borderColor = '#fde68a';
             statusBox.style.color = '#b45309';
             if (icon) icon.className = 'fas fa-exclamation-triangle';
             if (msg) msg.innerText = count === 0
-                ? 'Chưa xác nhận tiêu chí hợp thức nào (0/4). Vui lòng kiểm tra hồ sơ và tích chọn.'
-                : 'Hồ sơ chưa đạt đủ 4 tiêu chí (' + count + '/4). Nếu không hợp thức, hãy chọn "Yêu cầu chỉnh sửa".';
+                ? 'Chưa xác nhận tiêu chí thẩm định nào (0/4). Vui lòng rà soát dự thảo và tích chọn.'
+                : 'Dự thảo chưa đạt đủ 4 tiêu chí (' + count + '/4). Nếu cần sửa đổi, hãy chọn "Yêu cầu chỉnh sửa".';
         }
     }
 }
@@ -751,16 +765,16 @@ function xacNhanPheDuyet(action) {
     let ghiChuEl = document.getElementById('pd_ghichu');
     let ghiChu = ghiChuEl ? ghiChuEl.value.trim() : '';
 
-    const chkTheThuc = document.getElementById('pd_chk_the_thuc');
     const chkNoiDung = document.getElementById('pd_chk_noi_dung');
-    const chkThamQuyen = document.getElementById('pd_chk_tham_quyen');
     const chkCanCu = document.getElementById('pd_chk_can_cu');
+    const chkKhaThi = document.getElementById('pd_chk_kha_thi');
+    const chkHoSo = document.getElementById('pd_chk_ho_so');
 
     let countTieuChi = 0;
-    if (chkTheThuc && chkTheThuc.checked) countTieuChi++;
     if (chkNoiDung && chkNoiDung.checked) countTieuChi++;
-    if (chkThamQuyen && chkThamQuyen.checked) countTieuChi++;
     if (chkCanCu && chkCanCu.checked) countTieuChi++;
+    if (chkKhaThi && chkKhaThi.checked) countTieuChi++;
+    if (chkHoSo && chkHoSo.checked) countTieuChi++;
 
     let chuKy = _sigCanvas ? _sigCanvas.toDataURL() : '';
     let isEmpty = true;
@@ -781,7 +795,7 @@ function xacNhanPheDuyet(action) {
 
     if (effectiveAction === 'dong_y' || effectiveAction === 'ky_nhay') {
         if (countTieuChi < 4) {
-            App.showAlert("Hồ sơ chưa đạt đủ 4 tiêu chí kiểm tra hợp thức theo quy trình BPMN (Thể thức, Nội dung, Thẩm quyền, Căn cứ pháp lý). Vui lòng kiểm tra và tích xác nhận đầy đủ 4 tiêu chí trước khi " + (effectiveAction === 'ky_nhay' ? "ký nháy." : "phê duyệt."));
+            App.showAlert("Dự thảo chưa đạt đủ 4 tiêu chí thẩm định (Nội dung chuyên môn, Căn cứ pháp lý & quy chế, Tính khả thi vận hành, Hồ sơ hoàn thiện). Vui lòng rà soát và tích xác nhận đầy đủ 4 tiêu chí trước khi " + (effectiveAction === 'ky_nhay' ? "ký nháy trình duyệt." : "phê duyệt."));
             return;
         }
         if (isEmpty) {
@@ -790,10 +804,10 @@ function xacNhanPheDuyet(action) {
         }
     } else if (action === 'yeu_cau_chinh_sua') {
         let unchecked = [];
-        if (chkTheThuc && !chkTheThuc.checked) unchecked.push("1. Thể thức & Kỹ thuật trình bày chưa đạt chuẩn Nghị định 30/2020/NĐ-CP");
-        if (chkNoiDung && !chkNoiDung.checked) unchecked.push("2. Nội dung văn bản chưa đạt yêu cầu hoặc có mâu thuẫn số liệu");
-        if (chkThamQuyen && !chkThamQuyen.checked) unchecked.push("3. Thẩm quyền ban hành chưa phù hợp");
-        if (chkCanCu && !chkCanCu.checked) unchecked.push("4. Căn cứ pháp lý chưa đầy đủ hoặc chưa chính xác");
+        if (chkNoiDung && !chkNoiDung.checked) unchecked.push("1. Nội dung văn bản hoặc số liệu chuyên môn chưa chính xác, chưa đạt yêu cầu");
+        if (chkCanCu && !chkCanCu.checked) unchecked.push("2. Căn cứ pháp lý hoặc quy định nội bộ công ty chưa phù hợp");
+        if (chkKhaThi && !chkKhaThi.checked) unchecked.push("3. Phương án chưa đảm bảo tính khả thi, nhân lực hoặc chi phí thực thi");
+        if (chkHoSo && !chkHoSo.checked) unchecked.push("4. Hồ sơ dự thảo chưa tiếp thu đầy đủ chỉ đạo hoặc thiếu tài liệu căn cứ");
 
         if (unchecked.length > 0 && !ghiChu) {
             let templateGhiChu = "Yêu cầu chỉnh sửa các tiêu chí chưa đạt:\n- " + unchecked.join("\n- ");
@@ -824,10 +838,10 @@ function xacNhanPheDuyet(action) {
         ghi_chu: ghiChu,
         chu_ky_so: (action === 'dong_y' && !isEmpty) ? chuKy : '',
         tieu_chi: {
-            the_thuc: chkTheThuc ? chkTheThuc.checked : false,
             noi_dung: chkNoiDung ? chkNoiDung.checked : false,
-            tham_quyen: chkThamQuyen ? chkThamQuyen.checked : false,
             can_cu: chkCanCu ? chkCanCu.checked : false,
+            kha_thi: chkKhaThi ? chkKhaThi.checked : false,
+            ho_so: chkHoSo ? chkHoSo.checked : false,
             so_luong_dat: countTieuChi
         }
     };
@@ -951,7 +965,7 @@ function capNhatTrangThaiPhatHanh() {
             statusBox.style.borderColor = '#a7f3d0';
             statusBox.style.color = '#065f46';
             if (icon) icon.className = 'fas fa-check-circle';
-            if (msg) msg.innerText = '✅ Đủ 4/4 điều kiện phát hành theo BPMN. Sẵn sàng phát hành văn bản.';
+            if (msg) msg.innerText = '✅ Đủ 4/4 điều kiện phát hành theo quy định văn thư. Sẵn sàng phát hành văn bản.';
         } else {
             statusBox.style.background = '#fffbeb';
             statusBox.style.borderColor = '#fde68a';
@@ -959,7 +973,7 @@ function capNhatTrangThaiPhatHanh() {
             if (icon) icon.className = 'fas fa-exclamation-triangle';
             if (msg) msg.innerText = count === 0
                 ? 'Chưa xác nhận đủ 4 điều kiện phát hành. Vui lòng kiểm tra và tích chọn.'
-                : 'Chưa đủ 4 điều kiện phát hành (' + count + '/4). Nếu thiếu tài liệu hoặc thông tin, chọn "Bổ sung / Cập nhật hồ sơ".';
+                : 'Chưa đủ 4 điều kiện phát hành (' + count + '/4). Nếu thiếu thông tin văn thư, chọn "Bổ sung / Cập nhật hồ sơ".';
         }
     }
 }
@@ -1072,7 +1086,7 @@ function xacNhanPhatHanh() {
     if (chkBenNhan && chkBenNhan.checked) countPh++;
 
     if (countPh < 4) {
-        App.showAlert("Văn bản chưa đủ 4 điều kiện phát hành theo quy trình BPMN (Chữ ký/Số/Ngày, Phụ lục tệp đính kèm, Thể thức định dạng, Thông tin bên nhận). Vui lòng kiểm tra và tích xác nhận đầy đủ 4 điều kiện hoặc bấm 'Bổ sung / Cập nhật hồ sơ'.");
+        App.showAlert("Văn bản chưa đủ 4 điều kiện phát hành theo quy trình văn thư (Chữ ký số BGĐ, Cấp số sổ văn bản đi, Đóng dấu số & định dạng PDF, Nơi nhận phân phối). Vui lòng kiểm tra và tích xác nhận đầy đủ 4 điều kiện hoặc bấm 'Bổ sung / Cập nhật hồ sơ'.");
         return;
     }
 

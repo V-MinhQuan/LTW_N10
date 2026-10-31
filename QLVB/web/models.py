@@ -122,13 +122,10 @@ class UserAccount(AbstractUser):
                 if not obj:
                     return True
                 if hasattr(obj, 'VanBanDiID') or hasattr(obj, 'SoKyHieu'):
-                    # Quy tắc 1: Không được tự phê duyệt/phát hành văn bản do chính mình tạo
-                    if hasattr(obj, 'NguoiGui') and obj.NguoiGui == self:
-                        return False
-                    # Quy tắc 2: Chỉ được phê duyệt/phát hành văn bản thuộc phòng IT
                     nguoi_gui_pb = obj.NguoiGui.PhongBan if (hasattr(obj, 'NguoiGui') and obj.NguoiGui) else None
                     user_id_pb = obj.UserID.PhongBan if (hasattr(obj, 'UserID') and obj.UserID) else None
-                    if nguoi_gui_pb == self.PhongBan or user_id_pb == self.PhongBan:
+                    don_vi_gui = getattr(obj, 'DonViGuiID', None)
+                    if nguoi_gui_pb == self.PhongBan or user_id_pb == self.PhongBan or don_vi_gui == self.PhongBan:
                         return True
                 return False
             # Các action khác: TP IT toàn quyền
@@ -140,10 +137,6 @@ class UserAccount(AbstractUser):
                 if not obj:
                     return True
                 if hasattr(obj, 'VanBanDiID') or hasattr(obj, 'SoKyHieu'):
-                    # Quy tắc 1: Không được tự phê duyệt văn bản do chính mình tạo (trừ khi tự giao việc)
-                    if hasattr(obj, 'NguoiGui') and obj.NguoiGui == self and hasattr(obj, 'UserID') and obj.UserID != self:
-                        return False
-                    # Quy tắc 2: Phê duyệt/ký nháy văn bản thuộc phòng ban của mình
                     nguoi_gui_pb = obj.NguoiGui.PhongBan if (hasattr(obj, 'NguoiGui') and obj.NguoiGui) else None
                     user_id_pb = obj.UserID.PhongBan if (hasattr(obj, 'UserID') and obj.UserID) else None
                     don_vi_gui = getattr(obj, 'DonViGuiID', None)
@@ -335,6 +328,7 @@ class VanBanDi(models.Model):
     TrichYeu = models.CharField(max_length=255, null=True, blank=True)
     TrangThai = models.CharField(max_length=50, choices=TrangThaiChoices.choices, default=TrangThaiChoices.DU_THAO, db_index=True)
     TepDinhKem = models.FileField(upload_to='di/%Y/%m/', null=True, blank=True)
+    TaiLieuThamKhao = models.FileField(upload_to='tham_khao/%Y/%m/', null=True, blank=True, verbose_name="Tài liệu tham khảo")
     TomTatAI = models.TextField(null=True, blank=True, verbose_name="Bản tóm tắt thông minh AI")
     LinhVucAI = models.CharField(max_length=100, null=True, blank=True, verbose_name="Lĩnh vực AI")
     

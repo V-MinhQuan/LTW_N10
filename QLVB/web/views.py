@@ -69,16 +69,16 @@ def permission_required(action, model=None):
         def _wrapped_view(request, *args, **kwargs):
             if not request.user.is_authenticated:
                 return redirect('login')
-            
+
             obj = None
             if model and 'pk' in kwargs:
                 from django.shortcuts import get_object_or_404
                 obj = get_object_or_404(model, pk=kwargs['pk'])
-            
+
             # Kiểm tra quyền với tham số obj nếu có
             if request.user.can_perform_action(action, obj):
                 return view_func(request, *args, **kwargs)
-                
+
             if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.path.startswith('/api/'):
                 return JsonResponse({'status': 'error', 'message': 'Bạn không có quyền thực hiện hành động này.'}, status=403)
             return render(request, '403.html', status=403)
@@ -97,18 +97,18 @@ def get_filtered_documents(user, model_class):
         if model_class == VanBanDen:
             # Văn bản đến: Lọc theo phòng nhận, người xử lý thuộc phòng HOẶC chính mình được phân công
             return model_class.objects.filter(
-                Q(DonViTrongID=user.PhongBan) | 
+                Q(DonViTrongID=user.PhongBan) |
                 Q(UserID__PhongBan=user.PhongBan) |
                 Q(phancong__UserID__PhongBan=user.PhongBan) |
                 Q(phancong__UserID=user) |
                 Q(chuyentiep__UserID=user) |
                 Q(VanBanDiID__phancong__UserID=user)
             ).distinct()
-            
+
         # Mặc định cho Văn bản đi: Hiện cho phòng gửi, phòng xử lý HOẶC phòng nhận nội bộ
         return model_class.objects.filter(
-            Q(NguoiGui__PhongBan=user.PhongBan) | 
-            Q(UserID__PhongBan=user.PhongBan) | 
+            Q(NguoiGui__PhongBan=user.PhongBan) |
+            Q(UserID__PhongBan=user.PhongBan) |
             Q(phancong__UserID__PhongBan=user.PhongBan) |
             Q(DonViTrongID__TenDonVi=user.PhongBan) |
             Q(phancong__UserID=user) |
@@ -119,7 +119,7 @@ def get_filtered_documents(user, model_class):
     if model_class == VanBanDen:
         return model_class.objects.filter(
             Q(UserID=user) |
-            Q(phancong__UserID=user) | 
+            Q(phancong__UserID=user) |
             Q(chuyentiep__UserID=user) |
             Q(VanBanDiID__phancong__UserID=user)
         ).distinct()
@@ -127,7 +127,7 @@ def get_filtered_documents(user, model_class):
     # Mặc định cho Văn bản đi: Loại bỏ Q(UserID=user) để tránh hiển thị văn bản cần phê duyệt trong danh sách chính
     return model_class.objects.filter(
         Q(NguoiGui=user) |
-        Q(phancong__UserID=user) | 
+        Q(phancong__UserID=user) |
         Q(chuyentiep__UserID=user)
     ).distinct()
 
@@ -135,15 +135,15 @@ def sync_van_ban_den(vb_di):
     """Đồng bộ trạng thái từ Văn bản đi sang Văn bản đến tương ứng"""
     from .models import VanBanDen
     from django.utils import timezone
-    
+
     # Tìm hoặc tạo Văn bản đến tương ứng (dựa trên VanBanDiID và Người xử lý)
     # Tránh tạo trùng văn bản đến: kiểm tra theo SoKyHieu + UserID (Người xử lý phê duyệt)
     vbd = VanBanDen.objects.filter(VanBanDiID=vb_di, UserID=vb_di.UserID).first()
-    
+
     if not vbd:
         vbd = VanBanDen(VanBanDiID=vb_di)
         vbd.NgayNhan = timezone.now()
-        
+
     vbd.SoKyHieu = vb_di.SoKyHieu
     vbd.NgayBanHanh = vb_di.NgayBanHanh
     vbd.LoaiVanBan = vb_di.LoaiVanBan
@@ -151,16 +151,16 @@ def sync_van_ban_den(vb_di):
     vbd.TrangThai = vb_di.TrangThai
     vbd.TepDinhKem = vb_di.TepDinhKem
     vbd.UserID = vb_di.UserID
-    
+
     if vb_di.UserID and vb_di.UserID.PhongBan:
         vbd.DonViTrongID = vb_di.UserID.PhongBan
-        
+
     # --- MỚI: Lưu phòng ban của người gửi phê duyệt vào Đơn vị gửi (Internal) ---
     if vb_di.NguoiGui and vb_di.NguoiGui.PhongBan:
         vbd.DonViGuiID = vb_di.NguoiGui.PhongBan
         vbd.DonViNgoaiID = None # Đảm bảo không bị trùng lặp với đơn vị ngoài
     # ----------------------------------------------------------------
-        
+
     vbd.save()
     return vbd
 
@@ -1214,7 +1214,7 @@ def van_ban_di_index(request):
         vbs = vbs.filter(LoaiVanBan__icontains=loai_vb)
     if trang_thai:
         vbs = vbs.filter(TrangThai=trang_thai)
-    
+
     if don_vi_ngoai:
         if str(don_vi_ngoai).isdigit():
             vbs = vbs.filter(DonViNgoaiID_id=don_vi_ngoai)
@@ -1356,6 +1356,20 @@ def api_vbdi_chi_tiet(request, pk):
             file_name = str(vb.TepDinhKem).split('/')[-1]
             file_exists = False
 
+    # Thông tin tài liệu tham khảo do Lãnh đạo đính kèm khi phân công
+    tk_file_url = ''
+    tk_file_name = ''
+    tk_file_exists = False
+    if hasattr(vb, 'TaiLieuThamKhao') and vb.TaiLieuThamKhao:
+        try:
+            tk_file_url = vb.TaiLieuThamKhao.url
+            tk_file_name = vb.TaiLieuThamKhao.name.split('/')[-1]
+            tk_file_exists = vb.TaiLieuThamKhao.storage.exists(vb.TaiLieuThamKhao.name)
+        except Exception:
+            tk_file_url = f'/media/{vb.TaiLieuThamKhao}'
+            tk_file_name = str(vb.TaiLieuThamKhao).split('/')[-1]
+            tk_file_exists = False
+
     last_pc = PhanCong.objects.filter(VanBanDiID=vb).select_related('UserID').order_by('-NgayPhanCong').first()
     pc_info = None
     if last_pc:
@@ -1416,6 +1430,10 @@ def api_vbdi_chi_tiet(request, pk):
             'tep_dinh_kem_url': file_url,
             'tep_dinh_kem_name': file_name,
             'file_exists': file_exists,
+            'tai_lieu_tham_khao': str(vb.TaiLieuThamKhao) if (hasattr(vb, 'TaiLieuThamKhao') and vb.TaiLieuThamKhao) else '',
+            'tai_lieu_tham_khao_url': tk_file_url,
+            'tai_lieu_tham_khao_name': tk_file_name,
+            'tai_lieu_tham_khao_exists': tk_file_exists,
             'tom_tat_ai': vb.TomTatAI or '',
             'linh_vuc_ai': vb.LinhVucAI or '',
             'xu_ly_history': history
@@ -1439,7 +1457,7 @@ def api_vbdi_them_moi(request):
         so_ky_hieu = request.POST.get('so_ky_hieu', '').strip()
         if so_ky_hieu and VanBanDi.objects.filter(SoKyHieu=so_ky_hieu).exists():
             return JsonResponse({'status': 'error', 'message': 'Số ký hiệu đã tồn tại trong hệ thống.'}, status=400)
-            
+
         ngay_ban_hanh = request.POST.get('ngay_ban_hanh')
         if ngay_ban_hanh:
             from datetime import datetime
@@ -1450,12 +1468,12 @@ def api_vbdi_them_moi(request):
                     return JsonResponse({'status': 'error', 'message': 'Ngày ban hành phải lớn hơn hoặc bằng ngày hiện tại.'}, status=400)
             except ValueError:
                 return JsonResponse({'status': 'error', 'message': 'Ngày ban hành không hợp lệ.'}, status=400)
-        
+
         vb.SoKyHieu = so_ky_hieu
         vb.TrichYeu = request.POST.get('trich_yeu', '')
         vb.LoaiVanBan = request.POST.get('loai_vb', '')
         vb.NgayBanHanh = ngay_ban_hanh or None
-        
+
         # Xử lý đơn vị: Ưu tiên chọn từ form, nếu không có thì lấy phòng ban của người tạo
         don_vi_trong_id = request.POST.get('don_vi_trong_id')
         don_vi_ngoai_id = request.POST.get('don_vi_ngoai_id')
@@ -1477,22 +1495,22 @@ def api_vbdi_them_moi(request):
                 vb.DonViTrongID = request.user.PhongBan
             else:
                 return JsonResponse({'status': 'error', 'message': 'Vui lòng chọn đơn vị nhận văn bản.'}, status=400)
-            
+
         nguoi_soan_id = request.POST.get('nguoi_soan_id')
         if nguoi_soan_id:
             vb.UserID = get_object_or_404(UserAccount, pk=nguoi_soan_id)
         else:
             vb.UserID = request.user
-            
+
         # Lưu người gửi (người tạo/người yêu cầu phê duyệt)
         vb.NguoiGui = request.user
         if request.user and hasattr(request.user, 'PhongBan'):
             vb.DonViGuiID = request.user.PhongBan
-            
+
         if request.FILES.get('tep_dinh_kem'):
             vb.TepDinhKem = request.FILES['tep_dinh_kem']
         vb.TrangThai = request.POST.get('trang_thai', VanBanDi.TrangThaiChoices.DU_THAO)
-        
+
         # Luồng mới: Nếu gửi phê duyệt
         if vb.TrangThai == VanBanDi.TrangThaiChoices.CHO_PHE_DUYET:
             vb.NgayGuiPheDuyet = timezone.now()
@@ -1500,7 +1518,7 @@ def api_vbdi_them_moi(request):
             sync_van_ban_den(vb)
         else:
             vb.save()
-            
+
         _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'THEM_MOI', 'Thêm mới văn bản', None, vb.TrangThai)
         return JsonResponse({'status': 'success', 'id': vb.VanBanDiID})
     except Exception as e:
@@ -1522,15 +1540,15 @@ def api_vbdi_cap_nhat(request, pk):
             'DU_THAO': 'Dự thảo', 'CHO_PHE_DUYET': 'Chờ phê duyệt',
             'DA_PHE_DUYET': 'Đã phê duyệt', 'DA_PHAT_HANH': 'Đã phát hành',
         }
-        
+
         new_so_ky_hieu = request.POST.get('so_ky_hieu', '').strip()
         if not new_so_ky_hieu:
             new_so_ky_hieu = vb.SoKyHieu
-            
+
         if new_so_ky_hieu and new_so_ky_hieu != vb.SoKyHieu:
             if VanBanDi.objects.filter(SoKyHieu=new_so_ky_hieu).exclude(pk=pk).exists():
                 return JsonResponse({'status': 'error', 'message': 'Số ký hiệu đã tồn tại trong hệ thống.'}, status=400)
-                
+
         new_ngay = request.POST.get('ngay_ban_hanh')
         if new_ngay and new_ngay != (vb.NgayBanHanh.strftime('%Y-%m-%d') if vb.NgayBanHanh else None):
             from datetime import datetime
@@ -1577,7 +1595,7 @@ def api_vbdi_cap_nhat(request, pk):
                 new_trong_obj = DonViBenTrong.objects.filter(pk=new_trong_id).first()
             else:
                 new_trong_obj = DonViBenTrong.objects.filter(TenDonVi__iexact=new_trong_id).first()
-            
+
             old_trong_name = vb.DonViTrongID.TenDonVi if vb.DonViTrongID else 'Trống'
             if new_trong_obj and (not vb.DonViTrongID or vb.DonViTrongID.pk != new_trong_obj.pk):
                 changes.append(f'Đơn vị trong: "{old_trong_name}" → "{new_trong_obj.TenDonVi}"')
@@ -1591,7 +1609,7 @@ def api_vbdi_cap_nhat(request, pk):
                 new_ngoai_obj = DonViBenNgoai.objects.filter(pk=new_ngoai_id).first()
             else:
                 new_ngoai_obj = DonViBenNgoai.objects.filter(TenDonVi__iexact=new_ngoai_id).first()
-                
+
             old_ngoai_name = vb.DonViNgoaiID.TenDonVi if vb.DonViNgoaiID else 'Trống'
             if new_ngoai_obj and (not vb.DonViNgoaiID or vb.DonViNgoaiID.pk != new_ngoai_obj.pk):
                 changes.append(f'Đơn vị ngoài: "{old_ngoai_name}" → "{new_ngoai_obj.TenDonVi}"')
@@ -1605,17 +1623,17 @@ def api_vbdi_cap_nhat(request, pk):
         vb.TrichYeu = new_trich_yeu
         vb.LoaiVanBan = new_loai_vb
         if new_ngay: vb.NgayBanHanh = new_ngay
-        if new_trang_thai: 
+        if new_trang_thai:
             vb.TrangThai = new_trang_thai
             # Nếu chuyển sang chờ phê duyệt, ghi nhận người gửi
             if new_trang_thai == 'CHO_PHE_DUYET' and not vb.NguoiGui:
                 vb.NguoiGui = request.user
-        
+
         if request.user and hasattr(request.user, 'PhongBan'):
             vb.DonViGuiID = request.user.PhongBan
-        
+
         vb.save()
-        
+
         new_nguoi_soan_id = request.POST.get('nguoi_soan_id')
         if new_nguoi_soan_id:
             new_user = UserAccount.objects.filter(pk=new_nguoi_soan_id).first()
@@ -1636,12 +1654,12 @@ def api_vbdi_cap_nhat(request, pk):
         if vb.TrangThai == VanBanDi.TrangThaiChoices.CHO_PHE_DUYET and cu != VanBanDi.TrangThaiChoices.CHO_PHE_DUYET:
             vb.NgayGuiPheDuyet = timezone.now()
             PhanCong.objects.filter(VanBanDiID=vb, UserID=request.user, TrangThaiXuLy='Đang xử lý').update(TrangThaiXuLy='Hoàn thành')
-            
+
         vb.save()
-        
+
         if vb.TrangThai == VanBanDi.TrangThaiChoices.CHO_PHE_DUYET:
             sync_van_ban_den(vb)
-            
+
         noi_dung = 'Cập nhật: ' + '; '.join(changes) if changes else 'Lưu văn bản (không có thay đổi)'
         _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'CAP_NHAT', noi_dung, cu, vb.TrangThai)
         return JsonResponse({'status': 'success'})
@@ -1680,30 +1698,30 @@ def api_vbdi_phe_duyet(request, pk):
         from django.db import transaction
         with transaction.atomic():
             vb = get_object_or_404(VanBanDi, pk=pk)
-            
+
             if vb.TrangThai != VanBanDi.TrangThaiChoices.CHO_PHE_DUYET:
                 return JsonResponse({'status': 'error', 'message': 'Văn bản không ở trạng thái chờ phê duyệt.'}, status=400)
-                
+
             data = json.loads(request.body)
             cu = vb.TrangThai
-            
+
             action = data.get('action')
             if not action:
                 chap_nhan = data.get('chap_nhan', True)
                 action = 'dong_y' if chap_nhan else 'tu_choi'
-                
+
             ghi_chu = data.get('ghi_chu', '').strip()
             chu_ky_so = data.get('chu_ky_so', '').strip()
-            
+
             from .models import PheDuyet, ThongBao
-            
+
             pd = PheDuyet()
             pd.VanBanDiID = vb
             pd.UserID = request.user if request.user.is_authenticated else None
             pd.NgayPheDuyet = timezone.now()
             pd.GhiChu = ghi_chu
             pd.ChuKySo = chu_ky_so
-            
+
             leader_name = request.user.HoTen or request.user.username if request.user.is_authenticated else 'Lãnh đạo'
 
             tieu_chi = data.get('tieu_chi')
@@ -1712,24 +1730,24 @@ def api_vbdi_phe_duyet(request, pk):
             if isinstance(tieu_chi, dict):
                 so_dat = tieu_chi.get('so_luong_dat', 0)
                 if so_dat == 4:
-                    tieu_chi_log = "Đã kiểm tra hợp thức đủ 4/4 tiêu chí BPMN (Thể thức, Nội dung, Thẩm quyền, Căn cứ pháp lý)."
+                    tieu_chi_log = "Đã thẩm định đạt đủ 4/4 tiêu chí phê duyệt (Nội dung chuyên môn, Căn cứ pháp lý & quy chế, Tính khả thi vận hành, Hồ sơ hoàn thiện)."
                 elif so_dat > 0:
-                    tieu_chi_log = f"Đã kiểm tra {so_dat}/4 tiêu chí hợp thức BPMN."
-            
+                    tieu_chi_log = f"Đã rà soát {so_dat}/4 tiêu chí thẩm định."
+
             if action == 'ky_nhay':
-                pd.TrangThaiDuyet = False  # Ký nháy là bước kiểm tra thông qua của cấp phòng, chưa phát hành
-                tieu_chi_str = f"Đã kiểm tra hợp thức đủ {so_dat}/4 tiêu chí BPMN (Thể thức, Nội dung, Thẩm quyền, Căn cứ pháp lý)." if so_dat == 4 else ""
-                ghi_chu_ky_nhay = f"[KÝ NHÁY - LÃNH ĐẠO ĐƠN VỊ] {tieu_chi_str}"
+                pd.TrangThaiDuyet = False  # Ký nháy là bước thẩm định của Trưởng phòng, chuyển trình Ban Giám đốc
+                tieu_chi_str = f"Đã thẩm định đạt đủ {so_dat}/4 tiêu chí nội dung & pháp lý." if so_dat == 4 else ""
+                ghi_chu_ky_nhay = f"[KÝ NHÁY - TRƯỞNG PHÒNG TỔNG HỢP] {tieu_chi_str}"
                 if ghi_chu:
                     ghi_chu_ky_nhay += f" Ý kiến: {ghi_chu}"
                 pd.GhiChu = ghi_chu_ky_nhay.strip()
                 pd.save()
 
-                noi_dung_ls = f"Trưởng phòng {leader_name} đã kiểm tra 4 tiêu chí và KÝ NHÁY văn bản {vb.SoKyHieu}, chuyển trình Ban Giám đốc phê duyệt."
+                noi_dung_ls = f"Trưởng phòng {leader_name} đã tổng hợp, thẩm định đạt đủ 4 tiêu chí chuyên môn & pháp lý, KÝ NHÁY văn bản {vb.SoKyHieu} và chuyển trình Ban Giám đốc phê duyệt."
                 if ghi_chu:
-                    noi_dung_ls += f" Ý kiến: {ghi_chu}"
+                    noi_dung_ls += f" Ý kiến trình: {ghi_chu}"
 
-                _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'KY_NHAY', noi_dung_ls, cu, vb.TrangThai)
+                _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'TRINH_DUYET', noi_dung_ls, cu, vb.TrangThai)
 
                 # Gửi thông báo đến Ban Giám đốc
                 from web.models import UserAccount
@@ -1741,15 +1759,15 @@ def api_vbdi_phe_duyet(request, pk):
                         ThongBao.objects.create(
                             UserID=gd,
                             VanBanDiID=vb,
-                            TieuDe=f"Văn bản {vb.SoKyHieu} đã được ký nháy, chờ phê duyệt",
-                            NoiDung=f"Trưởng phòng {leader_name} đã kiểm tra hợp thức và ký nháy văn bản: '{vb.TrichYeu}'. Kính trình Ban Giám đốc phê duyệt & ký số.",
+                            TieuDe=f"Trình duyệt văn bản: {vb.SoKyHieu}",
+                            NoiDung=f"Trưởng phòng {leader_name} đã tổng hợp và ký nháy văn bản: '{vb.TrichYeu}'. Kính trình Ban Giám đốc phê duyệt & ký số.",
                             LoaiThongBao=ThongBao.LoaiThongBaoChoices.NHAC_NHO,
                             LienKet=f'/xu-ly-van-ban/?tab=di&id={vb.VanBanDiID}'
                         )
 
                 return JsonResponse({
                     'status': 'success',
-                    'message': f"Đã ký nháy văn bản {vb.SoKyHieu} và chuyển trình Ban Giám đốc phê duyệt thành công!",
+                    'message': f"Đã tổng hợp văn bản {vb.SoKyHieu} và chuyển trình Ban Giám đốc phê duyệt thành công!",
                     'action': 'ky_nhay',
                     'trang_thai': vb.TrangThai
                 })
@@ -1792,7 +1810,7 @@ def api_vbdi_phe_duyet(request, pk):
                             LoaiThongBao=ThongBao.LoaiThongBaoChoices.NHAC_NHO,
                             LienKet=f'/xu-ly-van-ban/?tab=di&id={vb.VanBanDiID}'
                         )
-                
+
             elif action == 'yeu_cau_chinh_sua':
                 if not ghi_chu:
                     return JsonResponse({'status': 'error', 'message': 'Vui lòng nhập nội dung yêu cầu chỉnh sửa vào ô Ghi chú.'}, status=400)
@@ -1803,7 +1821,7 @@ def api_vbdi_phe_duyet(request, pk):
                 thong_bao_noi_dung = f"Lãnh đạo {leader_name} yêu cầu chỉnh sửa văn bản '{vb.TrichYeu}'. Nội dung yêu cầu: {ghi_chu}"
                 loai_tb = ThongBao.LoaiThongBaoChoices.NHAC_NHO
                 success_msg = f"Đã gửi yêu cầu chỉnh sửa văn bản {vb.SoKyHieu} tới người soạn!"
-                
+
             elif action == 'tu_choi':
                 if not ghi_chu:
                     return JsonResponse({'status': 'error', 'message': 'Vui lòng nhập lý do từ chối vào ô Ghi chú.'}, status=400)
@@ -1816,13 +1834,13 @@ def api_vbdi_phe_duyet(request, pk):
                 success_msg = f"Đã từ chối phê duyệt văn bản {vb.SoKyHieu}!"
             else:
                 return JsonResponse({'status': 'error', 'message': 'Hành động phê duyệt không hợp lệ.'}, status=400)
-                
+
             pd.save()
             vb.save()
-            
+
             # Đồng bộ sang văn bản đến
             sync_van_ban_den(vb)
-            
+
             # TỰ ĐỘNG THÔNG BÁO CHO NGƯỜI SOẠN THẢO / NGƯỜI GỬI
             recipient_user = vb.UserID or vb.NguoiGui
             if recipient_user and recipient_user != request.user:
@@ -1834,9 +1852,9 @@ def api_vbdi_phe_duyet(request, pk):
                     LoaiThongBao=loai_tb,
                     LienKet=f'/van-ban-di/?id={vb.VanBanDiID}'
                 )
-                
+
             _ghi_lich_su(request, 'VanBanDi', vb.VanBanDiID, 'PHE_DUYET', noi_dung_ls, cu, vb.TrangThai)
-            
+
             return JsonResponse({'status': 'success', 'message': success_msg, 'trang_thai': vb.TrangThai})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
@@ -1851,20 +1869,20 @@ def api_vbdi_phat_hanh(request, pk):
         from django.db import transaction
         with transaction.atomic():
             vb = get_object_or_404(VanBanDi, pk=pk)
-            
+
             # Kiểm tra trạng thái
             if vb.TrangThai != VanBanDi.TrangThaiChoices.DA_PHE_DUYET:
                 return JsonResponse({'status': 'error', 'message': 'Văn bản chưa được phê duyệt.'}, status=400)
 
             data = json.loads(request.body)
             cu = vb.TrangThai
-            
+
             ph_scope = data.get('ph_scope', 'internal')  # 'internal', 'external', 'both'
             don_vi_nhan_id = data.get('don_vi_trong_id')
             don_vi_ngoai_id = data.get('don_vi_ngoai_id')
             nguoi_nhan_id = data.get('nguoi_nhan_id')
             recipient_type = data.get('recipient_type', 'dept')
-            
+
             ngay_ban_hanh_str = data.get('ngay_ban_hanh')
             if ngay_ban_hanh_str and ngay_ban_hanh_str != (vb.NgayBanHanh.strftime('%Y-%m-%d') if vb.NgayBanHanh else None):
                 from datetime import datetime
@@ -1874,7 +1892,7 @@ def api_vbdi_phat_hanh(request, pk):
                         return JsonResponse({'status': 'error', 'message': 'Ngày ban hành phải lớn hơn hoặc bằng ngày hiện tại.'}, status=400)
                 except ValueError:
                     return JsonResponse({'status': 'error', 'message': 'Ngày ban hành không hợp lệ.'}, status=400)
-                    
+
             # 1. Lưu thông tin phát hành
             from .models import PhatHanh, DonViBenNgoai
             ph = PhatHanh()
@@ -1884,14 +1902,14 @@ def api_vbdi_phat_hanh(request, pk):
             ph.NgayPhatHanh = data.get('ngay_ban_hanh') or timezone.now()
             ph.TrangThai = 'DA_PHAT_HANH'
             ph.save()
-            
+
             vb.TrangThai = VanBanDi.TrangThaiChoices.DA_PHAT_HANH
             vb.NgayPhatHanh = data.get('ngay_ban_hanh') or timezone.now()
             if data.get('ngay_ban_hanh'):
                 vb.NgayBanHanh = data.get('ngay_ban_hanh')
             else:
                 vb.NgayBanHanh = timezone.now()
-            
+
             if data.get('trich_yeu'):
                 vb.TrichYeu = data.get('trich_yeu')
 
@@ -1916,7 +1934,7 @@ def api_vbdi_phat_hanh(request, pk):
                     pass
 
             vb.save()
-            
+
             # 2. Đồng bộ sang Văn bản đến nếu có phát hành nội bộ
             if ph_scope in ['internal', 'both']:
                 sync_van_ban_den(vb)
@@ -1940,7 +1958,7 @@ def api_vbdi_phat_hanh(request, pk):
                         'DonViGuiID': dv_gui_trong
                     }
                 )
-                
+
                 if not created:
                     vbd.SoKyHieu = vb.SoKyHieu
                     vbd.TrichYeu = vb.TrichYeu
@@ -2012,7 +2030,7 @@ Email: {getattr(settings, 'EMAIL_HOST_USER', 'lnnhatanh2018@gmail.com')}
                         import traceback
                         from web.models import NgoaiLeHeThong, ThongBao, UserAccount
                         print(f"Lỗi gửi email phát hành: {mail_err}")
-                        
+
                         payload = {
                             'van_ban_di_id': vb.VanBanDiID,
                             'so_ky_hieu': vb.SoKyHieu,
@@ -2024,7 +2042,7 @@ Email: {getattr(settings, 'EMAIL_HOST_USER', 'lnnhatanh2018@gmail.com')}
                             'body': body,
                             'tep_dinh_kem': vb.TepDinhKem.name if vb.TepDinhKem else None,
                         }
-                        
+
                         ngoai_le = NgoaiLeHeThong.objects.create(
                             LoaiNgoaiLe=NgoaiLeHeThong.LoaiNgoaiLeChoices.GUI_EMAIL,
                             TieuDe=f"Gửi email phát hành {vb.SoKyHieu} tới {don_vi_ngoai.TenDonVi}",
@@ -2037,7 +2055,7 @@ Email: {getattr(settings, 'EMAIL_HOST_USER', 'lnnhatanh2018@gmail.com')}
                             VanBanDiID=vb,
                             UserID=request.user if request.user.is_authenticated else None
                         )
-                        
+
                         # Gửi thông báo cho Quản trị viên
                         admin_users = UserAccount.objects.filter(is_superuser=True) | UserAccount.objects.filter(VaiTroID__ChucVu__icontains='Admin')
                         for adm in admin_users.distinct():
@@ -2049,7 +2067,7 @@ Email: {getattr(settings, 'EMAIL_HOST_USER', 'lnnhatanh2018@gmail.com')}
                                 LoaiThongBao=ThongBao.LoaiThongBaoChoices.HE_THONG,
                                 LienKet='/xu-ly-van-ban/?tab=ngoai_le'
                             )
-                        
+
                         email_msg_status = f" (Sự cố kết nối khi gửi mail tới {don_vi_ngoai.Email}. Đã lưu vào hàng đợi tự động thử lại #{ngoai_le.NgoaiLeID})"
                 else:
                     email_msg_status = f" (Đơn vị {don_vi_ngoai.TenDonVi} chưa có email cấu hình trong CSDL)"
@@ -2120,7 +2138,7 @@ def validate_ho_so_van_ban(data, files, loai='di', is_update=False, current_obj=
     trich_yeu = (data.get('trich_yeu') or '').strip()
     loai_vb = (data.get('loai_vb') or '').strip()
     trang_thai = data.get('trang_thai', 'DU_THAO')
-    
+
     # 1. Số ký hiệu
     if not so_ky_hieu:
         errors.append("Vui lòng nhập số ký hiệu văn bản.")
@@ -2412,7 +2430,8 @@ def api_vbdi_phan_cong_soan_thao(request):
 
         vb.TrangThai = VanBanDi.TrangThaiChoices.DU_THAO
         if tep_dinh_kem:
-            vb.TepDinhKem = tep_dinh_kem
+            vb.TaiLieuThamKhao = tep_dinh_kem  # Tài liệu tham khảo/căn cứ do Lãnh đạo giao
+            vb.TepDinhKem = None  # Ô tài liệu đính kèm để trống để người soạn thảo đính kèm văn bản mới
         vb.save()
 
         # Tạo bản ghi Phân công
@@ -2486,7 +2505,7 @@ def quan_ly_nguoi_dung_index(request):
 def thong_tin_view(request):
     user = request.user
     can_edit_all = user.is_giam_doc() or user.is_it_head()
-    
+
     if request.method == 'POST':
         action = request.POST.get('action')
 
@@ -2508,7 +2527,7 @@ def thong_tin_view(request):
             user.GioiTinh = gioi_tinh
             user.email = email
             user.SoDienThoai = so_dien_thoai
-            
+
             user.save()
             messages.success(request, "Cập nhật thông tin thành công!")
             return redirect('thong_tin')
@@ -2637,34 +2656,84 @@ def api_nguoi_dung_list(request):
 @login_required
 @permission_required('quan_ly_nguoi_dung')
 def api_upsert_user(request):
-    """Chốt chặn API: Dựa trên can_perform_action"""
-
-
+    """Chốt chặn API: Tạo mới hoặc cập nhật thông tin người dùng"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             user_id = data.get('id')
             user = get_object_or_404(UserAccount, UserID=user_id) if user_id else UserAccount()
 
+            # 1. Kiểm tra username
+            username = (data.get('username') or '').strip()
+            if not username:
+                return JsonResponse({'status': 'error', 'message': 'Tên đăng nhập không được để trống'}, status=400)
+
+            qs_user = UserAccount.objects.filter(username__iexact=username)
+            if user_id:
+                qs_user = qs_user.exclude(UserID=user_id)
+            if qs_user.exists():
+                return JsonResponse({'status': 'error', 'message': f'Tên đăng nhập "{username}" đã tồn tại!'}, status=400)
+
+            # 2. Kiểm tra email nếu có
+            email = (data.get('email') or '').strip()
+            if email:
+                qs_email = UserAccount.objects.filter(email__iexact=email)
+                if user_id:
+                    qs_email = qs_email.exclude(UserID=user_id)
+                if qs_email.exists():
+                    return JsonResponse({'status': 'error', 'message': f'Email "{email}" đã được sử dụng bởi người dùng khác!'}, status=400)
+
+            # 3. Mật khẩu
+            password = data.get('password')
             if not user_id:  # Tạo mới
                 max_stt = UserAccount.objects.aggregate(Max('SoThuTu'))['SoThuTu__max'] or 0
                 user.SoThuTu = max_stt + 1
-                user.set_password(data.get('password', '123456'))
+                user.set_password(password if password else '123456')
+            else:
+                if password:  # Cập nhật nếu người dùng nhập mật khẩu mới
+                    user.set_password(password)
 
-            user.username = data.get('username')
-            user.HoTen = data.get('fullname')
-            user.email = data.get('email')
-            user.PhongBan = data.get('dept')
-            if data.get('role_id'):
-                user.VaiTroID = get_object_or_404(VaiTro, pk=data.get('role_id'))
+            # 4. Gán thông tin cơ bản
+            user.username = username
+            user.HoTen = (data.get('fullname') or '').strip()
+            user.email = email
+            if 'phone' in data:
+                user.SoDienThoai = str(data.get('phone') or '').strip()
+
+            # 5. Xử lý PhòngBan (DonViBenTrong instance)
+            dept_val = data.get('dept')
+            if dept_val:
+                from .models import DonViBenTrong
+                dept_obj = None
+                if isinstance(dept_val, int) or (isinstance(dept_val, str) and dept_val.isdigit()):
+                    dept_obj = DonViBenTrong.objects.filter(pk=int(dept_val)).first()
+                if not dept_obj:
+                    dept_str = str(dept_val).strip()
+                    dept_obj = DonViBenTrong.objects.filter(TenDonVi__iexact=dept_str).first()
+                if not dept_obj:
+                    dept_obj = DonViBenTrong.objects.filter(TenDonVi__icontains=dept_str).first()
+                user.PhongBan = dept_obj
+            else:
+                user.PhongBan = None
+
+            # 6. Xử lý VaiTrò
+            role_id = data.get('role_id')
+            if role_id:
+                user.VaiTroID = get_object_or_404(VaiTro, pk=role_id)
+            else:
+                user.VaiTroID = None
+
+            # 7. Trạng thái hoạt động
             new_status = data.get('status', 'ACTIVE')
             if new_status == 'INACTIVE' and user_id:
                 from .models import PhanCong
                 is_processing = PhanCong.objects.filter(UserID=user).exclude(TrangThaiXuLy='Hoàn thành').exists()
                 if is_processing:
                     return JsonResponse({'status': 'error', 'message': 'Người dùng đang xử lý văn bản, không thể vô hiệu hóa'}, status=400)
-            
+
             user.trang_thai = new_status
+            user.TrangThai = (new_status == 'ACTIVE')
+            user.is_active = (new_status == 'ACTIVE')
             user.save()
             msg = "Cập nhật người dùng thành công!" if user_id else "Thêm người dùng mới thành công!"
             return JsonResponse({'status': 'success', 'message': msg})
@@ -2680,15 +2749,17 @@ def api_nguoi_dung_update_status(request):
         user_id = data.get('id')
         new_status = data.get('status')
         u = get_object_or_404(UserAccount, pk=user_id)
-        
+
         if new_status == 'INACTIVE':
             from .models import PhanCong
             # Kiểm tra xem người dùng có đang xử lý văn bản nào không
             is_processing = PhanCong.objects.filter(UserID=u).exclude(TrangThaiXuLy='Hoàn thành').exists()
             if is_processing:
                 return JsonResponse({'status': 'error', 'message': 'Người dùng đang xử lý văn bản, không thể vô hiệu hóa'}, status=400)
-        
+
         u.trang_thai = new_status
+        u.TrangThai = (new_status == 'ACTIVE')
+        u.is_active = (new_status == 'ACTIVE')
         u.save()
         msg = "Vô hiệu hóa người dùng thành công!" if new_status == 'INACTIVE' else "Kích hoạt lại người dùng thành công!"
         return JsonResponse({'status': 'success', 'message': msg})
@@ -2698,11 +2769,21 @@ def api_nguoi_dung_update_status(request):
 
 @login_required
 def api_vai_tro_list(request):
-    dept_name = request.GET.get('dept_name', '')
+    dept_name = request.GET.get('dept_name', '').strip()
     roles = VaiTro.objects.all()
     if dept_name:
-        roles = roles.filter(PhongBan__TenDonVi=dept_name)
-    
+        if dept_name.isdigit():
+            roles = roles.filter(
+                Q(PhongBan__pk=int(dept_name)) |
+                Q(PhongBan__TenDonVi__iexact=dept_name) |
+                Q(PhongBan__TenDonVi__icontains=dept_name)
+            )
+        else:
+            roles = roles.filter(
+                Q(PhongBan__TenDonVi__iexact=dept_name) |
+                Q(PhongBan__TenDonVi__icontains=dept_name)
+            )
+
     roles = roles.order_by('ChucVu')
     role_list = [{'id': r.VaiTroID, 'name': r.ChucVu} for r in roles]
     return JsonResponse({'status': 'success', 'data': role_list})
@@ -2922,7 +3003,7 @@ def api_delete_don_vi(request):
                                     VanBanDi.objects.filter(DonViNgoaiID=unit, TrangThai__in=['DU_THAO', 'CHO_PHE_DUYET', 'DA_PHE_DUYET']).exists()
                     if is_processing:
                         return JsonResponse({'status': 'error', 'message': 'Đơn vị bên ngoài đang xử lý công việc, không thể vô hiệu hóa'}, status=400)
-                        
+
                 if action == 'deactivate':
                     unit.trang_thai = 'INACTIVE'
                     unit.save()
@@ -2942,7 +3023,7 @@ def api_delete_don_vi(request):
                                     VanBanDi.objects.filter(DonViTrongID=unit, TrangThai__in=['DU_THAO', 'CHO_PHE_DUYET', 'DA_PHE_DUYET']).exists()
                     if is_processing:
                         return JsonResponse({'status': 'error', 'message': 'Đơn vị bên trong đang xử lý công việc, không thể vô hiệu hóa'}, status=400)
-                        
+
                 if action == 'deactivate':
                     unit.trang_thai = 'INACTIVE'
                     unit.save()
@@ -3120,7 +3201,7 @@ def xu_ly_van_ban_index(request):
             Q(TrangThai__in=[VanBanDi.TrangThaiChoices.CHO_PHE_DUYET, VanBanDi.TrangThaiChoices.DA_PHE_DUYET, VanBanDi.TrangThaiChoices.DA_PHAT_HANH]) |
             Q(TrangThai=VanBanDi.TrangThaiChoices.DU_THAO, phancong__UserID=user)
         ).distinct()
-        
+
         # Loại bỏ nếu người dùng chính là người đã thực hiện thao tác "Phát hành"
         # để danh sách "Xử lý" của họ không bị dồn ứ sau khi đã xong việc
         if not (is_tgd(user) or is_tp_it(user)):
@@ -3744,6 +3825,17 @@ def api_get_document_details(request):
                 file_url = ''
                 file_name = ''
 
+        # Tài liệu tham khảo (văn bản đi từ lãnh đạo)
+        tk_url = ''
+        tk_name = ''
+        if doc_type == 'di' and hasattr(vb, 'TaiLieuThamKhao') and vb.TaiLieuThamKhao:
+            try:
+                tk_url = vb.TaiLieuThamKhao.url
+                tk_name = vb.TaiLieuThamKhao.name
+            except (ValueError, Exception):
+                tk_url = f'/media/{vb.TaiLieuThamKhao}'
+                tk_name = str(vb.TaiLieuThamKhao)
+
         # Kiểm tra yêu cầu xin ý kiến đang chờ xử lý
         user = request.user
         filter_doc = Q(VanBanDenID=vb) if doc_type == 'den' else Q(VanBanDiID=vb)
@@ -3799,6 +3891,8 @@ def api_get_document_details(request):
             'TrichYeu': vb.TrichYeu,
             'TepDinhKemUrl': file_url,
             'TepDinhKemName': file_name,
+            'TaiLieuThamKhaoUrl': tk_url,
+            'TaiLieuThamKhaoName': tk_name,
             'xin_y_kien': xyk_info,
             'is_xin_y_kien': bool(xyk_info),
             'default_recipient_id': default_recipient_id,
@@ -3823,9 +3917,9 @@ def api_lay_danh_sach_bao_cao(request):
         ).exclude(LoaiBaoCao='Báo cáo tháng')
     else:
         reports = BaoCao.objects.filter(RecipientID=user, TrangThai__in=['CHUA_XEM', 'DANG_XU_LY']).exclude(LoaiBaoCao='Báo cáo tháng')
-    
+
     reports = reports.select_related('UserID', 'VanBanDiID', 'VanBanDenID').order_by('-NgayBaoCao')
-    
+
     data = []
     problem_map = {
         'v1': 'Sai sót nội dung',
@@ -3837,7 +3931,7 @@ def api_lay_danh_sach_bao_cao(request):
     for r in reports:
         vb = r.VanBanDiID if r.VanBanDiID else r.VanBanDenID
         loai_label = 'Xin ý kiến chỉ đạo' if r.LoaiBaoCao == 'XIN_Y_KIEN' else problem_map.get(r.LoaiBaoCao, r.LoaiBaoCao)
-        
+
         file_url = ''
         file_name = ''
         if vb and vb.TepDinhKem and hasattr(vb.TepDinhKem, 'url'):
@@ -3865,7 +3959,7 @@ def api_lay_danh_sach_bao_cao(request):
             'file_url': file_url,
             'file_name': file_name
         })
-    
+
     return JsonResponse({'status': 'success', 'data': data})
 
 @login_required
@@ -3874,33 +3968,33 @@ def api_xu_ly_bao_cao_action(request):
     """Xử lý báo cáo: Sửa / Chuyển / Từ chối"""
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
-    
+
     try:
         data = json.loads(request.body)
         report_id = data.get('report_id')
         action = data.get('action') # 'SUA', 'CHUYEN', 'TU_CHOI'
         noi_dung = data.get('noi_dung')
         new_recipient_id = data.get('new_recipient_id')
-        
+
         report = get_object_or_404(BaoCao, pk=report_id)
         vb = report.VanBanDiID if report.VanBanDiID else report.VanBanDenID
         loai_doi_tuong = 'VanBanDi' if report.VanBanDiID else 'VanBanDen'
-        
+
         # Kiểm tra quyền
         if not (request.user == report.RecipientID or is_tgd(request.user)):
              return JsonResponse({'status': 'error', 'message': 'Bạn không có quyền xử lý báo cáo này!'}, status=403)
-        
+
         report.HuongXuLy = action
         report.NoiDungXuLy = noi_dung
         report.ResolvedAt = timezone.now()
-        
+
         if action == 'SUA':
             # Khi chọn sửa, văn bản quay lại trạng thái hoạt động bình thường (Đang xử lý)
             vb.TrangThai = 'DANG_XU_LY'
             vb.save()
             report.TrangThai = 'DA_GIAI_QUYET'
             msg = "Đã chấp nhận báo cáo và chuyển trạng thái văn bản về Đang xử lý."
-        
+
         elif action == 'CHUYEN':
             # Chuyển cho người khác xử lý báo cáo này
             if not new_recipient_id:
@@ -3911,7 +4005,7 @@ def api_xu_ly_bao_cao_action(request):
             # Không kết thúc báo cáo ở đây, chỉ đổi người nhận
             report.save()
             return JsonResponse({'status': 'success', 'message': msg})
-            
+
         elif action == 'TU_CHOI':
             # Từ chối báo cáo, khôi phục lại trạng thái cũ của văn bản
             if report.TrangThaiVBCu:
@@ -3921,9 +4015,9 @@ def api_xu_ly_bao_cao_action(request):
             vb.save()
             report.TrangThai = 'DA_GIAI_QUYET'
             msg = "Đã từ chối báo cáo, văn bản quay lại trạng thái cũ."
-            
+
         report.save()
-        
+
         # Ghi lịch sử
         LichSuHoatDong.objects.create(
             UserID=request.user,
@@ -3932,7 +4026,7 @@ def api_xu_ly_bao_cao_action(request):
             HanhDong='Xử lý báo cáo',
             NoiDungThayDoi=f"Kết quả: {report.get_HuongXuLy_display()}. Nội dung: {noi_dung}"
         )
-        
+
         return JsonResponse({'status': 'success', 'message': 'Xử lý báo cáo thành công!'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
@@ -4011,7 +4105,7 @@ def quan_ly_tien_do_index(request):
 
     # 4. Phân loại tiến độ từng nhiệm vụ
     task_list = list(tasks)
-    
+
     count_total = len(task_list)
     count_completed = 0
     count_coming_soon = 0
@@ -4033,7 +4127,7 @@ def quan_ly_tien_do_index(request):
         pc.trich_yeu = vb.TrichYeu if vb else '---'
         pc.loai_vb = vb.LoaiVanBan if (vb and hasattr(vb, 'LoaiVanBan')) else '---'
         pc.is_self = (pc.UserID == user)
-        
+
         sender_email = ''
         if pc.VanBanDenID:
             if pc.VanBanDenID.DonViNgoaiID and pc.VanBanDenID.DonViNgoaiID.Email:
@@ -4367,7 +4461,7 @@ def api_xu_ly_qua_han(request):
         elif phuong_an in ['HOAN_TRA', 'GUI_TRA_EMAIL']:
             email_nhan = (data.get('email_nhan') if request.content_type == 'application/json' else request.POST.get('email_nhan') or '').strip()
             tieu_de_email = (data.get('tieu_de_email') if request.content_type == 'application/json' else request.POST.get('tieu_de_email') or '').strip()
-            
+
             if not email_nhan:
                 return JsonResponse({'status': 'error', 'message': 'Vui lòng nhập địa chỉ email người nhận hoàn trả!'}, status=400)
             if not ly_do:
@@ -4607,7 +4701,7 @@ def api_chi_tiet_tien_do(request, pk):
         'ngay_vb': ngay_vb or '---',
         'nguoi_xu_ly': pc.UserID.HoTen if pc.UserID else 'Chưa phân công',
         'phong_ban': pc.UserID.PhongBan.TenDonVi if (pc.UserID and pc.UserID.PhongBan) else 'Ban Giám đốc',
-        
+
         'ngay_phan_cong': pc.NgayPhanCong.strftime('%d/%m/%Y') if pc.NgayPhanCong else '---',
         'han_xu_ly': pc.HanXuLy.strftime('%d/%m/%Y') if pc.HanXuLy else '---',
         'han_xu_ly_cu': pc.HanXuLyCu.strftime('%d/%m/%Y') if pc.HanXuLyCu else '',
