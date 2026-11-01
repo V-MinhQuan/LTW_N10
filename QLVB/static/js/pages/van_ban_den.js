@@ -1,3 +1,50 @@
+async function extractDocxTextInBrowser(file) {
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let pos = 0;
+        while (pos < bytes.length - 30) {
+            if (bytes[pos] === 0x50 && bytes[pos+1] === 0x4B && bytes[pos+2] === 0x03 && bytes[pos+3] === 0x04) {
+                const compMethod = bytes[pos+8] | (bytes[pos+9] << 8);
+                const compSize = bytes[pos+18] | (bytes[pos+19] << 8) | (bytes[pos+20] << 16) | (bytes[pos+21] << 24);
+                const fnLen = bytes[pos+26] | (bytes[pos+27] << 8);
+                const extraLen = bytes[pos+28] | (bytes[pos+29] << 8);
+                const fnStart = pos + 30;
+                const fnBytes = bytes.slice(fnStart, fnStart + fnLen);
+                const fileName = new TextDecoder().decode(fnBytes);
+                const dataStart = fnStart + fnLen + extraLen;
+                if (fileName === 'word/document.xml') {
+                    const compressed = bytes.slice(dataStart, dataStart + compSize);
+                    let xmlStr = '';
+                    if (compMethod === 0) {
+                        xmlStr = new TextDecoder().decode(compressed);
+                    } else if (compMethod === 8) {
+                        if (typeof DecompressionStream !== 'undefined') {
+                            const ds = new DecompressionStream('deflate-raw');
+                            const writer = ds.writable.getWriter();
+                            writer.write(compressed);
+                            writer.close();
+                            const decompressed = await new Response(ds.readable).arrayBuffer();
+                            xmlStr = new TextDecoder().decode(decompressed);
+                        }
+                    }
+                    if (xmlStr) {
+                        const texts = xmlStr.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
+                        const clean = texts.map(t => t.replace(/<[^>]+>/g, '')).join(' ');
+                        return clean;
+                    }
+                }
+                pos = dataStart + (compSize > 0 ? compSize : 1);
+            } else {
+                pos++;
+            }
+        }
+    } catch (e) {
+        console.warn('Lỗi trích xuất docx tại client:', e);
+    }
+    return null;
+}
+
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -662,7 +709,7 @@ function _highlightOCRField(input) {
     }, 3500);
 }
 
-function quyetDuLieuOCRVanBanDen(customFile) {
+async function quyetDuLieuOCRVanBanDen(customFile) {
     let file = customFile;
     if (!file) {
         const fileInput = document.getElementById('popupAddFileInput');
@@ -696,14 +743,51 @@ function quyetDuLieuOCRVanBanDen(customFile) {
     }
 
     const fd = new FormData();
-    fd.append('tep_dinh_kem', file);
+    const isDocx = file.name && (file.name.endsWith('.docx') || file.name.endsWith('.doc'));
+    if (isDocx && file.size > 3.5 * 1024 * 1024) {
+        // Tối ưu đám mây: Trích xuất nội dung văn bản docx trực tiếp tại trình duyệt để vượt qua giới hạn 4.5MB của Cloud/Vercel
+        const extractedText = await extractDocxTextInBrowser(file);
+        if (extractedText) {
+            fd.append('raw_text', extractedText);
+            fd.append('file_name', file.name);
+        } else {
+            fd.append('tep_dinh_kem', file);
+        }
+    } else {
+        if (file.size > 4.5 * 1024 * 1024) {
+            if (badge) {
+                badge.style.background = '#fef3c7';
+                badge.style.borderColor = '#f59e0b';
+                badge.style.color = '#92400e';
+                const mb = (file.size / (1024 * 1024)).toFixed(2);
+                badgeText.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i> <b>Lưu ý dung lượng (' + mb + 'MB):</b> Tệp đính kèm vượt quá giới hạn 4.5MB cho phép xử lý AI trực tuyến trên máy chủ Cloud (Vercel Serverless). Tệp vẫn được đính kèm và lưu trữ đầy đủ vào hồ sơ khi bấm Lưu. Quý vị vui lòng nhập tay các ô thông tin hoặc chọn tệp nhỏ hơn 4.5MB để quét OCR tự động.';
+            }
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+            return;
+        }
+        fd.append('tep_dinh_kem', file);
+    }
 
     fetch('/api/ai/ocr-extract/', {
         method: 'POST',
         headers: { 'X-CSRFToken': getCookie('csrftoken') },
         body: fd
     })
-    .then(r => r.json())
+    .then(async r => {
+        if (!r.ok) {
+            let msg = 'Lỗi máy chủ (HTTP ' + r.status + ')';
+            if (r.status === 413) {
+                msg = 'Dung lượng tệp vượt quá giới hạn 4.5MB của hạ tầng máy chủ trực tuyến (Vercel Serverless). Vui lòng chọn tệp nhỏ hơn 4.5MB để quét OCR tự động.';
+            } else if (r.status === 504) {
+                msg = 'Quá thời gian xử lý AI (Gateway Timeout). Vui lòng thử lại với tệp có dung lượng nhỏ hơn.';
+            }
+            throw new Error(msg);
+        }
+        return r.json();
+    })
     .then(res => {
         if (res.status === 'success') {
             const d = res.data;
@@ -755,7 +839,8 @@ function quyetDuLieuOCRVanBanDen(customFile) {
             badge.style.background = '#fef2f2';
             badge.style.borderColor = '#fca5a5';
             badge.style.color = '#991b1b';
-            badgeText.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Lỗi kết nối khi quét OCR!';
+            const msg = err && err.message ? err.message : 'Lỗi kết nối khi quét OCR!';
+            badgeText.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> ' + msg;
         }
     })
     .finally(() => {

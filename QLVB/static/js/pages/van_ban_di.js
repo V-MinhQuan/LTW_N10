@@ -1,3 +1,77 @@
+async function extractDocxTextInBrowser(file) {
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let pos = 0;
+        while (pos < bytes.length - 30) {
+            if (bytes[pos] === 0x50 && bytes[pos+1] === 0x4B && bytes[pos+2] === 0x03 && bytes[pos+3] === 0x04) {
+                const compMethod = bytes[pos+8] | (bytes[pos+9] << 8);
+                const compSize = bytes[pos+18] | (bytes[pos+19] << 8) | (bytes[pos+20] << 16) | (bytes[pos+21] << 24);
+                const fnLen = bytes[pos+26] | (bytes[pos+27] << 8);
+                const extraLen = bytes[pos+28] | (bytes[pos+29] << 8);
+                const fnStart = pos + 30;
+                const fnBytes = bytes.slice(fnStart, fnStart + fnLen);
+                const fileName = new TextDecoder().decode(fnBytes);
+                const dataStart = fnStart + fnLen + extraLen;
+                if (fileName === 'word/document.xml') {
+                    const compressed = bytes.slice(dataStart, dataStart + compSize);
+                    let xmlStr = '';
+                    if (compMethod === 0) {
+                        xmlStr = new TextDecoder().decode(compressed);
+                    } else if (compMethod === 8) {
+                        if (typeof DecompressionStream !== 'undefined') {
+                            const ds = new DecompressionStream('deflate-raw');
+                            const writer = ds.writable.getWriter();
+                            writer.write(compressed);
+                            writer.close();
+                            const decompressed = await new Response(ds.readable).arrayBuffer();
+                            xmlStr = new TextDecoder().decode(decompressed);
+                        }
+                    }
+                    if (xmlStr) {
+                        const texts = xmlStr.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
+                        const clean = texts.map(t => t.replace(/<[^>]+>/g, '')).join(' ');
+                        return clean;
+                    }
+                }
+                pos = dataStart + (compSize > 0 ? compSize : 1);
+            } else {
+                pos++;
+            }
+        }
+    } catch (e) {
+        console.warn('Lỗi trích xuất docx tại client:', e);
+    }
+    return null;
+}
+
+function onPCFileSelected(input) {
+    const btnClear = document.getElementById('btn_clear_pc_file');
+    const preview = document.getElementById('pc_file_preview_name');
+    const nameText = document.getElementById('pc_file_name_text');
+    if (input && input.files && input.files[0]) {
+        if (btnClear) btnClear.style.display = 'inline-flex';
+        if (nameText) nameText.textContent = input.files[0].name;
+        if (preview) preview.style.display = 'block';
+    } else {
+        if (btnClear) btnClear.style.display = 'none';
+        if (preview) preview.style.display = 'none';
+    }
+}
+
+function clearPCFile() {
+    const input = document.getElementById('pc_tep_dinh_kem');
+    const btnClear = document.getElementById('btn_clear_pc_file');
+    const preview = document.getElementById('pc_file_preview_name');
+    const nameText = document.getElementById('pc_file_name_text');
+    if (input) {
+        input.value = '';
+    }
+    if (btnClear) btnClear.style.display = 'none';
+    if (preview) preview.style.display = 'none';
+    if (nameText) nameText.textContent = '';
+}
+
 function getCookie(name) {
     let v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
     return v ? v[2] : null;
@@ -66,6 +140,7 @@ function openVBD(id) {
             autoCapSoKyHieu('Công văn');
         }
         if (id === 'modalPhanCongSoanThao') {
+            clearPCFile();
             const today = new Date().toISOString().split('T')[0];
             const hanEl = document.getElementById('pc_han_xu_ly');
             if (hanEl) {
@@ -891,27 +966,45 @@ function togglePhatHanhScope(scope) {
     }
 }
 
-function updateExternalEmailInfo(select) {
-    const opt = select.options[select.selectedIndex];
-    const email = opt ? opt.getAttribute('data-email') : '';
+function toggleSelectAllNgoai(master) {
+    const isChecked = !!(master && master.checked);
+    const checkboxes = document.querySelectorAll('.ph-ext-checkbox');
+    checkboxes.forEach(cb => { cb.checked = isChecked; });
+    updateSelectedExternalUnits();
+}
+
+function updateSelectedExternalUnits() {
+    const checkboxes = document.querySelectorAll('.ph-ext-checkbox');
+    const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
+    const countBadge = document.getElementById('ph_selected_count_badge');
+    if (countBadge) {
+        countBadge.textContent = 'Đã chọn: ' + checkedBoxes.length + ' đơn vị';
+    }
+
+    const selectAll = document.getElementById('ph_select_all_ngoai');
+    if (selectAll) {
+        selectAll.checked = checkboxes.length > 0 && checkedBoxes.length === checkboxes.length;
+        selectAll.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < checkboxes.length;
+    }
+
     const emailBox = document.getElementById('ph_email_info_box');
-    const missingBox = document.getElementById('ph_email_missing_box');
     const emailDisplay = document.getElementById('ph_email_display');
+    const emails = checkedBoxes
+        .map(cb => cb.getAttribute('data-email'))
+        .filter(email => email && email.trim() !== '');
 
-    if (!select.value) {
-        if (emailBox) emailBox.style.display = 'none';
-        if (missingBox) missingBox.style.display = 'none';
-        return;
+    if (emailBox && emailDisplay) {
+        if (emails.length > 0) {
+            emailDisplay.textContent = emails.join(', ');
+            emailBox.style.display = 'block';
+        } else {
+            emailBox.style.display = 'none';
+        }
     }
+}
 
-    if (email) {
-        if (emailDisplay) emailDisplay.textContent = email;
-        if (emailBox) emailBox.style.display = 'block';
-        if (missingBox) missingBox.style.display = 'none';
-    } else {
-        if (emailBox) emailBox.style.display = 'none';
-        if (missingBox) missingBox.style.display = 'block';
-    }
+function updateExternalEmailInfo(select) {
+    updateSelectedExternalUnits();
 }
 
 
@@ -1006,11 +1099,10 @@ function phatHanhVanBan(btnOrId) {
         radios[0].checked = true;
         togglePhatHanhScope('internal');
     }
-    const ph_donvi_ngoai = document.getElementById("ph_donvi_ngoai");
-    if (ph_donvi_ngoai) {
-        ph_donvi_ngoai.value = '';
-        updateExternalEmailInfo(ph_donvi_ngoai);
-    }
+    const selectAllNgoai = document.getElementById('ph_select_all_ngoai');
+    if (selectAllNgoai) { selectAllNgoai.checked = false; selectAllNgoai.indeterminate = false; }
+    document.querySelectorAll('.ph-ext-checkbox').forEach(cb => { cb.checked = false; });
+    updateSelectedExternalUnits();
 
     const ph_trichyeu = document.getElementById("ph_trichyeu");
     if (ph_trichyeu) ph_trichyeu.value = 'Đang tải thông tin...';
@@ -1044,8 +1136,10 @@ function phatHanhVanBan(btnOrId) {
                     ph_phongban.value = d.don_vi_trong_id;
                 }
 
-                if (d.don_vi_ngoai_id && ph_donvi_ngoai) {
-                    ph_donvi_ngoai.value = d.don_vi_ngoai_id;
+                if (d.don_vi_ngoai_id) {
+                    const targetCb = document.querySelector('.ph-ext-checkbox[value="' + d.don_vi_ngoai_id + '"]');
+                    if (targetCb) targetCb.checked = true;
+                    updateSelectedExternalUnits();
                     if (d.don_vi_trong_id) {
                         const rBoth = document.querySelector('input[name="ph_scope"][value="both"]');
                         if (rBoth) { rBoth.checked = true; togglePhatHanhScope('both'); }
@@ -1053,7 +1147,6 @@ function phatHanhVanBan(btnOrId) {
                         const rExt = document.querySelector('input[name="ph_scope"][value="external"]');
                         if (rExt) { rExt.checked = true; togglePhatHanhScope('external'); }
                     }
-                    updateExternalEmailInfo(ph_donvi_ngoai);
                 }
             }
         })
@@ -1102,15 +1195,12 @@ function xacNhanPhatHanh() {
         }
     }
 
+    const checkedExtBoxes = Array.from(document.querySelectorAll('.ph-ext-checkbox:checked'));
+    const donViNgoaiIds = checkedExtBoxes.map(cb => cb.value);
+
     if (scope === 'external' || scope === 'both') {
-        if (ph_donvi_ngoai && !ph_donvi_ngoai.value) {
-            App.showAlert('Vui lòng chọn đơn vị bên ngoài nhận phát hành!');
-            return;
-        }
-        const opt = ph_donvi_ngoai.options[ph_donvi_ngoai.selectedIndex];
-        const email = opt ? opt.getAttribute('data-email') : '';
-        if (!email) {
-            App.showAlert('Đơn vị bên ngoài được chọn chưa có email cấu hình trong hệ thống! Vui lòng cập nhật email tại Quản lý đơn vị ngoài.');
+        if (donViNgoaiIds.length === 0) {
+            App.showAlert('Vui lòng chọn ít nhất một đơn vị bên ngoài nhận phát hành!');
             return;
         }
     }
@@ -1125,7 +1215,8 @@ function xacNhanPhatHanh() {
         ngay_ban_hanh: ngayBanHanh,
         ph_scope: scope,
         don_vi_trong_id: (scope === 'internal' || scope === 'both') ? (ph_phongban ? ph_phongban.value : null) : null,
-        don_vi_ngoai_id: (scope === 'external' || scope === 'both') ? (ph_donvi_ngoai ? ph_donvi_ngoai.value : null) : null,
+        don_vi_ngoai_id: donViNgoaiIds[0] || null,
+        don_vi_ngoai_ids: donViNgoaiIds,
         tieu_chi: {
             chu_ky: chkChuKy ? chkChuKy.checked : false,
             phu_luc: chkPhuLuc ? chkPhuLuc.checked : false,
@@ -1706,7 +1797,7 @@ function xuLyTepDinhKemVanBanDi(inputOrFile) {
     }
 }
 
-function quyetDuLieuOCRVanBanDi(customFile) {
+async function quyetDuLieuOCRVanBanDi(customFile) {
     let file = customFile;
     if (!file) {
         const fi = document.getElementById('fileInput');
@@ -1740,14 +1831,51 @@ function quyetDuLieuOCRVanBanDi(customFile) {
     }
 
     const fd = new FormData();
-    fd.append('tep_dinh_kem', file);
+    const isDocx = file.name && (file.name.endsWith('.docx') || file.name.endsWith('.doc'));
+    if (isDocx && file.size > 3.5 * 1024 * 1024) {
+        // Tối ưu đám mây: Trích xuất nội dung văn bản docx trực tiếp tại trình duyệt để vượt qua giới hạn 4.5MB của Cloud/Vercel
+        const extractedText = await extractDocxTextInBrowser(file);
+        if (extractedText) {
+            fd.append('raw_text', extractedText);
+            fd.append('file_name', file.name);
+        } else {
+            fd.append('tep_dinh_kem', file);
+        }
+    } else {
+        if (file.size > 4.5 * 1024 * 1024) {
+            if (badge) {
+                badge.style.background = '#fef3c7';
+                badge.style.borderColor = '#f59e0b';
+                badge.style.color = '#92400e';
+                const mb = (file.size / (1024 * 1024)).toFixed(2);
+                if (badgeText) badgeText.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i> <b>Lưu ý dung lượng (' + mb + 'MB):</b> Tệp đính kèm vượt quá giới hạn 4.5MB cho phép xử lý AI trực tuyến trên máy chủ Cloud (Vercel Serverless). Tệp vẫn được lưu đầy đủ vào hồ sơ khi bấm Lưu. Quý vị vui lòng nhập tay các ô thông tin hoặc chọn tệp nhỏ hơn 4.5MB để quét OCR tự động.';
+            }
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+            return;
+        }
+        fd.append('tep_dinh_kem', file);
+    }
 
     fetch('/api/ai/ocr-extract/', {
         method: 'POST',
         headers: { 'X-CSRFToken': getCookie('csrftoken') },
         body: fd
     })
-    .then(r => r.json())
+    .then(async r => {
+        if (!r.ok) {
+            let msg = 'Lỗi máy chủ (HTTP ' + r.status + ')';
+            if (r.status === 413) {
+                msg = 'Dung lượng tệp vượt quá giới hạn 4.5MB của hạ tầng máy chủ trực tuyến (Vercel Serverless). Vui lòng chọn tệp nhỏ hơn 4.5MB để quét OCR tự động.';
+            } else if (r.status === 504) {
+                msg = 'Quá thời gian xử lý AI (Gateway Timeout). Vui lòng thử lại với tệp có dung lượng nhỏ hơn.';
+            }
+            throw new Error(msg);
+        }
+        return r.json();
+    })
     .then(res => {
         if (res.status === 'success') {
             const d = res.data;
@@ -1818,7 +1946,8 @@ function quyetDuLieuOCRVanBanDi(customFile) {
             badge.style.background = '#fef2f2';
             badge.style.borderColor = '#fca5a5';
             badge.style.color = '#991b1b';
-            if (badgeText) badgeText.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Lỗi kết nối khi quét OCR!';
+            const msg = err && err.message ? err.message : 'Lỗi kết nối khi quét OCR!';
+            if (badgeText) badgeText.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> ' + msg;
         }
     })
     .finally(() => {

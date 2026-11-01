@@ -164,7 +164,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'web.UserAccount'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+
+# Cấu hình MEDIA_ROOT an toàn trên Serverless / Vercel (chỉ /tmp có quyền ghi)
+if os.environ.get('VERCEL') or os.environ.get('AWS_LAMBDA_FUNCTION_NAME') or str(BASE_DIR).startswith('/var/task') or not os.access(str(BASE_DIR), os.W_OK):
+    MEDIA_ROOT = Path('/tmp/media')
+    FILE_UPLOAD_TEMP_DIR = '/tmp'
+else:
+    MEDIA_ROOT = BASE_DIR / 'media'
+
+try:
+    os.makedirs(MEDIA_ROOT, exist_ok=True)
+except Exception:
+    pass
 
 LOGIN_URL = 'login'
 AUTH_USER_MODEL = 'web.UserAccount'

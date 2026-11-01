@@ -1220,27 +1220,45 @@ function togglePhatHanhScope(scope) {
     }
 }
 
-function updateExternalEmailInfo(select) {
-    const opt = select.options[select.selectedIndex];
-    const email = opt ? opt.getAttribute('data-email') : '';
+function toggleSelectAllNgoai(master) {
+    const isChecked = !!(master && master.checked);
+    const checkboxes = document.querySelectorAll('.ph-ext-checkbox');
+    checkboxes.forEach(cb => { cb.checked = isChecked; });
+    updateSelectedExternalUnits();
+}
+
+function updateSelectedExternalUnits() {
+    const checkboxes = document.querySelectorAll('.ph-ext-checkbox');
+    const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
+    const countBadge = document.getElementById('ph_selected_count_badge');
+    if (countBadge) {
+        countBadge.textContent = 'Đã chọn: ' + checkedBoxes.length + ' đơn vị';
+    }
+
+    const selectAll = document.getElementById('ph_select_all_ngoai');
+    if (selectAll) {
+        selectAll.checked = checkboxes.length > 0 && checkedBoxes.length === checkboxes.length;
+        selectAll.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < checkboxes.length;
+    }
+
     const emailBox = document.getElementById('ph_email_info_box');
-    const missingBox = document.getElementById('ph_email_missing_box');
     const emailDisplay = document.getElementById('ph_email_display');
+    const emails = checkedBoxes
+        .map(cb => cb.getAttribute('data-email'))
+        .filter(email => email && email.trim() !== '');
 
-    if (!select.value) {
-        if (emailBox) emailBox.style.display = 'none';
-        if (missingBox) missingBox.style.display = 'none';
-        return;
+    if (emailBox && emailDisplay) {
+        if (emails.length > 0) {
+            emailDisplay.textContent = emails.join(', ');
+            emailBox.style.display = 'block';
+        } else {
+            emailBox.style.display = 'none';
+        }
     }
+}
 
-    if (email) {
-        if (emailDisplay) emailDisplay.textContent = email;
-        if (emailBox) emailBox.style.display = 'block';
-        if (missingBox) missingBox.style.display = 'none';
-    } else {
-        if (emailBox) emailBox.style.display = 'none';
-        if (missingBox) missingBox.style.display = 'block';
-    }
+function updateExternalEmailInfo(select) {
+    updateSelectedExternalUnits();
 }
 
 
@@ -1335,11 +1353,10 @@ function phatHanhVanBan(btnOrId) {
         radios[0].checked = true;
         togglePhatHanhScope('internal');
     }
-    const ph_donvi_ngoai = document.getElementById("ph_donvi_ngoai");
-    if (ph_donvi_ngoai) {
-        ph_donvi_ngoai.value = '';
-        updateExternalEmailInfo(ph_donvi_ngoai);
-    }
+    const selectAllNgoai = document.getElementById('ph_select_all_ngoai');
+    if (selectAllNgoai) { selectAllNgoai.checked = false; selectAllNgoai.indeterminate = false; }
+    document.querySelectorAll('.ph-ext-checkbox').forEach(cb => { cb.checked = false; });
+    updateSelectedExternalUnits();
     const ph_trichyeu = document.getElementById("ph_trichyeu");
     if (ph_trichyeu) ph_trichyeu.value = 'Đang tải thông tin...';
 
@@ -1374,8 +1391,10 @@ function phatHanhVanBan(btnOrId) {
                 }
 
                 // Nếu văn bản đã có sẵn đơn vị ngoài từ lúc tạo dự thảo
-                if (d.don_vi_ngoai_id && ph_donvi_ngoai) {
-                    ph_donvi_ngoai.value = d.don_vi_ngoai_id;
+                if (d.don_vi_ngoai_id) {
+                    const targetCb = document.querySelector('.ph-ext-checkbox[value="' + d.don_vi_ngoai_id + '"]');
+                    if (targetCb) targetCb.checked = true;
+                    updateSelectedExternalUnits();
                     if (d.don_vi_trong_id) {
                         const rBoth = document.querySelector('input[name="ph_scope"][value="both"]');
                         if (rBoth) { rBoth.checked = true; togglePhatHanhScope('both'); }
@@ -1383,7 +1402,6 @@ function phatHanhVanBan(btnOrId) {
                         const rExt = document.querySelector('input[name="ph_scope"][value="external"]');
                         if (rExt) { rExt.checked = true; togglePhatHanhScope('external'); }
                     }
-                    updateExternalEmailInfo(ph_donvi_ngoai);
                 }
             }
         })
@@ -1432,15 +1450,12 @@ function xacNhanPhatHanh() {
         }
     }
 
+    const checkedExtBoxes = Array.from(document.querySelectorAll('.ph-ext-checkbox:checked'));
+    const donViNgoaiIds = checkedExtBoxes.map(cb => cb.value);
+
     if (scope === 'external' || scope === 'both') {
-        if (ph_donvi_ngoai && !ph_donvi_ngoai.value) {
-            App.showAlert('Vui lòng chọn đơn vị bên ngoài nhận phát hành!');
-            return;
-        }
-        const opt = ph_donvi_ngoai.options[ph_donvi_ngoai.selectedIndex];
-        const email = opt ? opt.getAttribute('data-email') : '';
-        if (!email) {
-            App.showAlert('Đơn vị bên ngoài được chọn chưa có email cấu hình trong hệ thống! Vui lòng cập nhật email tại Quản lý đơn vị ngoài.');
+        if (donViNgoaiIds.length === 0) {
+            App.showAlert('Vui lòng chọn ít nhất một đơn vị bên ngoài nhận phát hành!');
             return;
         }
     }
@@ -1455,7 +1470,8 @@ function xacNhanPhatHanh() {
         ngay_ban_hanh: ngayBanHanh,
         ph_scope: scope,
         don_vi_trong_id: (scope === 'internal' || scope === 'both') ? (ph_phongban ? ph_phongban.value : null) : null,
-        don_vi_ngoai_id: (scope === 'external' || scope === 'both') ? (ph_donvi_ngoai ? ph_donvi_ngoai.value : null) : null,
+        don_vi_ngoai_id: donViNgoaiIds[0] || null,
+        don_vi_ngoai_ids: donViNgoaiIds,
         tieu_chi: {
             chu_ky: chkChuKy ? chkChuKy.checked : false,
             phu_luc: chkPhuLuc ? chkPhuLuc.checked : false,
