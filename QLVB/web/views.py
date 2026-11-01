@@ -7027,7 +7027,7 @@ def api_cap_nhat_xlvb(request):
 
             so_ky_hieu = request.POST.get('so_ky_hieu')
 
-            trang_thai_id = request.POST.get('trang_thai')
+            trang_thai_id = request.POST.get('trang_thai') or '1'
 
             noi_dung = request.POST.get('noi_dung')
 

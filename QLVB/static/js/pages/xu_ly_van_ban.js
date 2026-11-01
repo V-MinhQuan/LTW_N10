@@ -198,9 +198,13 @@ async function openModalC(modalId, docId, soKyHieu, nguoiXuLy, docType, fileUrl)
     const elSo = document.getElementById('upd-soKyHieu');
     const elNguoi = document.getElementById('upd-nguoiXuLy');
     const elType = document.getElementById('upd-docType');
+    const elTrangThai = document.getElementById('upd-trangThai');
+    const elNoiDung = document.getElementById('upd-noiDung');
     if (elSo) elSo.value = soKyHieu;
     if (elNguoi) elNguoi.value = nguoiXuLy;
     if (elType) elType.value = docType;
+    if (elTrangThai) elTrangThai.value = '1';
+    if (elNoiDung) elNoiDung.value = '';
 
     const newContainer = document.getElementById('upd-file-list-new');
     if (newContainer) newContainer.style.display = 'none';
@@ -353,13 +357,13 @@ async function saveAndClose(modalId) {
     if (modalId === 'modalCapNhat') {
         url = '/api/xu-ly-van-ban/cap-nhat/';
         const soKyHieu = document.getElementById('upd-soKyHieu').value;
-        const trangThai = document.getElementById('upd-trangThai').value;
-        const noiDung = document.getElementById('upd-noiDung').value;
+        const trangThai = (document.getElementById('upd-trangThai') ? document.getElementById('upd-trangThai').value : '1') || '1';
+        const noiDung = (document.getElementById('upd-noiDung').value || '').trim();
         const docType = document.getElementById('upd-docType').value;
         const fileInput = document.getElementById('upd-file');
 
-        if (!trangThai || !noiDung) {
-            App.showAlert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
+        if (!noiDung) {
+            App.showAlert('Vui lòng nhập nội dung cập nhật xử lý!');
             return;
         }
 
